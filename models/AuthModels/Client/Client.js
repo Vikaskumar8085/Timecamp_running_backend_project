@@ -12,6 +12,10 @@ const ClientRegistrationSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    Client_Name: {
+      type: String,
+      required: true,
+    },
     Client_Email: {
       type: String,
       required: true,
@@ -56,3 +60,14 @@ ClientRegistrationSchema.plugin(AutoIncrement, {
 
 const Client = mongoose.model("Client", ClientRegistrationSchema);
 module.exports = Client;
+
+// {
+//   "Company_Name": "Acme Corp",
+//   "Client_Name": "John Doe",
+//   "Client_Email": "john.doe@example.com",
+//   "Client_Phone": "1234567890",
+//   "Client_Address": "123 Main St",
+//   "Client_Postal_Code": 12345,
+//   "GstNumber": "GST123456",
+//   "Common_Id": 1
+// }

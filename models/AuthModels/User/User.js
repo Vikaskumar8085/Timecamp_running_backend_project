@@ -67,11 +67,15 @@ UserSchema.plugin(AutoIncrement, {
   start_seq: 1,
 });
 
-UserSchema.pre("save", async function (next) {
-  if (!this.isModified("Password")) return;
-
-
-  next();
-});
 const User = mongoose.model("User", UserSchema);
 module.exports = User;
+
+
+// {
+//   "FirstName": "John",
+//   "LastName": "Doe",
+//   "Email": "john.doe@example.com",
+//   "Password": "yourPassword",
+//   "Photo": "https://i.ibb.co/4pDNDk1/avatar.png",
+//   "Role": "Employee"
+// }
