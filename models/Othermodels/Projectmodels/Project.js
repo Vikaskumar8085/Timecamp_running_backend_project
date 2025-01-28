@@ -24,16 +24,17 @@ const ProjectSchema = mongoose.Schema({
     unique: true,
     trim: true,
   },
-  Project_Code: {
-    type: String,
-    required: true,
-    trim: true,
-  },
   Project_Name: {
     type: String,
     required: true,
     trim: true,
   },
+  Project_Code: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+
   Start_Date: {
     type: String,
     default: moment().format("DD/MM/YYYY"),
@@ -44,13 +45,10 @@ const ProjectSchema = mongoose.Schema({
       return moment().format("DD/MM/YYYY");
     },
   },
-  client: {
-    clientId: {
-      type: Number,
-      required: true,
-    },
+  clientId: {
+    type: Number,
+    required: true,
   },
-
   Project_Type: {
     type: String,
     required: false,
@@ -66,11 +64,9 @@ const ProjectSchema = mongoose.Schema({
     default: "InActive",
   },
   RoleResource: [roleRoesourceschema],
-  Project_Managers: {
-    PId: {
-      type: Number,
-      required: true,
-    },
+  Project_ManagersId: {
+    type: Number,
+    required: true,
   },
 });
 

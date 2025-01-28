@@ -8,10 +8,10 @@ const userCtr = {
   // register
   register: asynchandler(async (req, res) => {
     try {
-      const { FirstName, LastName, Email, Password, Term } = req.body;
+      const {FirstName, LastName, Email, Password, Term} = req.body;
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(Password, genhash);
-      const userExists = await User.findOne({ Email: req.body.Email });
+      const userExists = await User.findOne({Email: req.body.Email});
       if (userExists) {
         res.status(StatusCodes.BAD_REQUEST);
         throw new Error("Email has already been registered");
@@ -39,8 +39,11 @@ const userCtr = {
   }),
   // login
   login: asynchandler(async (req, res) => {
+    
     try {
-      const user = await User.findOne({
+      let user = null;
+
+      user = await User.findOne({
         Email: req.body.Email,
       }).select("+Password");
 
@@ -71,7 +74,7 @@ const userCtr = {
         throw new Error("User and Password Invalid");
       }
 
-      const token = await generateToken({ id: user._id });
+      const token = await generateToken({id: user._id});
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "login successfully",

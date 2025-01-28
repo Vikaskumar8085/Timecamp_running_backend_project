@@ -24,6 +24,10 @@ const ClientRegistrationSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    Password: {
+      type: String,
+      required: true,
+    },
     Client_Address: {
       type: String,
       required: true,
