@@ -185,3 +185,5 @@ indexRouter.post("/chart-data", async (req, res) => {
 });
 
 module.exports = indexRouter;
+
+// managed by role type of user crediantials

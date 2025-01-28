@@ -1,12 +1,35 @@
 const asyncHandler = require("express-async-handler");
 const Department = require("../../../models/MasterModels/Department/Department");
 const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
+const User = require("../../../models/AuthModels/User/User");
+const Company = require("../../../models/Othermodels/Companymodels/Company");
 
 const DepartmentCtr = {
   //   create department
   create_department: asyncHandler(async (req, res) => {
     try {
-      const response = await Department(req.body);
+      // check user
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      // check company
+
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+      console.log(checkcompany);
+
+      // create department
+
+      const response = await Department({
+        CompanyId: checkcompany.Company_Id,
+        Department_Name: req.body.Department_Name,
+      });
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("bad requests");
@@ -28,7 +51,27 @@ const DepartmentCtr = {
 
   fetch_department: asyncHandler(async (req, res) => {
     try {
-      const response = await Department.find().lean().exec();
+      // check user
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      // check company
+
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+      console.log(checkcompany);
+
+      const response = await Department.find({
+        CompanyId: checkcompany.Company_Id,
+      })
+        .lean()
+        .exec();
 
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
@@ -36,7 +79,7 @@ const DepartmentCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
