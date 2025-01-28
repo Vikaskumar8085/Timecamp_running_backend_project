@@ -63,6 +63,21 @@ const projectCtr = {
         RoleResource,
         Project_ManagersId,
       });
+
+      await response.save();
+
+      return res.status(HttpStatusCodes.CREATED).json({
+        message: "project created successfully",
+        result: response,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  bulkupload_projects: asyncHandler(async (req, res) => {
+    try {
     } catch (error) {
       throw new Error(error?.message);
     }

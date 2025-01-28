@@ -41,6 +41,10 @@ const ClientRegistrationSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    Role: {
+      type: String,
+      default: "Client",
+    },
 
     Common_Id: {
       type: Number,

@@ -31,7 +31,6 @@ const ProjectSchema = mongoose.Schema({
   },
   Project_Code: {
     type: String,
-    required: true,
     trim: true,
   },
 
@@ -92,29 +91,3 @@ ProjectSchema.path("Project_Code").validate(function (value) {
 
 const Project = mongoose.model("Project", ProjectSchema);
 module.exports = Project;
-
-// {
-//   "CompanyId": 1,
-//   "Project_Code": "PRJ001",
-//   "Project_Name": "Project Alpha",
-//   "Start_Date": "01/09/2024",
-//   "End_Date": "01/12/2024",
-//   "client": {
-//     "clientId": 101,
-//     "clientName": "Client XYZ"
-//   },
-//   "Project_Type": "Development",
-//   "Project_Managers": "Manager One",
-//   "Project_Status": "Active",
-//   "RoleResource": [
-//     {
-//       "RRId": 1,
-//       "RRName": "Admin",
-//       "RRemployee": "Employee A"
-//     }
-//   ],
-//   "Project_Manager": {
-//     "PId": 201,
-//     "Project_Manager_Name": "John Doe"
-//   }
-// }
