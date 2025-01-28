@@ -52,6 +52,7 @@ const DepartmentCtr = {
   fetch_department: asyncHandler(async (req, res) => {
     try {
       // check user
+
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
@@ -65,13 +66,14 @@ const DepartmentCtr = {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
-      console.log(checkcompany);
 
-      const response = await Department.find({
+      let QueryObj = {};
+
+      QueryObj = {
         CompanyId: checkcompany.Company_Id,
-      })
-        .lean()
-        .exec();
+      };
+
+      const response = await Department.find(QueryObj).lean().exec();
 
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
