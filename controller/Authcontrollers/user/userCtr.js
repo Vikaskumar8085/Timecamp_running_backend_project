@@ -78,7 +78,6 @@ const userCtr = {
         redirectUrl = "/dashboard";
       }
 
-      console.log(role, redirectUrl, user);
       // If not found, check the Employee model for phone match
       // if (!user && phone) {
       //   user = await Employee.findOne({Phone: phone});
@@ -109,21 +108,22 @@ const userCtr = {
 
       // User exists, check if password is correct
       const passwordIsCorrect = await bcrypt.compare(
-        user.Password,
-        req.body.Password
+        req.body.Password,
+        user.Password
       );
-      console.log(passwordIsCorrect);
-      // if (!passwordIsCorrect) {
-      //   res.status(HttpStatusCodes.BAD_REQUEST);
-      //   throw new Error("User and Password Invalid");
-      // }
 
-      // const token = await generateToken({id: user._id});
-      // return res.status(HttpStatusCodes.OK).json({
-      //   success: true,
-      //   message: "login successfully",
-      //   data: token,
-      // });
+      if (!passwordIsCorrect) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("User and Password Invalid");
+      }
+
+      const token = await generateToken({id: user._id});
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "login successfully",
+        data: token,
+        redirectUrl: redirectUrl,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }

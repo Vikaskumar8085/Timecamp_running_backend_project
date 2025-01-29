@@ -4,6 +4,7 @@ const User = require("../../../models/AuthModels/User/User");
 const Company = require("../../../models/Othermodels/Companymodels/Company");
 
 const adminCtr = {
+  // create admin ctr
   create_admin: asynchandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
@@ -12,7 +13,7 @@ const adminCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -26,14 +27,14 @@ const adminCtr = {
       } else {
         await createuser.save();
         await Company.updateOne(
-          { Company_Id: checkcompany?.Company_Id },
-          { $push: { UserId: createuser.user_id } }
+          {Company_Id: checkcompany?.Company_Id},
+          {$push: {UserId: createuser.user_id}}
         );
       }
 
       return res
         .status(HttpStatusCodes.CREATED)
-        .json({ success: true, message: "admin created successfully" });
+        .json({success: true, message: "admin created successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }

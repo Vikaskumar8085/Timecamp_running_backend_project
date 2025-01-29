@@ -23,7 +23,6 @@ const staffMemberSchema = mongoose.Schema(
     Email: {
       type: String,
       required: true,
-      unique: true,
       match: /.+\@.+\..+/,
     },
     Phone: {
@@ -38,7 +37,6 @@ const staffMemberSchema = mongoose.Schema(
     },
     Joining_Date: {
       type: String,
-      required: true,
       trim: true,
       required: false,
     },
@@ -54,7 +52,6 @@ const staffMemberSchema = mongoose.Schema(
     },
     Designation: {
       type: String,
-      required: true,
       trim: false,
     },
 

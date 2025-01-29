@@ -51,5 +51,152 @@ const clientCtr = {
   }),
 
   // fetch clients
+  fetch_client: asyncHandler(async (req, res) => {
+    try {
+      // check user
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      // check company
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {};
+      queryObj = {
+        Common_Id: company?.Company_Id,
+        Role: "Client",
+      };
+      const response = await Client.find(queryObj).lean().exec();
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        result: response,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // fetch active client
+
+  // fetch clients
+  fetch_active_client: asyncHandler(async (req, res) => {
+    try {
+      // check user
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      // check company
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {};
+      queryObj = {
+        Common_Id: company?.Company_Id,
+        Client_Status: "Active",
+        Role: "Client",
+      };
+      const response = await Client.find(queryObj).lean().exec();
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        result: response,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // In active client
+
+  fetch_inactive_client: asyncHandler(async (req, res) => {
+    try {
+      // check user
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      // check company
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {};
+      queryObj = {
+        Common_Id: company?.Company_Id,
+        Client_Status: "InActive",
+        Role: "Client",
+      };
+      const response = await Client.find(queryObj).lean().exec();
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        result: response,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // dead client
+  fetch_dead_client: asyncHandler(async (req, res) => {
+    try {
+      // check user
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      // check company
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {};
+      queryObj = {
+        Common_Id: company?.Company_Id,
+        Client_Status: "Dead",
+        Role: "Client",
+      };
+      const response = await Client.find(queryObj).lean().exec();
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        result: response,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 module.exports = clientCtr;
