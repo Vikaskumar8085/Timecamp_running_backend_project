@@ -13,7 +13,9 @@ const indexRouter = require("../routers");
 require("../config/dbconfig");
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin:"*"
+}));
 app.use(morgan("dev"));
 app.use(helmet());
 app.use(bodyParser.json({limit: "50mb"}));
