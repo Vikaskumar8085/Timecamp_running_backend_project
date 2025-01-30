@@ -121,7 +121,7 @@ const userCtr = {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "login successfully",
-        data: token,
+        token: token,
         redirectUrl: redirectUrl,
       });
     } catch (error) {
