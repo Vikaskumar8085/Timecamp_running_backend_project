@@ -19,7 +19,10 @@ const MilestoneSchema = new mongoose.Schema({
     ref: "Project",
     required: true,
   },
-
+  Name: {
+    type: String,
+    required: true,
+  },
   Description: {
     type: String,
     maxlength: 1000,

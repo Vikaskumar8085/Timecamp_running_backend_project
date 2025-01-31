@@ -56,6 +56,12 @@ adminRouter.get(
   employeeCtr.fetch_inactive_employee
 );
 
+adminRouter.get(
+  "/fetch-single-employee/:id",
+  verifyToken,
+  employeeCtr.fetch_single_employee
+);
+
 // contractor
 adminRouter.post(
   "/create-contractor",
@@ -78,6 +84,6 @@ adminRouter.get(
   contractorCtr.fetch_inactive_contractor
 );
 
-
+adminRouter.get("/fetch-single-contractor/:id",verifyToken,contractorCtr.fetch_single_contractor);
 
 module.exports = adminRouter;

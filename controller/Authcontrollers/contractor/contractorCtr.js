@@ -4,6 +4,7 @@ const Company = require("../../../models/Othermodels/Companymodels/Company");
 const bcrypt = require("bcryptjs");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
+const Project = require("../../../models/Othermodels/Projectmodels/Project");
 
 const contractorCtr = {
   // create contractor
@@ -16,7 +17,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -76,7 +77,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -112,7 +113,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -149,7 +150,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -170,6 +171,74 @@ const contractorCtr = {
       return res.status(HttpStatusCodes.OK).json({
         result: response,
         success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // fetch by id contractor
+
+  fetch_single_contractor: asynchandler(async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // chcek companys
+      const company = await Company?.findOne({ UserId: user?.user_id });
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const response = await StaffMember.findOne({ staff_Id: parseInt(id) })
+        .lean()
+        .exec();
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Not Found");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        message: "fetch successfully contractor",
+        result: response,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetch_contractor_projects: asynchandler(async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await User.findById(req.user).lean().exec();
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      const checkcompany = await Company.findOne({ UserId: user.user_id })
+        .lean()
+        .exec();
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+
+      let queryObj = {};
+
+      const response = await Project.find(queryObj).lean().exec();
+
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("bad Requests");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        result: response,
+        success: true,
+        message: "fetch contractor data successfully",
       });
     } catch (error) {
       throw new Error(error?.message);

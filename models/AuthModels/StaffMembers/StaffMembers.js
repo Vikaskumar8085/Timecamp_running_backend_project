@@ -113,7 +113,7 @@ const staffMemberSchema = mongoose.Schema(
 
     //
   },
-  {timestamps: true}
+  { timestamps: true }
 );
 
 staffMemberSchema.plugin(AutoIncrement, {

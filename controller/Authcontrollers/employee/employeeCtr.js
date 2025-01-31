@@ -4,6 +4,7 @@ const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 const Company = require("../../../models/Othermodels/Companymodels/Company");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 const bcrypt = require("bcryptjs");
+const Project = require("../../../models/Othermodels/Projectmodels/Project");
 
 const employeeCtr = {
   // create employee
@@ -16,7 +17,7 @@ const employeeCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -76,7 +77,7 @@ const employeeCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -112,7 +113,7 @@ const employeeCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -149,7 +150,7 @@ const employeeCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -166,6 +167,71 @@ const employeeCtr = {
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad request");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        result: response,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetch_single_employee: asyncHandler(async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // chcek companys
+      const company = await Company?.findOne({ UserId: user?.user_id });
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const response = await StaffMember.findOne({ staff_Id: parseInt(id) })
+        .lean()
+        .exec();
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Not Found");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        message: "fetch successfully Employee",
+        result: response,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetch_employee_projects: asyncHandler(async (req, res) => {
+    try {
+      const { id } = req.params;
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized User Please singup");
+      }
+      const checkcompany = await Company.findOne({ UserId: user.user_id })
+        .lean()
+        .exec();
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+
+      let queryObj = {};
+
+      const response = await Project.find(queryObj).lean().exec();
+
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
       }
       return res.status(HttpStatusCodes.OK).json({
         result: response,

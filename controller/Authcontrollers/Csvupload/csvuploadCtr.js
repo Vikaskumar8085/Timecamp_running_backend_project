@@ -200,58 +200,77 @@ const csvuploadCtr = {
   }),
   //   Timesheet csv
   generateTimesheetcsv: asyncHandler(async (req, res) => {}),
+
   uploadclientcsv: asyncHandler(async (req, res) => {
     try {
-      // Check if file exists
-      if (!req.file) {
-        return res.status(400).json({error: "No file uploaded"});
-      }
-      // Validate file type (allow only CSV)
-      const fileType = req.file.mimetype;
-      if (fileType !== "text/csv" && fileType !== "application/vnd.ms-excel") {
-        fs.unlinkSync(req.file.path); // Delete invalid file
-        return res
-          .status(400)
-          .json({error: "Invalid file type. Please upload a CSV file."});
-      }
-      const filePath = req.file.path;
-      const bulkOps = []; // Array to store bulk operations
-      fs.createReadStream(filePath)
-        .pipe(csvParser())
-        .on("data", (row) => {
-          // Convert row fields to match the database schema
-          const document = {
-            Company_Name: row.Company_Name,
-            Client_Name: row.Client_Name,
-            age: parseInt(row.age, 10), // Convert age to a number
-          };
-          // Push update operation into bulkOps
-          bulkOps.push({
-            updateOne: {
-              filter: {email: document.email}, // Use email as the unique identifier
-              update: {$set: document},
-              upsert: true, // Insert the document if it doesn't exist
-            },
-          });
-        })
+      // if (!req.file) {
+      //   return res.status(400).json({ error: "No file uploaded" });
+      // }
+      const results = [];
+      fs.createReadStream(req.file.path)
+        .pipe(csv())
+        .on("data", (data) => results.push(data))
         .on("end", async () => {
-          try {
-            // Perform bulk write operation
-            await Client.bulkWrite(bulkOps);
-            fs.unlinkSync(filePath); // Delete file after processing
-            res.json({message: "CSV uploaded and data updated successfully"});
-          } catch (dbError) {
-            fs.unlinkSync(filePath); // Ensure file is deleted
-            res.status(500).json({error: "Error saving data to the database."});
-          }
-        })
-        .on("error", (parseError) => {
-          fs.unlinkSync(filePath); // Ensure file is deleted
-          res.status(500).json({error: "Error parsing the CSV file."});
+          await Client.insertMany(results); // Bulk insert
+          fs.unlinkSync(req.file.path); // Delete file after processing
+          res.send({ message: "File uploaded and data inserted successfully" });
         });
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
+  // uploadclientcsv: asyncHandler(async (req, res) => {
+  //   try {
+  //     // Check if file exists
+  //     if (!req.file) {
+  //       return res.status(400).json({error: "No file uploaded"});
+  //     }
+  //     // Validate file type (allow only CSV)
+  //     const fileType = req.file.mimetype;
+  //     if (fileType !== "text/csv" && fileType !== "application/vnd.ms-excel") {
+  //       fs.unlinkSync(req.file.path); // Delete invalid file
+  //       return res
+  //         .status(400)
+  //         .json({error: "Invalid file type. Please upload a CSV file."});
+  //     }
+  //     const filePath = req.file.path;
+  //     const bulkOps = []; // Array to store bulk operations
+  //     fs.createReadStream(filePath)
+  //       .pipe(csvParser())
+  //       .on("data", (row) => {
+  //         // Convert row fields to match the database schema
+  //         const document = {
+  //           Company_Name: row.Company_Name,
+  //           Client_Name: row.Client_Name,
+  //           age: parseInt(row.age, 10), // Convert age to a number
+  //         };
+  //         // Push update operation into bulkOps
+  //         bulkOps.push({
+  //           updateOne: {
+  //             filter: {email: document.email}, // Use email as the unique identifier
+  //             update: {$set: document},
+  //             upsert: true, // Insert the document if it doesn't exist
+  //           },
+  //         });
+  //       })
+  //       .on("end", async () => {
+  //         try {
+  //           // Perform bulk write operation
+  //           await Client.bulkWrite(bulkOps);
+  //           fs.unlinkSync(filePath); // Delete file after processing
+  //           res.json({message: "CSV uploaded and data updated successfully"});
+  //         } catch (dbError) {
+  //           fs.unlinkSync(filePath); // Ensure file is deleted
+  //           res.status(500).json({error: "Error saving data to the database."});
+  //         }
+  //       })
+  //       .on("error", (parseError) => {
+  //         fs.unlinkSync(filePath); // Ensure file is deleted
+  //         res.status(500).json({error: "Error parsing the CSV file."});
+  //       });
+  //   } catch (error) {
+  //     throw new Error(error?.message);
+  //   }
+  // }),
 };
 module.exports = csvuploadCtr;
