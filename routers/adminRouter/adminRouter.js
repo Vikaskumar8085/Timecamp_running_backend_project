@@ -29,7 +29,18 @@ adminRouter.get("/fetch-dead-client", verifyToken, clientCtr.fetch_dead_client);
 
 // create project
 
-adminRouter.post("/create-projects", verifyToken, projectCtr.create_Project);
+adminRouter.post("/create-projects", verifyToken, projectCtr.addProject);
+adminRouter.get("/fetch-projects", verifyToken, projectCtr.fetch_projects);
+adminRouter.get(
+  "/fetch-inactive-projects",
+  verifyToken,
+  projectCtr.fetch_inactive_projects
+);
+adminRouter.get(
+  "/fetch-active-projects",
+  verifyToken,
+  projectCtr.fetch_active_projects
+);
 
 // employee
 adminRouter.post("/create-employee", verifyToken, employeeCtr.create_employee);
@@ -66,5 +77,7 @@ adminRouter.get(
   verifyToken,
   contractorCtr.fetch_inactive_contractor
 );
+
+
 
 module.exports = adminRouter;

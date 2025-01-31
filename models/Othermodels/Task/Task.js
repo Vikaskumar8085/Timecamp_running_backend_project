@@ -30,7 +30,7 @@ const TaskSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    Milestone_Name: {
+    Milestone: {
       type: String,
       ref: "Milestone",
       required: true,

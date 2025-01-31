@@ -9,6 +9,7 @@ const ChartData = require("../models/Chart");
 const jwt = require("jsonwebtoken");
 const userRouter = require("./userRouter/userRouter");
 const masterRouter = require("./masterRouter/masterRouter");
+const uploadcsvRouter = require("./Uploadcsv/uploadcsvRouter");
 
 const upload = multer({dest: "uploads/"});
 
@@ -17,6 +18,7 @@ const indexRouter = express.Router();
 indexRouter.use("/v1/user", userRouter);
 indexRouter.use("/v1/admin", adminRouter);
 indexRouter.use("/v1/master", masterRouter);
+indexRouter.use("/v1/csv-upload", uploadcsvRouter);
 // index router check authentication
 
 // indexRouter.post("/login", async (req, res) => {

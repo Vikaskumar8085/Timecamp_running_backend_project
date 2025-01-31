@@ -52,34 +52,38 @@ const adminCtr = {
       const getAdminuser = await Company.findOne({UserId: user?.user_id});
       if (!getAdminuser) {
       }
-      const result = await User.aggregate([
-        // Stage 2: Lookup to join with the Company collection
-        {
-          $lookup: {
-            from: "companies", // The collection to join with
-            localField: "user_id", // The field from the User collection
-            foreignField: "UserId", // The field from the Company collection
-            as: "companyDetails", // The output array field
-          },
-        },
+      // const result = await User.aggregate([
+      //   // Stage 2: Lookup to join with the Company collection
+      //   {
+      //     $lookup: {
+      //       from: "companies", // The collection to join with
+      //       localField: "user_id", // The field from the User collection
+      //       foreignField: "UserId", // The field from the Company collection
+      //       as: "companyDetails", // The output array field
+      //     },
+      //   },
 
-        // Stage 3: Optionally, unwind the array if it contains a single document
-        {
-          $unwind: {
-            path: "$companyDetails",
-            preserveNullAndEmptyArrays: false,
-          },
-        },
-        {
-          $project: {
-            FirstName: 1,
-            LastName: 1,
-            Email: 1,
-            Photo: 1,
-            Role: 1,
-          },
-        },
-      ]);
+      //   // Stage 3: Optionally, unwind the array if it contains a single document
+      //   {
+      //     $unwind: {
+      //       path: "$companyDetails",
+      //       preserveNullAndEmptyArrays: false,
+      //     },
+      //   },
+      //   {
+      //     $project: {
+      //       FirstName: 1,
+      //       LastName: 1,
+      //       Email: 1,
+      //       Photo: 1,
+      //       Role: 1,
+      //     },
+      //   },
+      // ]);
+
+      let QueryObj = {};
+      QueryObj = {user_id: getAdminuser.UserId};
+      const result = await User.find(QueryObj).lean().exec();
 
       return res.status(200).json({
         success: true,

@@ -2,17 +2,6 @@ const mongoose = require("mongoose");
 const AutoIncrement = require("mongoose-sequence")(mongoose);
 const moment = require("moment");
 
-const roleRoesourceschema = new mongoose.Schema({
-  RRId: {
-    type: Number,
-    required: true,
-  },
-  RRName: {
-    type: String,
-    required: true,
-  },
-});
-
 const ProjectSchema = mongoose.Schema({
   CompanyId: {
     type: Number,
@@ -48,6 +37,9 @@ const ProjectSchema = mongoose.Schema({
     type: Number,
     required: true,
   },
+  Client_Email: {
+    type: String,
+  },
   Project_Type: {
     type: String,
     required: false,
@@ -62,7 +54,23 @@ const ProjectSchema = mongoose.Schema({
     enum: ["Active", "InActive"],
     default: "InActive",
   },
-  RoleResource: [roleRoesourceschema],
+  RoleResource: [
+    {
+      RRId: {
+        type: Number,
+        required: true,
+      },
+      RRName: {
+        type: String,
+        required: true,
+      },
+    },
+  ],
+
+  ResourseEmail: {
+    type: String,
+    default: "",
+  },
   Project_ManagersId: {
     type: Number,
     required: true,
@@ -83,11 +91,11 @@ ProjectSchema.pre("save", async function (next) {
 });
 
 // Define custom validation for Project_Code
-ProjectSchema.path("Project_Code").validate(function (value) {
-  // Check if Project_Code is in the correct format
-  const regex = /^PRJ\d{3}$/;
-  return regex.test(value);
-}, "Invalid Project_Code format");
+// ProjectSchema.path("Project_Code").validate(function (value) {
+//   // Check if Project_Code is in the correct format
+//   const regex = /^PRJ\d{3}$/;
+//   return regex.test(value);
+// }, "Invalid Project_Code format");
 
 const Project = mongoose.model("Project", ProjectSchema);
 module.exports = Project;
