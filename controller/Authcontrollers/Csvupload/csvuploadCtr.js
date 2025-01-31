@@ -41,7 +41,165 @@ const csvuploadCtr = {
       throw new Error(error?.message);
     }
   }),
+  generateEmployeecsv: asyncHandler(async (req, res) => {
+    try {
+      // const checkemployee = await
 
+      const schemaFields = Object.keys(Client.schema.paths).filter(
+        (field) =>
+          field !== "_id" &&
+          field !== "Common_Id" &&
+          field !== "_V" &&
+          field !== "Role" &&
+          field !== "Client_Id" &&
+          field !== "Password" &&
+          field !== "__v" &&
+          field !== "createdAt" &&
+          field !== "updatedAt"
+      );
+      // console.log(schemaFields)
+      // Convert to CSV format
+      const csvContent = schemaFields.join(",") + "\n";
+      // Define file path
+      const filePath = path.join(__dirname, "schema_fields.csv");
+
+      // Write CSV file
+      fs.writeFileSync(filePath, csvContent, "utf8");
+
+      //   res.download(filePath)
+      //   console.log(`CSV file created: ${filePath}`);
+      //   const filePath = path.join(__dirname, "schema_fields.csv");
+      res.download(filePath, "schema_fields.csv", (err) => {
+        if (err) {
+          console.error("Error downloading file:", err);
+          res.status(500).send("Error downloading file");
+        }
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  //   generate contractor csv
+  generateContractorcsv: asyncHandler(async (req, res) => {
+    try {
+      // const checkemployee = await
+
+      const schemaFields = Object.keys(Client.schema.paths).filter(
+        (field) =>
+          field !== "_id" &&
+          field !== "Common_Id" &&
+          field !== "_V" &&
+          field !== "Role" &&
+          field !== "Client_Id" &&
+          field !== "Password" &&
+          field !== "__v" &&
+          field !== "createdAt" &&
+          field !== "updatedAt"
+      );
+      // console.log(schemaFields)
+      // Convert to CSV format
+      const csvContent = schemaFields.join(",") + "\n";
+      // Define file path
+      const filePath = path.join(__dirname, "schema_fields.csv");
+
+      // Write CSV file
+      fs.writeFileSync(filePath, csvContent, "utf8");
+
+      //   res.download(filePath)
+      //   console.log(`CSV file created: ${filePath}`);
+      //   const filePath = path.join(__dirname, "schema_fields.csv");
+      res.download(filePath, "schema_fields.csv", (err) => {
+        if (err) {
+          console.error("Error downloading file:", err);
+          res.status(500).send("Error downloading file");
+        }
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  //   generate Project csv
+  generateProjectcsv: asyncHandler(async (req, res) => {
+    try {
+      // const checkemployee = await
+
+      const schemaFields = Object.keys(Client.schema.paths).filter(
+        (field) =>
+          field !== "_id" &&
+          field !== "Common_Id" &&
+          field !== "_V" &&
+          field !== "Role" &&
+          field !== "Client_Id" &&
+          field !== "Password" &&
+          field !== "__v" &&
+          field !== "createdAt" &&
+          field !== "updatedAt"
+      );
+      // console.log(schemaFields)
+      // Convert to CSV format
+      const csvContent = schemaFields.join(",") + "\n";
+      // Define file path
+      const filePath = path.join(__dirname, "schema_fields.csv");
+
+      // Write CSV file
+      fs.writeFileSync(filePath, csvContent, "utf8");
+
+      //   res.download(filePath)
+      //   console.log(`CSV file created: ${filePath}`);
+      //   const filePath = path.join(__dirname, "schema_fields.csv");
+      res.download(filePath, "schema_fields.csv", (err) => {
+        if (err) {
+          console.error("Error downloading file:", err);
+          res.status(500).send("Error downloading file");
+        }
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // generate Task csv
+  generateTaskcsv: asyncHandler(async (req, res) => {
+    try {
+      // const checkemployee = await
+
+      const schemaFields = Object.keys(Client.schema.paths).filter(
+        (field) =>
+          field !== "_id" &&
+          field !== "Common_Id" &&
+          field !== "_V" &&
+          field !== "Role" &&
+          field !== "Client_Id" &&
+          field !== "Password" &&
+          field !== "__v" &&
+          field !== "createdAt" &&
+          field !== "updatedAt"
+      );
+      // console.log(schemaFields)
+      // Convert to CSV format
+      const csvContent = schemaFields.join(",") + "\n";
+      // Define file path
+      const filePath = path.join(__dirname, "schema_fields.csv");
+
+      // Write CSV file
+      fs.writeFileSync(filePath, csvContent, "utf8");
+
+      //   res.download(filePath)
+      //   console.log(`CSV file created: ${filePath}`);
+      //   const filePath = path.join(__dirname, "schema_fields.csv");
+      res.download(filePath, "schema_fields.csv", (err) => {
+        if (err) {
+          console.error("Error downloading file:", err);
+          res.status(500).send("Error downloading file");
+        }
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  //   Timesheet csv
+  generateTimesheetcsv: asyncHandler(async (req, res) => {}),
   uploadclientcsv: asyncHandler(async (req, res) => {
     try {
       // Check if file exists
