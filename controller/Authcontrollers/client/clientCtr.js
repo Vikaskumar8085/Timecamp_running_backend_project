@@ -4,6 +4,7 @@ const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 const User = require("../../../models/AuthModels/User/User");
 const Company = require("../../../models/Othermodels/Companymodels/Company");
 const bcrypt = require("bcryptjs");
+const Project = require("../../../models/Othermodels/Projectmodels/Project");
 
 const clientCtr = {
   // create client
@@ -193,6 +194,73 @@ const clientCtr = {
       return res.status(HttpStatusCodes.OK).json({
         result: response,
         success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetch_single_client: asyncHandler(async (req, res) => {
+    try {
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // check company
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+      // response
+      const response = await Client.findOne({Client_Id: req.params.id})
+        .lean()
+        .exec();
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        result: response,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // fetch client projects
+
+  fetch_client_projects: asyncHandler(async (req, res) => {
+    try {
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // check company
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {};
+      queryObj = {
+        clientId: req.params.id,
+        CompanyId: company.Company_Id,
+      };
+      const response = await Project.find(queryObj).lean().exec();
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Project Not Found");
+      }
+
+      return res.status(HttpStatusCodes.OK).json({
+        message: "fetch successfully client projects",
+        success: true,
+        result: response,
       });
     } catch (error) {
       throw new Error(error?.message);

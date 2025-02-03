@@ -60,8 +60,8 @@ const ProjectSchema = mongoose.Schema({
         type: Number,
         required: true,
       },
-      RRName: {
-        type: String,
+      RId: {
+        type: Number,
         required: true,
       },
     },

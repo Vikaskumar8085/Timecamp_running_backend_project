@@ -12,4 +12,5 @@ userRouter.get("/fetch-company", verifyToken, companyCtr.fetch_company);
 // user registeration
 userRouter.post("/user_register", userCtr.register);
 userRouter.post("/login", userCtr.login);
+userRouter.get("/get-user", verifyToken, userCtr.getUserProfile);
 module.exports = userRouter;
