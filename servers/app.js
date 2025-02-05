@@ -14,9 +14,11 @@ const csvuploadCtr = require("../controller/Authcontrollers/Csvupload/csvuploadC
 require("../config/dbconfig");
 
 const app = express();
-app.use(cors({
-  origin:"*"
-}));
+app.use(
+  cors({
+    origin: "*",
+  })
+);
 app.use(morgan("dev"));
 app.use(helmet());
 app.use(bodyParser.json({limit: "50mb"}));
@@ -24,7 +26,8 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(hpp());
 app.use(mongoSanitize());
 app.use("/api", indexRouter);
-app.get("/client-data",csvuploadCtr.generateClientCsvFile)
+app.get("/client-data", csvuploadCtr.generateClientCsvFile);
+app.get("/employee-csv", csvuploadCtr.generateEmployeecsv);
 app.use(globalErrorHanadler);
 app.use(NotFoundHandler);
 

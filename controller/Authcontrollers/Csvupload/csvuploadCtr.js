@@ -1,9 +1,12 @@
 const asyncHandler = require("express-async-handler");
 const fs = require("fs");
 const path = require("path");
-const mongoose = require("mongoose");
 const Client = require("../../../models/AuthModels/Client/Client");
-
+const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
+const csvParser = require("csv-parser");
+const xlsx = require("xlsx");
+const mongoose = require("mongoose");
+const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 const csvuploadCtr = {
   generateClientCsvFile: asyncHandler(async (req, res) => {
     try {
@@ -45,13 +48,23 @@ const csvuploadCtr = {
     try {
       // const checkemployee = await
 
-      const schemaFields = Object.keys(Client.schema.paths).filter(
+      const schemaFields = Object.keys(StaffMember.schema.paths).filter(
         (field) =>
           field !== "_id" &&
-          field !== "Common_Id" &&
+          field !== "CompanyId" &&
           field !== "_V" &&
+          field !== "staff_Id" &&
+          field !== "IsActive" &&
+          field !== "Password" &&
           field !== "Role" &&
-          field !== "Client_Id" &&
+          field !== "SubRole" &&
+          field !== "SubRole" &&
+          field !== "Manager" &&
+          field !== "Manager.ManagerId" &&
+          field !== "Manager.Manager_Name" &&
+          field !== "Permission" &&
+          field !== "Backlog_Entries" &&
+          field !== "Photos" &&
           field !== "Password" &&
           field !== "__v" &&
           field !== "createdAt" &&
@@ -61,7 +74,7 @@ const csvuploadCtr = {
       // Convert to CSV format
       const csvContent = schemaFields.join(",") + "\n";
       // Define file path
-      const filePath = path.join(__dirname, "schema_fields.csv");
+      const filePath = path.join(__dirname, "Employee.csv");
 
       // Write CSV file
       fs.writeFileSync(filePath, csvContent, "utf8");
@@ -69,7 +82,7 @@ const csvuploadCtr = {
       //   res.download(filePath)
       //   console.log(`CSV file created: ${filePath}`);
       //   const filePath = path.join(__dirname, "schema_fields.csv");
-      res.download(filePath, "schema_fields.csv", (err) => {
+      res.download(filePath, "Employee.csv", (err) => {
         if (err) {
           console.error("Error downloading file:", err);
           res.status(500).send("Error downloading file");
@@ -85,13 +98,23 @@ const csvuploadCtr = {
     try {
       // const checkemployee = await
 
-      const schemaFields = Object.keys(Client.schema.paths).filter(
+      const schemaFields = Object.keys(StaffMember.schema.paths).filter(
         (field) =>
           field !== "_id" &&
-          field !== "Common_Id" &&
+          field !== "CompanyId" &&
           field !== "_V" &&
+          field !== "staff_Id" &&
+          field !== "IsActive" &&
+          field !== "Password" &&
           field !== "Role" &&
-          field !== "Client_Id" &&
+          field !== "SubRole" &&
+          field !== "SubRole" &&
+          field !== "Manager" &&
+          field !== "Manager.ManagerId" &&
+          field !== "Manager.Manager_Name" &&
+          field !== "Permission" &&
+          field !== "Backlog_Entries" &&
+          field !== "Photos" &&
           field !== "Password" &&
           field !== "__v" &&
           field !== "createdAt" &&
@@ -101,7 +124,7 @@ const csvuploadCtr = {
       // Convert to CSV format
       const csvContent = schemaFields.join(",") + "\n";
       // Define file path
-      const filePath = path.join(__dirname, "schema_fields.csv");
+      const filePath = path.join(__dirname, "contractor.csv");
 
       // Write CSV file
       fs.writeFileSync(filePath, csvContent, "utf8");
@@ -109,7 +132,7 @@ const csvuploadCtr = {
       //   res.download(filePath)
       //   console.log(`CSV file created: ${filePath}`);
       //   const filePath = path.join(__dirname, "schema_fields.csv");
-      res.download(filePath, "schema_fields.csv", (err) => {
+      res.download(filePath, "contractor.csv", (err) => {
         if (err) {
           console.error("Error downloading file:", err);
           res.status(500).send("Error downloading file");
@@ -203,74 +226,131 @@ const csvuploadCtr = {
 
   uploadclientcsv: asyncHandler(async (req, res) => {
     try {
-      // if (!req.file) {
-      //   return res.status(400).json({ error: "No file uploaded" });
-      // }
-      const results = [];
-      fs.createReadStream(req.file.path)
-        .pipe(csv())
-        .on("data", (data) => results.push(data))
-        .on("end", async () => {
-          await Client.insertMany(results); // Bulk insert
-          fs.unlinkSync(req.file.path); // Delete file after processing
-          res.send({ message: "File uploaded and data inserted successfully" });
-        });
+      if (!req.file) {
+        return res.status(400).json({error: "No file uploaded."});
+      }
+      const filePath = req.file.path;
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(sheet);
+
+      const insertdata = [];
+
+      for await (let newdata of data) {
+        const clientdata = await Client(newdata);
+        const saveclient = await clientdata.save();
+        insertdata.push(saveclient);
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: insertdata,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
-  // uploadclientcsv: asyncHandler(async (req, res) => {
-  //   try {
-  //     // Check if file exists
-  //     if (!req.file) {
-  //       return res.status(400).json({error: "No file uploaded"});
-  //     }
-  //     // Validate file type (allow only CSV)
-  //     const fileType = req.file.mimetype;
-  //     if (fileType !== "text/csv" && fileType !== "application/vnd.ms-excel") {
-  //       fs.unlinkSync(req.file.path); // Delete invalid file
-  //       return res
-  //         .status(400)
-  //         .json({error: "Invalid file type. Please upload a CSV file."});
-  //     }
-  //     const filePath = req.file.path;
-  //     const bulkOps = []; // Array to store bulk operations
-  //     fs.createReadStream(filePath)
-  //       .pipe(csvParser())
-  //       .on("data", (row) => {
-  //         // Convert row fields to match the database schema
-  //         const document = {
-  //           Company_Name: row.Company_Name,
-  //           Client_Name: row.Client_Name,
-  //           age: parseInt(row.age, 10), // Convert age to a number
-  //         };
-  //         // Push update operation into bulkOps
-  //         bulkOps.push({
-  //           updateOne: {
-  //             filter: {email: document.email}, // Use email as the unique identifier
-  //             update: {$set: document},
-  //             upsert: true, // Insert the document if it doesn't exist
-  //           },
-  //         });
-  //       })
-  //       .on("end", async () => {
-  //         try {
-  //           // Perform bulk write operation
-  //           await Client.bulkWrite(bulkOps);
-  //           fs.unlinkSync(filePath); // Delete file after processing
-  //           res.json({message: "CSV uploaded and data updated successfully"});
-  //         } catch (dbError) {
-  //           fs.unlinkSync(filePath); // Ensure file is deleted
-  //           res.status(500).json({error: "Error saving data to the database."});
-  //         }
-  //       })
-  //       .on("error", (parseError) => {
-  //         fs.unlinkSync(filePath); // Ensure file is deleted
-  //         res.status(500).json({error: "Error parsing the CSV file."});
-  //       });
-  //   } catch (error) {
-  //     throw new Error(error?.message);
-  //   }
-  // }),
+  uploadcontractorcsv: asyncHandler(async (req, res) => {
+    try {
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  uploademployeecsv: asyncHandler(async (req, res) => {
+    try {
+    } catch (error) {}
+  }),
+  uploadTaskcsv: asyncHandler(async (req, res) => {
+    try {
+    } catch (error) {}
+  }),
+  uploadprojectCsv: asyncHandler(async (req, res) => {
+    try {
+    } catch (error) {}
+  }),
+  uploadTimesheetCsv: asyncHandler(async (req, res) => {
+    try {
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 module.exports = csvuploadCtr;
+
+// const express = require('express');
+// const multer = require('multer');
+// const xlsx = require('xlsx');
+// const path = require('path');
+
+// // Initialize Express app
+// const app = express();
+// const port = 3000;
+
+// // Set up multer storage engine
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, 'uploads/');  // specify the folder to store files
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, Date.now() + path.extname(file.originalname));  // set a unique file name
+//   },
+// });
+
+// const upload = multer({ storage });
+
+// // Endpoint to handle file upload
+// app.post('/upload', upload.single('file'), (req, res) => {
+//   if (!req.file) {
+//     return res.status(400).send({
+//       success: false,
+//       message: 'No file uploaded.',
+//     });
+//   }
+
+//   // Process the uploaded file
+//   const filePath = req.file.path;
+//   const workbook = xlsx.readFile(filePath);
+
+//   // Convert the first sheet to JSON
+//   const sheetName = workbook.SheetNames[0];
+//   const sheet = workbook.Sheets[sheetName];
+//   const data = xlsx.utils.sheet_to_json(sheet);
+
+//   // Validate for duplicates (assumes `uniqueId` is the unique column)
+//   const seen = new Set();
+//   const duplicates = [];
+
+//   data.forEach((row, index) => {
+//     if (seen.has(row.uniqueId)) {
+//       duplicates.push({
+//         row,
+//         index,
+//       });
+//     } else {
+//       seen.add(row.uniqueId);
+//     }
+//   });
+
+//   if (duplicates.length > 0) {
+//     // Return an error response with the duplicate details
+//     return res.status(400).json({
+//       success: false,
+//       message: 'Duplicate data found.',
+//       duplicates: duplicates.map(duplicate => ({
+//         index: duplicate.index,
+//         row: duplicate.row,
+//       })),
+//     });
+//   }
+
+//   // If no duplicates, return the data
+//   res.json({
+//     success: true,
+//     data,
+//   });
+// });
+
+// // Start server
+// app.listen(port, () => {
+//   console.log(`Server is running on http://localhost:${port}`);
+// });

@@ -7,6 +7,7 @@ const moment = require("moment");
 const fs = require("fs");
 const csvParser = require("csv-parser");
 const Role = require("../../models/MasterModels/Roles/Roles");
+const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
 const generateProjectCode = async () => {
   const lastProject = await Project.findOne().sort({ProjectId: -1});
   const lastId = lastProject ? lastProject.ProjectId : 0;
@@ -228,7 +229,7 @@ const projectCtr = {
       }
 
       let queryObj = {
-        CompanyId: checkcompany.Company_Id,
+        CompanyId: company.Company_Id,
       };
 
       const response = await Project.find(queryObj).lean().exec();
@@ -333,7 +334,38 @@ const projectCtr = {
     }
   }),
 
-  // 
+  //
+  fetchstaffmembers: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User");
+      }
+
+      // check company
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {
+        CompanyId: company.Company_Id,
+      };
+      const response = await StaffMember.find(queryObj).lean().exec();
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("bad requests");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: response,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = projectCtr;

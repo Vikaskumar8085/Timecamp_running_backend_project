@@ -50,6 +50,11 @@ adminRouter.get(
   verifyToken,
   projectCtr.fetch_active_projects
 );
+adminRouter.get(
+  "/fetch-staff-members",
+  verifyToken,
+  projectCtr.fetchstaffmembers
+);
 
 // employee
 adminRouter.post("/create-employee", verifyToken, employeeCtr.create_employee);

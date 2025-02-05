@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const AutoIncrement = require("mongoose-sequence")(mongoose);
+const bcrypt = require("bcryptjs");
 
 const ClientRegistrationSchema = mongoose.Schema(
   {
@@ -10,36 +11,36 @@ const ClientRegistrationSchema = mongoose.Schema(
     },
     Company_Name: {
       type: String,
-      required: true,
+      required: false,
     },
     Client_Name: {
       type: String,
-      required: true,
+      required: false,
     },
     Client_Email: {
       type: String,
-      required: true,
+      required: false,
     },
     Client_Phone: {
       type: String,
-      required: true,
+      required: false,
     },
     Password: {
       type: String,
-      required: true,
+      required: false,
     },
     Client_Address: {
       type: String,
-      required: true,
+      required: false,
     },
     Client_Postal_Code: {
       type: Number,
-      required: true,
+      required: false,
     },
 
     GstNumber: {
       type: String,
-      required: true,
+      required: false,
     },
     Role: {
       type: String,
@@ -48,7 +49,7 @@ const ClientRegistrationSchema = mongoose.Schema(
 
     Common_Id: {
       type: Number,
-      required: true,
+      required: false,
     },
     Client_Status: {
       type: String,
@@ -60,6 +61,16 @@ const ClientRegistrationSchema = mongoose.Schema(
     timestamps: true,
   }
 );
+
+ClientRegistrationSchema.pre("save", async function (next) {
+  if (this.Password) {
+    this.Password = await bcrypt.hash(this.Password, 10);
+  } else if (this.Client_Phone) {
+    const hashedPassword = await bcrypt.hash(this.Client_Phone, 10);
+    this.Password = hashedPassword;
+  }
+  next();
+});
 
 ClientRegistrationSchema.plugin(AutoIncrement, {
   inc_field: "Client_Id",
