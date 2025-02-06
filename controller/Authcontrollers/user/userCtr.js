@@ -6,6 +6,7 @@ const generateToken = require("../../../Auth/generateToken");
 const Client = require("../../../models/AuthModels/Client/Client");
 const Company = require("../../../models/Othermodels/Companymodels/Company");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
+const Token = require("../../../models/Othermodels/Token/Token");
 
 const userCtr = {
   // register
@@ -53,7 +54,7 @@ const userCtr = {
 
       if (Email) {
         user = await User.findOne({Email: req.body.Email});
-        role = await user?.Role; 
+        role = await user?.Role;
       } else if (Username) {
         user = await User.findOne({FirstName: Username});
         role = await user?.Role;
@@ -127,7 +128,7 @@ const userCtr = {
       throw new Error(error?.message);
     }
   }),
-
+  // get user profile
   getUserProfile: asynchandler(async (req, res) => {
     try {
       let user = null;
@@ -148,6 +149,134 @@ const userCtr = {
       });
     } catch (error) {
       throw new Error(error?.message);
+    }
+  }),
+
+  verifyUser: asynchandler(async (req, res) => {
+    try {
+      const {token} = req.params;
+
+      if (!token) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Token Not Found"});
+      }
+
+      const checktoken = await Token.findOne({
+        token: token,
+        expireAt: {$gte: Date.now()},
+      });
+      if (!checktoken) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json("token has been exprired");
+      }
+
+      const user = await User.findById({_id: checktoken.userId});
+      if (user) {
+        await User.updateOne({isVerify: true});
+      }
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Email verified successfully",
+      });
+    } catch (error) {
+      return res
+        .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
+        .json(error.message);
+    }
+  }),
+
+  edituser: asynchandler(async (req, res) => {
+    try {
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // change Password
+
+  ChangepasswordCtr: asynchandler(async (req, res) => {
+    try {
+      // const {oldPassword, Password} = req.body;
+      // const user = await User.findById(req.user);
+
+      // if (!user) {
+      //   res.status(StatusCodes.UNAUTHORIZED);
+      //   throw new Error("User not found, please signup");
+      // }
+      // if (!oldPassword || !Password) {
+      //   res.status(StatusCodes.BAD_REQUEST);
+      //   throw new Error("Please add old and new password");
+      // }
+
+      // // check if old password matches password in DB
+      // const passwordIsCorrect = await bcrypt.compare(
+      //   oldPassword,
+      //   user.Password
+      // );
+      // // Save new password
+      // if (user && passwordIsCorrect) {
+      //   user.Password = Password;
+      //   await user.save();
+      //   res.status(StatusCodes.OK).send("Password change successful");
+      // }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  ForgetPasswordCtr: asynchandler(async (req, res) => {
+    try {
+    } catch (error) {}
+  }),
+  ResetPasswordCtr: asynchandler(async (req, res) => {
+    try {
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  Googleauth: asynchandler(async (req, res) => {
+    try {
+      console.log(req.body.access_token, "access_token");
+      if (req.body.access_token) {
+        const response = await axios.get(
+          `https://www.googleapis.com/oauth2/v1/userinfo?access_token=${req.body.access_token}`,
+          {
+            headers: {
+              Authorization: `Bearer ${req.body.access_token}`,
+            },
+          }
+        );
+
+        if (response) {
+          const checkUser = await User.findOne({Email: response.data?.email});
+          if (!checkUser) {
+            await User({
+              FirstName: response?.data?.given_name,
+              LastName: response?.data?.family_name,
+              Email: response?.data?.email,
+              isVerify: response?.data?.verified_email,
+              Photo: response?.data?.picture,
+              Role: "Admin",
+              user_id: response?.data?.id,
+              Term: true,
+            }).save();
+          }
+        }
+
+        const user = await User.findOne({Email: response.data?.email});
+        if (user) {
+          const TOKEN = await generateToken({id: user._id});
+          return res
+            .status(HttpStatusCodes.OK)
+            .json({success: true, message: TOKEN});
+        }
+      }
+    } catch (error) {
+      throw new Error(error.message);
     }
   }),
 };

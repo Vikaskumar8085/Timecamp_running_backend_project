@@ -7,6 +7,8 @@ const csvParser = require("csv-parser");
 const xlsx = require("xlsx");
 const mongoose = require("mongoose");
 const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
+const User = require("../../../models/AuthModels/User/User");
+const Company = require("../../../models/Othermodels/Companymodels/Company");
 const csvuploadCtr = {
   generateClientCsvFile: asyncHandler(async (req, res) => {
     try {
@@ -229,6 +231,18 @@ const csvuploadCtr = {
       if (!req.file) {
         return res.status(400).json({error: "No file uploaded."});
       }
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // chcek companys
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
       const filePath = req.file.path;
       const workbook = xlsx.readFile(filePath);
       const sheetName = workbook.SheetNames[0];
@@ -238,7 +252,10 @@ const csvuploadCtr = {
       const insertdata = [];
 
       for await (let newdata of data) {
-        const clientdata = await Client(newdata);
+        const clientdata = await Client({
+          Common_Id: company.Company_Id,
+          ...newdata,
+        });
         const saveclient = await clientdata.save();
         insertdata.push(saveclient);
       }
@@ -252,13 +269,87 @@ const csvuploadCtr = {
   }),
   uploadcontractorcsv: asyncHandler(async (req, res) => {
     try {
+      if (!req.file) {
+        return res.status(400).json({error: "No file uploaded."});
+      }
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // chcek companys
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const filePath = req.file.path;
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(sheet);
+
+      const insertdata = [];
+
+      for await (let newdata of data) {
+        const contractordata = await StaffMember({
+          CompanyId: company.Company_Id,
+          Role: "Contractor",
+          ...newdata,
+        });
+        const savecontractor = await contractordata.save();
+        insertdata.push(savecontractor);
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: insertdata,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
   uploademployeecsv: asyncHandler(async (req, res) => {
     try {
-    } catch (error) {}
+      if (!req.file) {
+        return res.status(400).json({error: "No file uploaded."});
+      }
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // chcek companys
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const filePath = req.file.path;
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(sheet);
+
+      const insertdata = [];
+
+      for await (let newdata of data) {
+        const employeedata = await StaffMember({
+          CompanyId: company.Company_Id,
+          Role: "Employee",
+          ...newdata,
+        });
+        const saveemploye = await employeedata.save();
+        insertdata.push(saveemploye);
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: insertdata,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
   }),
   uploadTaskcsv: asyncHandler(async (req, res) => {
     try {
@@ -270,6 +361,41 @@ const csvuploadCtr = {
   }),
   uploadTimesheetCsv: asyncHandler(async (req, res) => {
     try {
+      if (!req.file) {
+        return res.status(400).json({error: "No file uploaded."});
+      }
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // chcek companys
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const filePath = req.file.path;
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(sheet);
+
+      const insertdata = [];
+
+      for await (let newdata of data) {
+        const contractordata = await StaffMember({
+          CompanyId: company.Company_Id,
+          ...newdata,
+        });
+        const savecontractor = await contractordata.save();
+        insertdata.push(savecontractor);
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: insertdata,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
