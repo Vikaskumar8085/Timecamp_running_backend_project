@@ -91,6 +91,32 @@ const DepartmentCtr = {
 
   remove_department: asyncHandler(async (req, res) => {
     try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(StatusCodes.UNAUTHORIZED);
+        throw new Error("Un authorized user Please Signup");
+      }
+      // check company
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(StatusCodes.NOT_FOUND);
+        throw new Error("company does not exists please create your company");
+      }
+
+      // deleted
+      const removedepartment = await Department.findById({
+        Department_Id: req.params.id,
+      });
+
+      if (!removedepartment) {
+        res.status(StatusCodes.NOT_FOUND);
+        throw new Error("Department Not Found for deletion");
+      } else {
+        await removedepartment.deleteOne();
+        return res
+          .status(StatusCodes.OK)
+          .json({message: "department deleted successfully", success: true});
+      }
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -98,6 +124,33 @@ const DepartmentCtr = {
 
   update_departement: asyncHandler(async (req, res) => {
     try {
+      const user = await User.findById(req.user);
+
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un authorized user Please Signup");
+      }
+      // check company
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("company does not exists please create your company");
+      }
+
+      const editdepartment = await Department.findByIdAndUpdate(
+        {Department_Id: req.params.id},
+        req.body,
+        {runValidator: true, new: true}
+      );
+
+      if (!editdepartment) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Department Not Found for updation");
+      }
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({message: "department updated successfully", success: true});
     } catch (error) {
       throw new Error(error?.message);
     }

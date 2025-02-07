@@ -79,6 +79,31 @@ const RolesCtr = {
   //   remove roles
   remove_roles: asyncHandler(async (req, res) => {
     try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // check company
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const removerole = await Role.findById({Role_Id: req.params.id});
+      if (!removerole) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Role does not found for deletion");
+      } else {
+        await removerole.deleteOne();
+
+        return res.status(HttpStatusCodes.OK).json({
+          success: true,
+          message: "role successfully deleted",
+          result: removerole,
+        });
+      }
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -87,8 +112,39 @@ const RolesCtr = {
   //   update roles
   update_roles: asyncHandler(async (req, res) => {
     try {
+      const user = await User.findById(req.user);
+
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un authorized user Please Signup");
+      }
+      // check company
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("company does not exists please create your company");
+      }
+
+      const editRole = await Role.findByIdAndUpdate(
+        {Role_Id: req.params.id},
+        req.body,
+        {runValidator: true, new: true}
+      );
+
+      if (!editRole) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Role Not Found for updation");
+      }
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({
+          success: true,
+          message: "role successfully updated",
+          result: editRole,
+        });
     } catch (error) {
-      throw new Error(error?.message);
+      throw new Error(error.message);
     }
   }),
 };
