@@ -2,6 +2,9 @@ const asynchandler = require("express-async-handler");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 const Client = require("../../../models/AuthModels/Client/Client");
 const Project = require("../../../models/Othermodels/Projectmodels/Project");
+const User = require("../../../models/AuthModels/User/User");
+const Company = require("../../../models/Othermodels/Companymodels/Company");
+const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 
 const admindashboardCtr = {
   fetchtotalCounter: asynchandler(async (req, res) => {
@@ -24,14 +27,19 @@ const admindashboardCtr = {
 
       //   client count
       const clientcount = await Client.find({
-        CompanyId: checkcompany.Company_Id,
+        Common_Id: checkcompany.Company_Id,
       });
       const projectcount = await Project.find({
-        CompanyId: company.Company_Id,
+        CompanyId: checkcompany.Company_Id,
       });
-      console.log(projectcount);
-      console.log(clientcount);
-      console.log(staffcount.length);
+
+      const resp = {
+        projectNo: projectcount.length,
+        clientNo: clientcount.length,
+        staffNo: staffcount.length,
+      };
+
+      return res.status(HttpStatusCodes.OK).json({success: true, result: resp});
     } catch (error) {
       throw new Error(error?.message);
     }

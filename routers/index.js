@@ -10,6 +10,7 @@ const jwt = require("jsonwebtoken");
 const userRouter = require("./userRouter/userRouter");
 const masterRouter = require("./masterRouter/masterRouter");
 const uploadcsvRouter = require("./Uploadcsv/uploadcsvRouter");
+const admindashRouter = require("./adminRouter/admindashRouter");
 
 const upload = multer({dest: "uploads/"});
 
@@ -19,6 +20,7 @@ indexRouter.use("/v1/user", userRouter);
 indexRouter.use("/v1/admin", adminRouter);
 indexRouter.use("/v1/master", masterRouter);
 indexRouter.use("/v1/csv-upload", uploadcsvRouter);
+indexRouter.use("/v2/admin-dash", admindashRouter);
 // index router check authentication
 
 // indexRouter.post("/login", async (req, res) => {
