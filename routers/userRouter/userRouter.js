@@ -13,4 +13,8 @@ userRouter.get("/fetch-company", verifyToken, companyCtr.fetch_company);
 userRouter.post("/user_register", userCtr.register);
 userRouter.post("/login", userCtr.login);
 userRouter.get("/get-user", verifyToken, userCtr.getUserProfile);
+userRouter.post("/forget-password", userCtr.ForgetPasswordCtr);
+userRouter.put("/reset-password/:resetToken", userCtr.ResetPasswordCtr);
+userRouter.get("/verify/:token", userCtr.verifyUser);
+userRouter.post("/google-auth", userCtr.Googleauth);
 module.exports = userRouter;

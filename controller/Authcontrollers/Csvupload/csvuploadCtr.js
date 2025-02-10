@@ -3,15 +3,24 @@ const fs = require("fs");
 const path = require("path");
 const Client = require("../../../models/AuthModels/Client/Client");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
-const csvParser = require("csv-parser");
 const xlsx = require("xlsx");
-const mongoose = require("mongoose");
 const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 const User = require("../../../models/AuthModels/User/User");
 const Company = require("../../../models/Othermodels/Companymodels/Company");
 const csvuploadCtr = {
   generateClientCsvFile: asyncHandler(async (req, res) => {
     try {
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
       const schemaFields = Object.keys(Client.schema.paths).filter(
         (field) =>
           field !== "_id" &&
@@ -48,7 +57,16 @@ const csvuploadCtr = {
   }),
   generateEmployeecsv: asyncHandler(async (req, res) => {
     try {
-      // const checkemployee = await
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
 
       const schemaFields = Object.keys(StaffMember.schema.paths).filter(
         (field) =>
@@ -98,7 +116,16 @@ const csvuploadCtr = {
   //   generate contractor csv
   generateContractorcsv: asyncHandler(async (req, res) => {
     try {
-      // const checkemployee = await
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
 
       const schemaFields = Object.keys(StaffMember.schema.paths).filter(
         (field) =>

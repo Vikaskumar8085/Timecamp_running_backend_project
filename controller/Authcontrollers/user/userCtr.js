@@ -7,6 +7,8 @@ const Client = require("../../../models/AuthModels/Client/Client");
 const Company = require("../../../models/Othermodels/Companymodels/Company");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 const Token = require("../../../models/Othermodels/Token/Token");
+const credentials = require("../../../credential/credential");
+const axios = require("axios");
 
 const userCtr = {
   // register
@@ -201,7 +203,6 @@ const userCtr = {
     try {
       // const {oldPassword, Password} = req.body;
       // const user = await User.findById(req.user);
-
       // if (!user) {
       //   res.status(StatusCodes.UNAUTHORIZED);
       //   throw new Error("User not found, please signup");
@@ -210,7 +211,6 @@ const userCtr = {
       //   res.status(StatusCodes.BAD_REQUEST);
       //   throw new Error("Please add old and new password");
       // }
-
       // // check if old password matches password in DB
       // const passwordIsCorrect = await bcrypt.compare(
       //   oldPassword,
@@ -229,7 +229,67 @@ const userCtr = {
 
   ForgetPasswordCtr: asynchandler(async (req, res) => {
     try {
-    } catch (error) {}
+      let user = null;
+      user = await User.findOne({Email: req.body.Email});
+      // check client
+      if (!user) {
+        user = await Client.findOne({Client_Email: req.body.Email});
+      }
+      // check StaffmembersF
+      if (!user) {
+        user = await StaffMember.findOne({Email: req.body.Emal});
+      }
+
+      if (!user) {
+        res.status(404);
+        throw new Error("User does not exist");
+      }
+
+      let token = await Token.findOne({userId: user._id});
+
+      if (token) {
+        await token.deleteOne();
+        await new Token({
+          userId: user._id,
+          token: hashedToken,
+          createdAt: Date.now(),
+          expireAt: Date.now() + 30 * (60 * 1000), // Thirty minutes
+        }).save();
+      }
+
+      let resetToken = crypto.randomBytes(32).toString("hex") + user._id;
+      console.log(resetToken);
+
+      // Hash token before saving to DB
+      const hashedToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+      // Save Token to DB
+
+      // Construct Reset Url
+      const resetUrl = `${credentials.FRONTEND_URL}/resetpassword/${resetToken}`;
+
+      //   const message = `
+      //   <h2>Hello ${user.FirstName}</h2>
+      //   <p>Please use the url below to reset your password</p>
+      //   <p>This reset link is valid for only 30minutes.</p>
+
+      //   <a href=${resetUrl} clicktracking=off>${resetUrl}</a>
+
+      //   <p>Regards...</p>
+      //   <p>Ignitive Team</p>
+      // `;
+      //   const subject = "Password Reset Request";
+      //   const send_to = user.Email;
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, message: "Please check your Email "});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
   }),
   ResetPasswordCtr: asynchandler(async (req, res) => {
     try {
