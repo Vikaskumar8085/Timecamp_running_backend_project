@@ -54,8 +54,6 @@ const staffMemberSchema = mongoose.Schema(
       type: String,
       trim: false,
     },
-
-    //
     Role: {
       type: String,
       enum: ["Employee", "Contractor"],
@@ -113,7 +111,7 @@ const staffMemberSchema = mongoose.Schema(
 
     //
   },
-  { timestamps: true }
+  {timestamps: true}
 );
 
 staffMemberSchema.plugin(AutoIncrement, {
