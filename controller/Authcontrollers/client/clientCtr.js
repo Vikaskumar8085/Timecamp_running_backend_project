@@ -266,5 +266,30 @@ const clientCtr = {
       throw new Error(error?.message);
     }
   }),
+
+  fetch_client_Timesheets: asyncHandler(async (req, res) => {
+    try {
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // check company
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+
+
+      // const getClient = await Client.find({Email:})
+
+
+
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 module.exports = clientCtr;

@@ -7,6 +7,9 @@ const xlsx = require("xlsx");
 const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 const User = require("../../../models/AuthModels/User/User");
 const Company = require("../../../models/Othermodels/Companymodels/Company");
+const Task = require("../../../models/Othermodels/Task/Task");
+const Project = require("../../../models/Othermodels/Projectmodels/Project");
+const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const csvuploadCtr = {
   generateClientCsvFile: asyncHandler(async (req, res) => {
     try {
@@ -264,8 +267,8 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
-      if (!company) {
+      const checkCompany = await Company?.findOne({UserId: user?.user_id});
+      if (!checkCompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
@@ -280,7 +283,7 @@ const csvuploadCtr = {
 
       for await (let newdata of data) {
         const clientdata = await Client({
-          Common_Id: company.Company_Id,
+          Common_Id: checkCompany.Company_Id,
           ...newdata,
         });
         const saveclient = await clientdata.save();
@@ -380,11 +383,85 @@ const csvuploadCtr = {
   }),
   uploadTaskcsv: asyncHandler(async (req, res) => {
     try {
-    } catch (error) {}
+      if (!req.file) {
+        return res.status(400).json({error: "No file uploaded."});
+      }
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // chcek companys
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const filePath = req.file.path;
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(sheet);
+
+      const insertdata = [];
+
+      for await (let newdata of data) {
+        const taskdata = await Task({
+          CompanyId: company.Company_Id,
+          ...newdata,
+        });
+        const savetask = await taskdata.save();
+        insertdata.push(savetask);
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: insertdata,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
   }),
   uploadprojectCsv: asyncHandler(async (req, res) => {
     try {
-    } catch (error) {}
+      if (!req.file) {
+        return res.status(400).json({error: "No file uploaded."});
+      }
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      // chcek companys
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const filePath = req.file.path;
+      const workbook = xlsx.readFile(filePath);
+      const sheetName = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[sheetName];
+      const data = xlsx.utils.sheet_to_json(sheet);
+
+      const insertdata = [];
+
+      for await (let newdata of data) {
+        const projectdata = await Project({
+          CompanyId: company.Company_Id,
+          ...newdata,
+        });
+        const saveproject = await projectdata.save();
+        insertdata.push(saveproject);
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: insertdata,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
   }),
   uploadTimesheetCsv: asyncHandler(async (req, res) => {
     try {
@@ -412,12 +489,12 @@ const csvuploadCtr = {
       const insertdata = [];
 
       for await (let newdata of data) {
-        const contractordata = await StaffMember({
+        const timesheetdata = await TimeSheet({
           CompanyId: company.Company_Id,
           ...newdata,
         });
-        const savecontractor = await contractordata.save();
-        insertdata.push(savecontractor);
+        const savetimesheet = await timesheetdata.save();
+        insertdata.push(savetimesheet);
       }
       return res.status(HttpStatusCodes.OK).json({
         success: true,

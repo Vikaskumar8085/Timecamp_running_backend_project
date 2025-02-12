@@ -43,6 +43,7 @@ const ProjectSchema = mongoose.Schema({
   Project_Type: {
     type: String,
     required: false,
+    
   },
   Project_Hours: {
     type: String,

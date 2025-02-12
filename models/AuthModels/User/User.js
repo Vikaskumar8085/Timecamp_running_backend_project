@@ -67,9 +67,19 @@ UserSchema.plugin(AutoIncrement, {
   start_seq: 1,
 });
 
-const User = mongoose.model("User", UserSchema);
-module.exports = User;
+UserSchema.pre("save", async (next) => {
+  if (this.Password) {
+    this.Password = await bcrypt.hash(this.Password, 10);
+  } else if (this.Client_Phone) {
+    const hashedPassword = await bcrypt.hash(this.Client_Phone, 10);
+    this.Password = hashedPassword;
+  }
+  next();
+});
 
+const User = mongoose.model("User", UserSchema);
+
+module.exports = User;
 
 // {
 //   "FirstName": "John",

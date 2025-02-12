@@ -3,7 +3,7 @@ const AutoIncrement = require("mongoose-sequence")(mongoose);
 
 const TaskSchema = new mongoose.Schema(
   {
-    Subtask_id: {
+    task_Id: {
       type: Number,
       unique: true,
       trim: true,
@@ -21,7 +21,7 @@ const TaskSchema = new mongoose.Schema(
       maxlength: 255,
       default: "",
     },
-    Project: {
+    ProjectId: {
       type: Number,
       ref: "Project",
       required: true,
@@ -30,7 +30,7 @@ const TaskSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    Milestone: {
+    MilestoneId: {
       type: String,
       ref: "Milestone",
       required: true,
@@ -87,7 +87,7 @@ const TaskSchema = new mongoose.Schema(
   {timestamps: true}
 );
 
-TaskSchema.plugin(AutoIncrement, {inc_field: "Subtask_id", start_seq: 1});
+TaskSchema.plugin(AutoIncrement, {inc_field: "task_Id", start_seq: 1});
 
 const Task = mongoose.model("Task", TaskSchema);
 

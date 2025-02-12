@@ -1,10 +1,8 @@
 const mongoose = require("mongoose");
 const {Schema} = mongoose;
 const AutoIncrement = require("mongoose-sequence")(mongoose);
-
 // Define the Billing Status constants
 const BILLING_STATUS = ["NOT_BILLED", "BILLED", "PARTIALLY_BILLED"]; // Adjust as needed
-
 const TimesheetSchema = new Schema({
   TaskId: {
     type: Number,
@@ -17,16 +15,12 @@ const TimesheetSchema = new Schema({
     unique: true,
     sparse: true, // Allows blank entries but maintains uniqueness
   },
-  ContractorId: {
+  Staff_Id: {
     type: Number,
-    ref: "Contractor",
+    ref: "staff_Id",
     required: false,
   },
-  EmployeeId: {
-    type: Number,
-    ref: "Employee",
-    required: false,
-  },
+
   CompanId: {
     type: Number,
     ref: "Company",
@@ -75,6 +69,7 @@ const TimesheetSchema = new Schema({
     type: String,
     default: null,
     maxlength: 5000, // Optional
+    default: "none",
   },
   approval_status: {
     type: String,

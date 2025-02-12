@@ -9,9 +9,9 @@ const TaskCtr = {
   create_task: asynchandler(async (req, res) => {
     const {
       Task_Name,
-      Project,
+      ProjectId,
       Project_Code,
-      Milestone,
+      MilestoneId,
       Priority,
       StartDate,
       EndDate,
@@ -45,9 +45,9 @@ const TaskCtr = {
       const newTask = new Task({
         Company_Id: checkcompany?.Company_Id,
         Task_Name,
-        Project,
+        ProjectId,
         Project_Code,
-        Milestone,
+        MilestoneId,
         Priority,
         StartDate,
         EndDate,
