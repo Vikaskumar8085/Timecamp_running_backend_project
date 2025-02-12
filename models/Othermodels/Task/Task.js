@@ -50,8 +50,8 @@ const TaskSchema = new mongoose.Schema(
     },
     Status: {
       type: String,
-      enum: ["IN_PROGRESS", "COMPLETED"],
-      default: "IN_PROGRESS",
+      enum: ["INPROGRESS", "COMPLETED"],
+      default: "INPROGRESS",
     },
     Estimated_Time: {
       type: Number,

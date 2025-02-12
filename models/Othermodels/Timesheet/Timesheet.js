@@ -21,7 +21,7 @@ const TimesheetSchema = new Schema({
     required: false,
   },
 
-  CompanId: {
+  CompanyId: {
     type: Number,
     ref: "Company",
     default: null,

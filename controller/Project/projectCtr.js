@@ -9,7 +9,7 @@ const csvParser = require("csv-parser");
 const Role = require("../../models/MasterModels/Roles/Roles");
 const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
 const generateProjectCode = async () => {
-  const lastProject = await Project.findOne().sort({ProjectId: -1});
+  const lastProject = await Project.findOne().sort({ ProjectId: -1 });
   const lastId = lastProject ? lastProject.ProjectId : 0;
   const newProjectId = lastId + 1;
   return `P${newProjectId.toString().padStart(3, "0")}`;
@@ -107,7 +107,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -124,9 +124,6 @@ const projectCtr = {
         Start_Date: Start_Date || moment().format("DD/MM/YYYY"),
         End_Date: End_Date || moment().format("DD/MM/YYYY"),
       });
-
-
-      
 
       await newProject.save();
       res.status(201).json({
@@ -225,7 +222,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -274,7 +271,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -283,7 +280,7 @@ const projectCtr = {
       let queryObj = {};
       queryObj = {
         CompanyId: company?.Company_Id,
-        Project_Status: "Active",
+        Project_Status: true,
       };
       const response = await Project.find(queryObj).lean().exec();
 
@@ -310,7 +307,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -319,7 +316,7 @@ const projectCtr = {
       let queryObj = {};
       queryObj = {
         CompanyId: company?.Company_Id,
-        Project_Status: "InActive",
+        Project_Status: false,
       };
       const response = await Project.find(queryObj).lean().exec();
 
@@ -347,7 +344,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");

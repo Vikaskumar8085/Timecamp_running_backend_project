@@ -13,6 +13,7 @@ uploadcsvRouter.get(
 
 uploadcsvRouter.post(
   "/upload-csv-client",
+  verifyToken,
   upload.single("file"),
   csvuploadCtr.uploadclientcsv
 );
@@ -22,6 +23,12 @@ uploadcsvRouter.get(
   verifyToken,
   csvuploadCtr.generateContractorcsv
 );
+uploadcsvRouter.post(
+  "/contractor-csv-upload",
+  verifyToken,
+  upload.single("file"),
+  csvuploadCtr.uploadcontractorcsv
+);
 // contractor
 // employee
 uploadcsvRouter.get(
@@ -29,6 +36,14 @@ uploadcsvRouter.get(
   verifyToken,
   csvuploadCtr.generateEmployeecsv
 );
+
+uploadcsvRouter.post(
+  "/employee-csv-upload",
+  verifyToken,
+  upload.single("file"),
+  csvuploadCtr.uploademployeecsv
+);
+
 // employee
 
 module.exports = uploadcsvRouter;

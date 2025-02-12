@@ -6,6 +6,7 @@ const clientCtr = require("../../controller/Authcontrollers/client/clientCtr");
 const projectCtr = require("../../controller/Project/projectCtr");
 const employeeCtr = require("../../controller/Authcontrollers/employee/employeeCtr");
 const contractorCtr = require("../../controller/Authcontrollers/contractor/contractorCtr");
+const TaskCtr = require("../../controller/Task/TaskCtr");
 
 const adminRouter = express.Router();
 // admin create
@@ -104,4 +105,7 @@ adminRouter.get(
   contractorCtr.fetch_single_contractor
 );
 
+// task
+
+adminRouter.post("/create-task", verifyToken, TaskCtr?.create_task);
 module.exports = adminRouter;

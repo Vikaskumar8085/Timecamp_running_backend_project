@@ -34,7 +34,7 @@ const TaskCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -65,14 +65,14 @@ const TaskCtr = {
       const savedTask = await newTask.save();
       res
         .status(201)
-        .json({message: "Task created successfully", task: savedTask});
+        .json({ message: "Task created successfully", task: savedTask });
       const response = await Task(req.body);
 
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("bad requests");
       } else {
-        await repsonse.save();
+        await response.save();
       }
 
       return res.status(HttpStatusCodes.CREATED).json({
@@ -86,3 +86,18 @@ const TaskCtr = {
   }),
 };
 module.exports = TaskCtr;
+
+// {
+//   "Company_Id": 1,
+//   "Task_Name": "Design Homepage",
+//   "ProjectId": 101,
+//   "Project_Code": "PROJ001",
+//   "MilestoneId": "MILE001",
+//   "Priority": "HIGH",
+//   "StartDate": "2024-02-12",
+//   "EndDate": "2024-02-20",
+//   "Status": "INPROGRESS",
+//   "Estimated_Time": 20,
+//   "Task_description": "Create homepage design",
+//   "Resource_Email": "developer@example.com"
+// }

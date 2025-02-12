@@ -43,7 +43,6 @@ const ProjectSchema = mongoose.Schema({
   Project_Type: {
     type: String,
     required: false,
-    
   },
   Project_Hours: {
     type: String,
@@ -51,9 +50,9 @@ const ProjectSchema = mongoose.Schema({
   },
 
   Project_Status: {
-    type: String,
-    enum: ["Active", "InActive"],
-    default: "InActive",
+    type: Boolean,
+    required: false,
+    default: false,
   },
   RoleResource: [
     {
@@ -75,6 +74,9 @@ const ProjectSchema = mongoose.Schema({
   Project_ManagersId: {
     type: Number,
     required: true,
+  },
+  Project_manager_Email: {
+    type: String,
   },
 });
 
