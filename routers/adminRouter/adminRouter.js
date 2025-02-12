@@ -107,5 +107,7 @@ adminRouter.get(
 
 // task
 
+adminRouter.get("/fetch-project-task", verifyToken, TaskCtr.fetchprojectask);
+
 adminRouter.post("/create-task", verifyToken, TaskCtr?.create_task);
 module.exports = adminRouter;

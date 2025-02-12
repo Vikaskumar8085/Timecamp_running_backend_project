@@ -84,6 +84,40 @@ const TaskCtr = {
       throw new Error(error?.message);
     }
   }),
+
+  // fetch task by project
+
+  fetchprojectask: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      // check company
+
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {};
+
+      queryObj = {
+        ProjectId: req.params.id,
+        Company_Id: checkcompany.Company_Id,
+      };
+
+      const response = await Task.find(queryObj).lean().exec();
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({ success: true, result: response });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 module.exports = TaskCtr;
 
