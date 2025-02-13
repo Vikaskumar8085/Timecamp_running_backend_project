@@ -39,7 +39,7 @@ adminRouter.get(
 );
 // create project
 
-// adminRouter.post("/create-projects", verifyToken, projectCtr.addProject);
+adminRouter.post("/create-projects", verifyToken, projectCtr.create_Project);
 adminRouter.get("/fetch-projects", verifyToken, projectCtr.fetch_projects);
 adminRouter.get(
   "/fetch-inactive-projects",
@@ -56,6 +56,8 @@ adminRouter.get(
   verifyToken,
   projectCtr.fetchstaffmembers
 );
+
+adminRouter.get("/fetch-single-project/:id",verifyToken,projectCtr.fetchsingleprojects)
 
 // employee
 adminRouter.post("/create-employee", verifyToken, employeeCtr.create_employee);

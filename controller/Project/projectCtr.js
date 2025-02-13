@@ -10,7 +10,7 @@ const Role = require("../../models/MasterModels/Roles/Roles");
 const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
 const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
 const generateProjectCode = async () => {
-  const lastProject = await Project.findOne().sort({ProjectId: -1});
+  const lastProject = await Project.findOne().sort({ ProjectId: -1 });
   const lastId = lastProject ? lastProject.ProjectId : 0;
   const newProjectId = lastId + 1;
   return `P${newProjectId.toString().padStart(3, "0")}`;
@@ -20,31 +20,35 @@ const projectCtr = {
   create_Project: asyncHandler(async (req, res) => {
     try {
       const {
-        CompanyId,
         Project_Name,
         clientId,
-        Client_Email,
         Project_Type,
         Project_Hours,
         Project_Status,
-        ResourseEmail,
         Project_ManagersId,
-        Project_manager_Email,
-        roleResources, // Expecting an array of role resource data
+        roleResources,
       } = req.body;
 
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User");
+      }
+
+      const checkcompany = await Company?.findOne({ UserId: user?.user_id });
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
       // Create the project
       const newProject = new Project({
-        CompanyId,
+        CompanyId: checkcompany.Company_Id,
         Project_Name,
         clientId,
-        Client_Email,
         Project_Type,
         Project_Hours,
         Project_Status,
-        ResourseEmail,
         Project_ManagersId,
-        Project_manager_Email,
       });
 
       await newProject.save();
@@ -70,7 +74,7 @@ const projectCtr = {
     } catch (error) {
       res
         .status(500)
-        .json({message: "Internal Server Error", error: error.message});
+        .json({ message: "Internal Server Error", error: error.message });
     }
   }),
 
@@ -210,7 +214,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -225,24 +229,28 @@ const projectCtr = {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
-      // const projectiddata = await getproject.map((item) => {
-      //   return item.RoleResource?.map((item) => item?.RRId);
-      // });
-      // let bdata = projectiddata.join(",").split(" ");
+      const projectsWithDetails = await Promise.all(
+        response.map(async (project) => {
+          const roleResources = await RoleResource.find({
+            ProjectId: project.ProjectId,
+          });
 
-      // const findRole = await Role.find({
-      //   RoleId: bdata?.map((item) => parseInt(item)),
-      // });
-      // console.log(findRole, "dafsad");
+          // Extract RRId values
+          const rIds = roleResources.map((rr) => rr.RId);
+          const roles = await Role.find({ RoleId: { $in: rIds } });
+          const rrid = roleResources.map((rr) => rr.RRId);
 
-      // const Roledata = await findRole.map((item) => item?.RoleName);
+          const staffMember = await StaffMember.find({
+            staff_Id: { $in: rrid },
+          });
 
-      // const ProjectData = {
-      //   RoleName: Roledata,
-      // };
+          return { ...project, roles, staffMember };
+        })
+      );
+
       return res.status(HttpStatusCodes.OK).json({
         message: "fetch projects successfully",
-        result: response,
+        result: projectsWithDetails,
         success: true,
       });
     } catch (error) {
@@ -259,7 +267,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -295,7 +303,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -332,7 +340,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -349,6 +357,61 @@ const projectCtr = {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result: response,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // fetch single project
+
+  fetchsingleprojects: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User");
+      }
+
+      // check company
+      const company = await Company?.findOne({ UserId: user?.user_id });
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {
+        CompanyId: company.Company_Id,
+      };
+
+      const response = await Project.find(queryObj).lean().exec();
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+      const projectsWithDetails = await Promise.all(
+        response.map(async (project) => {
+          const roleResources = await RoleResource.find({
+            ProjectId: project.ProjectId,
+          });
+
+          // Extract RRId values
+          const rIds = roleResources.map((rr) => rr.RId);
+          const roles = await Role.find({ RoleId: { $in: rIds } });
+          const rrid = roleResources.map((rr) => rr.RRId);
+
+          const staffMember = await StaffMember.find({
+            staff_Id: { $in: rrid },
+          });
+
+          return { ...project, roles, staffMember };
+        })
+      );
+
+      return res.status(HttpStatusCodes.OK).json({
+        message: "fetch single projects successfully",
+        result: projectsWithDetails,
+        success: true,
       });
     } catch (error) {
       throw new Error(error?.message);

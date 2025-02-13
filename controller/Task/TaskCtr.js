@@ -94,9 +94,7 @@ const TaskCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-
       // check company
-
       const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
@@ -104,7 +102,6 @@ const TaskCtr = {
       }
 
       let queryObj = {};
-
       queryObj = {
         ProjectId: req.params.id,
         Company_Id: checkcompany.Company_Id,

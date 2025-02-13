@@ -15,7 +15,7 @@ const ProjectSchema = mongoose.Schema({
   },
   Project_Name: {
     type: String,
-    required: true,
+    required: false,
     trim: true,
   },
   Project_Code: {
@@ -34,7 +34,7 @@ const ProjectSchema = mongoose.Schema({
   },
   clientId: {
     type: Number,
-    required: true,
+    required: false,
   },
 
   Project_Type: {
@@ -54,7 +54,7 @@ const ProjectSchema = mongoose.Schema({
 
   Project_ManagersId: {
     type: Number,
-    required: true,
+    required: false,
   },
 });
 
