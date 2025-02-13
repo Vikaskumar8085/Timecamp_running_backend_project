@@ -58,13 +58,13 @@ const ClientCtr = {
 
       queryObj = {
         clientId: user.Client_Id,
-        Project_Status: "Active",
+        Project_Status: true,
       };
 
       const response = await Project.find(queryObj).lean().exec();
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("Not Found ");
+        throw new Error("Project Not Found");
       }
 
       return res
@@ -87,7 +87,7 @@ const ClientCtr = {
 
       queryObj = {
         clientId: user.Client_Id,
-        Project_Status: "InActive",
+        Project_Status: false,
       };
 
       const response = await Project.find(queryObj).lean().exec();

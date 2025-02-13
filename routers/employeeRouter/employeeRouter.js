@@ -13,4 +13,4 @@ employeeRouter.get(
   EmployeeCtr.fetchemployeeInactiveProjects
 );
 
-module.exports = employeeRouter();
+module.exports = employeeRouter;

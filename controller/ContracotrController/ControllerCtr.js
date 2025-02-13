@@ -13,6 +13,8 @@ const ContractorCtr = {
       }
 
       let queryObj = {};
+      queryObj: {
+      }
 
       const response = await Project.find(queryObj);
       if (!response) {
@@ -35,7 +37,9 @@ const ContractorCtr = {
       }
 
       let queryObj = {};
-
+      queryObj = {
+        Project_Status: true,
+      };
       const response = await Project.find(queryObj).lean().exec();
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
