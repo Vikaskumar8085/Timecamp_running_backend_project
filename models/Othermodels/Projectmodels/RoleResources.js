@@ -1,0 +1,35 @@
+const mongoose = require("mongoose");
+const AutoIncrement = require("mongoose-sequence")(mongoose);
+
+const RoleResourceSchema = mongoose.Schema(
+  {
+    RoleResource_Id: {
+      type: Number,
+      unique: true,
+      trim: true,
+    },
+
+    RRId: {
+      type: Number,
+      required: true,
+    },
+    RId: {
+      type: Number,
+      required: true,
+    },
+    ProjectId: {
+      type: Number,
+      ref: "Project",
+      required: true,
+    },
+  },
+  {timestamps: true}
+);
+
+RoleResourceSchema.plugin(AutoIncrement, {
+  inc_field: "RoleResource_Id",
+  start_seq: 1,
+});
+
+const RoleResource = mongoose.model("RoleResource", RoleResourceSchema);
+module.exports = RoleResource;

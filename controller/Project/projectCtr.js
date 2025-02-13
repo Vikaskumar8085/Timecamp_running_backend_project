@@ -8,6 +8,7 @@ const fs = require("fs");
 const csvParser = require("csv-parser");
 const Role = require("../../models/MasterModels/Roles/Roles");
 const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
+const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
 const generateProjectCode = async () => {
   const lastProject = await Project.findOne().sort({ProjectId: -1});
   const lastId = lastProject ? lastProject.ProjectId : 0;
@@ -16,21 +17,77 @@ const generateProjectCode = async () => {
 };
 
 const projectCtr = {
-  // create_Project: asyncHandler(async (req, res) => {
+  create_Project: asyncHandler(async (req, res) => {
+    try {
+      const {
+        CompanyId,
+        Project_Name,
+        clientId,
+        Client_Email,
+        Project_Type,
+        Project_Hours,
+        Project_Status,
+        ResourseEmail,
+        Project_ManagersId,
+        Project_manager_Email,
+        roleResources, // Expecting an array of role resource data
+      } = req.body;
+
+      // Create the project
+      const newProject = new Project({
+        CompanyId,
+        Project_Name,
+        clientId,
+        Client_Email,
+        Project_Type,
+        Project_Hours,
+        Project_Status,
+        ResourseEmail,
+        Project_ManagersId,
+        Project_manager_Email,
+      });
+
+      await newProject.save();
+
+      // Retrieve the generated ProjectId
+      const projectId = newProject.ProjectId;
+
+      // Bulk insert RoleResource data with the new ProjectId
+      if (roleResources && roleResources.length > 0) {
+        const roleResourceData = roleResources.map((resource) => ({
+          RRId: resource.RRId,
+          RId: resource.RId,
+          ProjectId: projectId,
+        }));
+
+        await RoleResource.insertMany(roleResourceData);
+      }
+
+      res.status(201).json({
+        message: "Project and Role Resources added successfully",
+        project: newProject,
+      });
+    } catch (error) {
+      res
+        .status(500)
+        .json({message: "Internal Server Error", error: error.message});
+    }
+  }),
+
+  // addProject: asyncHandler(async (req, res) => {
   //   try {
   //     const {
   //       Project_Name,
-  //       Start_Date,
-  //       End_Date,
   //       clientId,
   //       Project_Type,
   //       Project_Hours,
-  //       Project_Status,
-  //       RoleResource,
   //       Project_ManagersId,
+  //       RoleResource,
+  //       Start_Date,
+  //       End_Date,
   //     } = req.body;
 
-  //     // check user
+  //     const Project_Code = await generateProjectCode();
   //     const user = await User.findById(req.user);
   //     if (!user) {
   //       res.status(HttpStatusCodes.UNAUTHORIZED);
@@ -38,103 +95,34 @@ const projectCtr = {
   //     }
 
   //     // check company
-
   //     const company = await Company?.findOne({UserId: user?.user_id});
   //     if (!company) {
   //       res.status(HttpStatusCodes?.BAD_REQUEST);
   //       throw new Error("company not exists please create first company");
   //     }
-  //     console.log(company, "comapny data");
-
-  //     const formattedStartDate = Start_Date
-  //       ? moment(Start_Date, "DD/MM/YYYY").format("DD/MM/YYYY")
-  //       : moment().format("DD/MM/YYYY");
-  //     const formattedEndDate = End_Date
-  //       ? moment(End_Date, "DD/MM/YYYY").format("DD/MM/YYYY")
-  //       : moment().format("DD/MM/YYYY");
-
-  //     if (
-  //       !moment(formattedStartDate, "DD/MM/YYYY", true).isValid() ||
-  //       !moment(formattedEndDate, "DD/MM/YYYY", true).isValid()
-  //     ) {
-  //       res.status(HttpStatusCodes.NOT_FOUND);
-  //       throw new Error({message: "Invalid date format. Use DD/MM/YYYY."});
-  //     }
-
-  //     const response = await Project({
-  //       CompanyId: company?.Company_Id,
+  //     const newProject = await Project({
+  //       CompanyId: company.Company_Id,
   //       Project_Name,
-  //       Start_Date,
-  //       End_Date,
+  //       Project_Code: parseInt(Project_Code.substring(1)),
   //       clientId,
   //       Project_Type,
   //       Project_Hours,
-  //       Project_Status,
-  //       RoleResource,
   //       Project_ManagersId,
+  //       RoleResource,
+  //       Start_Date: Start_Date || moment().format("DD/MM/YYYY"),
+  //       End_Date: End_Date || moment().format("DD/MM/YYYY"),
   //     });
 
-  //     await response.save();
-
-  //     return res.status(HttpStatusCodes.CREATED).json({
-  //       message: "project created successfully",
-  //       result: response,
+  //     await newProject.save();
+  //     res.status(201).json({
   //       success: true,
+  //       message: "Project created successfully",
+  //       data: newProject,
   //     });
   //   } catch (error) {
   //     throw new Error(error?.message);
   //   }
   // }),
-
-  addProject: asyncHandler(async (req, res) => {
-    try {
-      const {
-        Project_Name,
-        clientId,
-        Project_Type,
-        Project_Hours,
-        Project_ManagersId,
-        RoleResource,
-        Start_Date,
-        End_Date,
-      } = req.body;
-
-      const Project_Code = await generateProjectCode();
-      const user = await User.findById(req.user);
-      if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Un Authorized User");
-      }
-
-      // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
-      if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
-      }
-      const newProject = await Project({
-        CompanyId: company.Company_Id,
-        Project_Name,
-        Project_Code: parseInt(Project_Code.substring(1)),
-        clientId,
-        Project_Type,
-        Project_Hours,
-        Project_ManagersId,
-        RoleResource,
-        Start_Date: Start_Date || moment().format("DD/MM/YYYY"),
-        End_Date: End_Date || moment().format("DD/MM/YYYY"),
-      });
-
-      await newProject.save();
-      res.status(201).json({
-        success: true,
-        message: "Project created successfully",
-        data: newProject,
-      });
-    } catch (error) {
-      throw new Error(error?.message);
-    }
-  }),
   // bulk upload project
   // bulkupload_projects: asyncHandler(async (req, res) => {
   //   try {

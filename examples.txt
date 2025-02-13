@@ -1,0 +1,79 @@
+const express = require("express");
+const multer = require("multer");
+const xlsx = require("xlsx");
+const mongoose = require("mongoose");
+const Task = require("./models/TaskSchema");
+const StaffMember = require("./models/StaffMemberSchema");
+
+const app = express();
+const upload = multer({ dest: "uploads/" });
+
+// CSV Upload Route
+app.post("/upload-tasks", upload.single("file"), async (req, res) => {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: "No file uploaded" });
+        }
+
+        // Read the uploaded file
+        const workbook = xlsx.readFile(req.file.path);
+        const sheetName = workbook.SheetNames[0];
+        const data = xlsx.utils.sheet_to_json(workbook.Sheets[sheetName]);
+
+        let tasksToInsert = [];
+
+        for await (let row of data) {
+            let {
+                name,
+                milestone_name,
+                priority,
+                start,
+                end,
+                status,
+                estimated_time,
+                completed_time,
+                resource_emails,
+                task_description,
+                description
+            } = row;
+
+            // Convert resource_emails to an array
+            let emailsArray = resource_emails ? resource_emails.split(",").map(email => email.trim()) : [];
+
+            // Validate resource_emails in StaffMemberSchema
+            let staffMembers = await StaffMember.find({ email: { $in: emailsArray } });
+            let foundStaffIds = staffMembers.map(member => member.staff_id);
+            let notFoundEmails = emailsArray.filter(email => !staffMembers.some(member => member.email === email));
+
+            if (notFoundEmails.length > 0) {
+                return res.status(400).json({ error: `Resource emails not found: ${notFoundEmails.join(", ")}` });
+            }
+
+            // Create task object
+            tasksToInsert.push({
+                name,
+                milestone_name,
+                priority,
+                start: new Date(start),
+                end: new Date(end),
+                status,
+                estimated_time,
+                completed_time,
+                resource_ids: foundStaffIds, // Store staff_id
+                task_description,
+                description
+            });
+        }
+
+        // Insert all valid tasks into TaskSchema
+        await Task.insertMany(tasksToInsert);
+        res.json({ message: "Tasks uploaded successfully", tasksInserted: tasksToInsert.length });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Internal server error" });
+    }
+});
+
+// Start the server
+app.listen(3000, () => console.log("Server running on port 3000"));F

@@ -14,6 +14,11 @@ const admindashRouter = require("./adminRouter/admindashRouter");
 const clientRouter = require("./clientRouter/clientRouter");
 const contractorRouter = require("./contractorRouter/contractorRouter");
 const employeeRouter = require("./employeeRouter/employeeRouter");
+const projectCtr = require("../controller/Project/projectCtr");
+const Project = require("../models/Othermodels/Projectmodels/Project");
+const RoleResource = require("../models/Othermodels/Projectmodels/RoleResources");
+const milestoneCtr = require("../controller/Milestone/MilestoneCtr");
+const MilestoneRouter = require("./MilestornRouter/MilestoneRouter");
 
 const upload = multer({dest: "uploads/"});
 
@@ -27,6 +32,30 @@ indexRouter.use("/v2/admin-dash", admindashRouter);
 indexRouter.use("/v2/client", clientRouter);
 indexRouter.use("/v2/contractor", contractorRouter);
 indexRouter.use("/v2/employee", employeeRouter);
+indexRouter.use("/v2/milestone", MilestoneRouter);
+// indexRouter.post("/add-project", projectCtr.create_Project);
+
+// indexRouter.get("/fetch-project", async (req, res) => {
+//   try {
+//     const projects = await Project.find();
+
+//     const projectsWithRoleResources = await Promise.all(
+//       projects.map(async (project) => {
+//         const roleResources = await RoleResource.find({
+//           ProjectId: project.ProjectId,
+//         });
+//         return {...project.toObject(), roleResources};
+//       })
+//     );
+
+//     res.status(200).json(projectsWithRoleResources);
+//   } catch (error) {
+//     console.error(error);
+//     res
+//       .status(500)
+//       .json({message: "Internal Server Error", error: error.message});
+//   }
+// });
 // index router check authentication
 
 // indexRouter.post("/login", async (req, res) => {
@@ -158,3 +187,32 @@ indexRouter.use("/v2/employee", employeeRouter);
 module.exports = indexRouter;
 
 // managed by role type of user crediantials
+
+// const fetchAllProjectsWithRoleResources = async (req, res) => {
+//     try {
+//       const { page = 1, limit = 10 } = req.query;
+
+//       const projects = await Project.find()
+//         .skip((page - 1) * limit)
+//         .limit(parseInt(limit));
+
+//       const projectsWithDetails = await Promise.all(
+//         projects.map(async (project) => {
+//           const roleResources = await RoleResource.find({ ProjectId: project.ProjectId });
+//           const rrIds = roleResources.map((rr) => rr.RRId);
+//           const rIds = roleResources.map((rr) => rr.RId);
+
+//           const staffMembers = await StaffMember.find({
+//             $or: [{ RRId: { $in: rrIds } }, { RId: { $in: rIds } }],
+//           });
+
+//           return { ...project.toObject(), roleResources, staffMembers };
+//         })
+//       );
+
+//       res.status(200).json({ projects: projectsWithDetails, currentPage: page, total: projects.length });
+//     } catch (error) {
+//       console.error(error);
+//       res.status(500).json({ message: "Internal Server Error", error: error.message });
+//     }
+//   };

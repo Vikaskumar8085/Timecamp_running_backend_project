@@ -6,6 +6,7 @@ const Company = require("../../models/Othermodels/Companymodels/Company");
 
 const milestoneCtr = {
   createmilestone: asyncHandler(async (req, res) => {
+    const {projectid} = req.params;
     const milestones = req.body;
     try {
       const user = await User.findById(req.user);
@@ -14,7 +15,7 @@ const milestoneCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -33,10 +34,10 @@ const milestoneCtr = {
         const milestone = new Milestone({
           Compnay_Id: checkcompany?.Compnay_Id,
           ProjectId: projectid,
-          Name: item.Name,
+          Name: item.MilestoneName,
           Description: item.Description,
-          Start_date: new Date(item.Start_date),
-          End_date: new Date(item.End_date),
+          Start_date: new Date(item.StartDate),
+          End_date: new Date(item.EndDate),
         });
 
         const savedMilestone = await milestone.save();
@@ -70,7 +71,7 @@ const milestoneCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -86,7 +87,7 @@ const milestoneCtr = {
       const response = await Milestone.find(queryObj).lean().exec();
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }

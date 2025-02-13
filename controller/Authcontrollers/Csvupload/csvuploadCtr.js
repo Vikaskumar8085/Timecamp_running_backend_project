@@ -18,7 +18,7 @@ const csvuploadCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -66,7 +66,7 @@ const csvuploadCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -129,7 +129,7 @@ const csvuploadCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -189,18 +189,24 @@ const csvuploadCtr = {
     try {
       // const checkemployee = await
 
-      const schemaFields = Object.keys(Client.schema.paths).filter(
-        (field) =>
-          field !== "_id" &&
-          field !== "Common_Id" &&
-          field !== "_V" &&
-          field !== "Role" &&
-          field !== "Client_Id" &&
-          field !== "Password" &&
-          field !== "__v" &&
-          field !== "createdAt" &&
-          field !== "updatedAt"
-      );
+      const schemaFields = Object.keys(Project.schema.paths)
+        .filter(
+          (field) =>
+            field !== "_id" &&
+            field !== "Common_Id" &&
+            field !== "_V" &&
+            field !== "Role" &&
+            field !== "Client_Id" &&
+            field !== "Password" &&
+            field !== "__v" &&
+            field !== "createdAt" &&
+            field !== "updatedAt" &&
+            field !== "CompanyId" &&
+            field !== "ProjectId" &&
+            field !== "clientId" &&
+            field !== "Project_ManagersId"
+        )
+        .concat("Customer_Email", "Project_Manager_Email", "Resource_Email");
       // console.log(schemaFields)
       // Convert to CSV format
       const csvContent = schemaFields.join(",") + "\n";
@@ -228,7 +234,7 @@ const csvuploadCtr = {
     try {
       // const checkemployee = await
 
-      const schemaFields = Object.keys(Client.schema.paths).filter(
+      const schemaFields = Object.keys(Task.schema.paths).filter(
         (field) =>
           field !== "_id" &&
           field !== "Common_Id" &&
@@ -263,12 +269,17 @@ const csvuploadCtr = {
     }
   }),
   //   Timesheet csv
-  generateTimesheetcsv: asyncHandler(async (req, res) => {}),
+  generateTimesheetcsv: asyncHandler(async (req, res) => {
+    try {
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 
   uploadclientcsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -276,7 +287,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const checkCompany = await Company?.findOne({ UserId: user?.user_id });
+      const checkCompany = await Company?.findOne({UserId: user?.user_id});
       if (!checkCompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -309,7 +320,7 @@ const csvuploadCtr = {
   uploadcontractorcsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -317,7 +328,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -351,7 +362,7 @@ const csvuploadCtr = {
   uploademployeecsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -359,7 +370,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -393,7 +404,7 @@ const csvuploadCtr = {
   uploadTaskcsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -401,7 +412,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -434,7 +445,7 @@ const csvuploadCtr = {
   uploadprojectCsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -442,7 +453,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -457,8 +468,57 @@ const csvuploadCtr = {
       const insertdata = [];
 
       for await (let newdata of data) {
+        const client = await Client.findOne({
+          Client_Email: newdata.Customer_Email,
+        });
+        if (!client) {
+          return res.status(400).json({
+            error: `Client with email ${newdata.Client_Email} not found`,
+          });
+        }
+
+        //
+        // 📌 Step 2: Validate Project Manager (Staff Member)
+        const staffMember = await StaffMember.findOne({
+          Email: newdata.Resource_Email,
+        });
+        if (!staffMember) {
+          return res.status(400).json({
+            error: `Project Manager ID ${row.Project_ManagersId} does not exist in StaffMemberSchema`,
+          });
+        }
+
+        // // 📌 Step 3: Validate ResourseEmail and Find Corresponding staff_id
+        const resourceStaff = await StaffMember.findOne({
+          Email: row.Project_Manager_Email,
+        });
+        if (!resourceStaff) {
+          return res.status(400).json({
+            error: `ResourseEmail ${newdata.ResourseEmail} not found in StaffMemberSchema`,
+          });
+        }
+
+        // // 📌 Step 4: Validate Role Resources and Store RRId as staff_id
+        // let parsedRoleResources = [];
+        // try {
+        //   parsedRoleResources = JSON.parse(row.roleResources || "[]");
+        // } catch (error) {
+        //   return res.status(400).json({ error: "Invalid roleResources format" });
+        // }
+
+        // let validRoles = [];
+        // for (const role of parsedRoleResources) {
+        //   const roleExists = await RoleResource.findOne({ RRId: resourceStaff.staff_id, RId: role.RId });
+        //   if (!roleExists) {
+        //     await RoleResource.create({ RRId: resourceStaff.staff_id, RId: role.RId });
+        //   }
+        //   validRoles.push({ RRId: resourceStaff.staff_id, RId: role.RId });
+        // }
+        //
+
         const projectdata = await Project({
           CompanyId: company.Company_Id,
+          clientId: client.Client_Id,
           ...newdata,
         });
         const saveproject = await projectdata.save();
@@ -475,7 +535,7 @@ const csvuploadCtr = {
   uploadTimesheetCsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -483,7 +543,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -498,8 +558,13 @@ const csvuploadCtr = {
       const insertdata = [];
 
       for await (let newdata of data) {
+        const findstaffmember = await StaffMember.findOne({
+          Email: newdata.Resource_Email,
+        });
+
         const timesheetdata = await TimeSheet({
           CompanyId: company.Company_Id,
+          Staff_Id: findstaffmember.staff_Id,
           ...newdata,
         });
         const savetimesheet = await timesheetdata.save();

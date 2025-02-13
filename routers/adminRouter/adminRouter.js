@@ -39,7 +39,7 @@ adminRouter.get(
 );
 // create project
 
-adminRouter.post("/create-projects", verifyToken, projectCtr.addProject);
+// adminRouter.post("/create-projects", verifyToken, projectCtr.addProject);
 adminRouter.get("/fetch-projects", verifyToken, projectCtr.fetch_projects);
 adminRouter.get(
   "/fetch-inactive-projects",

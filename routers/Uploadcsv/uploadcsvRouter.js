@@ -43,7 +43,12 @@ uploadcsvRouter.post(
   upload.single("file"),
   csvuploadCtr.uploademployeecsv
 );
-
 // employee
+
+uploadcsvRouter.get(
+  "/project-csv-download",
+  verifyToken,
+  csvuploadCtr.generateProjectcsv
+);
 
 module.exports = uploadcsvRouter;

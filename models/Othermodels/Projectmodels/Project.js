@@ -22,7 +22,6 @@ const ProjectSchema = mongoose.Schema({
     type: String,
     trim: true,
   },
-
   Start_Date: {
     type: String,
     default: moment().format("DD/MM/YYYY"),
@@ -37,9 +36,7 @@ const ProjectSchema = mongoose.Schema({
     type: Number,
     required: true,
   },
-  Client_Email: {
-    type: String,
-  },
+
   Project_Type: {
     type: String,
     required: false,
@@ -54,29 +51,10 @@ const ProjectSchema = mongoose.Schema({
     required: false,
     default: false,
   },
-  RoleResource: [
-    {
-      RRId: {
-        type: Number,
-        required: true,
-      },
-      RId: {
-        type: Number,
-        required: true,
-      },
-    },
-  ],
 
-  ResourseEmail: {
-    type: String,
-    default: "",
-  },
   Project_ManagersId: {
     type: Number,
     required: true,
-  },
-  Project_manager_Email: {
-    type: String,
   },
 });
 
