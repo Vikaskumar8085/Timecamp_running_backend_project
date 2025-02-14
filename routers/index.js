@@ -21,7 +21,7 @@ const milestoneCtr = require("../controller/Milestone/MilestoneCtr");
 const MilestoneRouter = require("./MilestornRouter/MilestoneRouter");
 const timesheetRouter = require("./timesheetRouter/TimesheetRouter");
 
-const upload = multer({ dest: "uploads/" });
+const upload = multer({dest: "uploads/"});
 
 const indexRouter = express.Router();
 

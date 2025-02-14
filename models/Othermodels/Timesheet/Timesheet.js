@@ -110,11 +110,21 @@ TimesheetSchema.plugin(AutoIncrement, {
   start_seq: 1,
 });
 
-// Method to generate unique ts_code
 TimesheetSchema.pre("save", async function (next) {
   if (this.isNew) {
     const count = await this.model("TimeSheet").countDocuments();
-    this.ts_code = `TS${String(count + 1).padStart(3, "0")}`; // Generate ts_code like "TS001"
+
+    // Calculate the prefix (e.g., TSA, TSB, TSC, etc.)
+    const prefixIndex = Math.floor(count / 1000);
+    const prefixLetter = String.fromCharCode(65 + prefixIndex); // Convert index to A, B, C, ...
+    const prefix = `TS${prefixLetter}`;
+
+    // Generate the sequential number (001, 002, ..., 999)
+    const sequenceNumber = (count % 1000) + 1;
+    const formattedNumber = String(sequenceNumber).padStart(3, "0");
+
+    // Combine prefix and sequence number
+    this.ts_code = `${prefix}${formattedNumber}`;
   }
   next();
 });

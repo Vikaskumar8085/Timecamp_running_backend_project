@@ -15,7 +15,7 @@ const TimesheetSummaryCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -23,29 +23,39 @@ const TimesheetSummaryCtr = {
       const findresourse = await StaffMember.find({
         CompanyId: checkcompany.Company_Id,
       });
-      if (!findresourse) {
-        res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("not Found resources");
-      }
-      let queryObj = {};
-      queryObj = { Staff_Id: findresourse.staff_Id };
 
-      const response = await TimeSheet.find(queryObj);
-      if (!response) {
+      if (!findresourse || findresourse.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("No resources found");
+      }
+
+      let resultArray = [];
+
+      for (const resource of findresourse) {
+        const response = await TimeSheet.find({Staff_Id: resource.Staff_Id});
+
+        if (!response || response.length === 0) {
+          continue; // Skip if no data found for this resource
+        }
+
+        resultArray.push({
+          totalHour: response.reduce((sum, entry) => sum + entry.hours, 0),
+          billedhour: response.reduce(
+            (sum, entry) => sum + entry.billed_hours,
+            0
+          ),
+          resourceName: resource.FirstName,
+        });
+      }
+
+      if (resultArray.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("No Data Found");
       }
 
-      const resultdata = {
-        totalHour: response.hours,
-        billedhour: response.billed_hours,
-        resourseName: findresourse.FirstName,
-      };
-
       return res.status(HttpStatusCodes.OK).json({
         success: true,
-        message:"timesheet data",
-        result: resultdata,
+        result: resultArray,
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -60,7 +70,7 @@ const TimesheetSummaryCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -70,26 +80,40 @@ const TimesheetSummaryCtr = {
         CompanyId: checkcompany.Company_Id,
       });
 
-      if (!findproject) {
+      if (!findproject || findproject.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("No Project Found");
       }
 
-      let queryObj = {};
-      queryObj = {
-        CompanyId: checkcompany.Company_Id,
-        Project: findproject.ProjectId,
-      };
+      // Extract project IDs
+      const projectIds = findproject.map((project) => project.ProjectId);
 
-      const response = await TimeSheet.find(queryObj);
-      if (!response) {
+      const response = await TimeSheet.find({
+        CompanyId: checkcompany.Company_Id,
+        Project: {$in: projectIds}, // Match any of the found project IDs
+      });
+
+      if (!response || response.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("No Data Found");
       }
-      const resultdata = {
-        billedhour: response.billed_hours,
-        projectName: findproject.Project_Name,
-      };
+
+      // Aggregate data (sum up values from multiple records)
+      const resultdata = response.reduce(
+        (acc, entry) => {
+          acc.billedhour += entry.billed_hours || 0;
+          acc.totalHour += entry.hours || 0;
+          acc.okhours += entry.ok_hours || 0;
+          acc.blankHours += entry.blank_hours || 0;
+          return acc;
+        },
+        {billedhour: 0, totalHour: 0, okhours: 0, blankHours: 0}
+      );
+
+      // Add project names
+      resultdata.projectNames = findproject.map(
+        (project) => project.Project_Name
+      );
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,
@@ -110,7 +134,7 @@ const TimesheetSummaryCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -121,16 +145,22 @@ const TimesheetSummaryCtr = {
       };
 
       const response = await TimeSheet.find(queryObj);
-      if (!response) {
+      if (!response || response.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("No Data Found");
       }
-      const resultdata = {
-        billedhour: response.billed_hours,
-        totalHour: response.hours,
-        okhours: response.ok_hours,
-        blankHours: response.blank_hours,
-      };
+
+      // Aggregate data (sum up values from multiple records)
+      const resultdata = response.reduce(
+        (acc, entry) => {
+          acc.billedhour += entry.billed_hours || 0;
+          acc.totalHour += entry.hours || 0;
+          acc.okhours += entry.ok_hours || 0;
+          acc.blankHours += entry.blank_hours || 0;
+          return acc;
+        },
+        {billedhour: 0, totalHour: 0, okhours: 0, blankHours: 0}
+      );
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,

@@ -77,6 +77,8 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
+
+
 };
 
 module.exports = ContractorCtr;
