@@ -3,6 +3,7 @@ const Task = require("../../models/Othermodels/Task/Task");
 const HttpStatusCodes = require("../../utils/StatusCodes/statusCodes");
 const User = require("../../models/AuthModels/User/User");
 const Company = require("../../models/Othermodels/Companymodels/Company");
+const Project = require("../../models/Othermodels/Projectmodels/Project");
 const TaskCtr = {
   // create tasks
 
@@ -34,7 +35,7 @@ const TaskCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -65,7 +66,7 @@ const TaskCtr = {
       const savedTask = await newTask.save();
       res
         .status(201)
-        .json({ message: "Task created successfully", task: savedTask });
+        .json({message: "Task created successfully", task: savedTask});
       const response = await Task(req.body);
 
       if (!response) {
@@ -95,7 +96,7 @@ const TaskCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // check company
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -108,9 +109,21 @@ const TaskCtr = {
       };
 
       const response = await Task.find(queryObj).lean().exec();
+
+      const projectsdata = Promise.all(
+        response.map(async (item) => {
+          const fetchproject = await Project.find({ProjectId: item?.ProjectId});
+          return {...item, fetchproject};
+        })
+      );
+
+      const resultdata = {
+        response,
+        projectsdata,
+      };
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: resultdata});
     } catch (error) {
       throw new Error(error?.message);
     }
