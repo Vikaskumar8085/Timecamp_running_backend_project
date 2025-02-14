@@ -562,9 +562,31 @@ const csvuploadCtr = {
           Email: newdata.Resource_Email,
         });
 
+        if (!findstaffmember) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error(
+            `Resource_Email ${newdata.Resource_Email} not found in StaffMember`
+          );
+          continue;
+        }
+
+        const findproject = await Project.findOne({
+          Project_Code: newdata.Project_Code,
+        });
+
+        if (!findproject) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error(
+            `Project_Code ${newdata.Project_Code} not found in Project.`
+          );
+
+          continue;
+        }
+
         const timesheetdata = await TimeSheet({
           CompanyId: company.Company_Id,
           Staff_Id: findstaffmember.staff_Id,
+          project: findproject.ProjectId,
           ...newdata,
         });
         const savetimesheet = await timesheetdata.save();

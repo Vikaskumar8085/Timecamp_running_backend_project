@@ -141,7 +141,6 @@ const ClientCtr = {
             .skip(skip)
             .limit(limit);
 
-          // const findresources = await
 
           return {...item.toObject(), timesheets: findtimesheet};
         })
