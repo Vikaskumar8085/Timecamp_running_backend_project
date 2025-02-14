@@ -19,8 +19,9 @@ const Project = require("../models/Othermodels/Projectmodels/Project");
 const RoleResource = require("../models/Othermodels/Projectmodels/RoleResources");
 const milestoneCtr = require("../controller/Milestone/MilestoneCtr");
 const MilestoneRouter = require("./MilestornRouter/MilestoneRouter");
+const timesheetRouter = require("./timesheetRouter/TimesheetRouter");
 
-const upload = multer({dest: "uploads/"});
+const upload = multer({ dest: "uploads/" });
 
 const indexRouter = express.Router();
 
@@ -33,6 +34,7 @@ indexRouter.use("/v2/client", clientRouter);
 indexRouter.use("/v2/contractor", contractorRouter);
 indexRouter.use("/v2/employee", employeeRouter);
 indexRouter.use("/v2/milestone", MilestoneRouter);
+indexRouter.use("/v2/timesheet", timesheetRouter);
 // indexRouter.post("/add-project", projectCtr.create_Project);
 
 // indexRouter.get("/fetch-project", async (req, res) => {

@@ -3,9 +3,6 @@ const User = require("../../models/AuthModels/User/User");
 const HttpStatusCodes = require("../../utils/StatusCodes/statusCodes");
 const Company = require("../../models/Othermodels/Companymodels/Company");
 const Project = require("../../models/Othermodels/Projectmodels/Project");
-const moment = require("moment");
-const fs = require("fs");
-const csvParser = require("csv-parser");
 const Role = require("../../models/MasterModels/Roles/Roles");
 const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
 const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
@@ -293,7 +290,6 @@ const projectCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetch_inactive_projects: asyncHandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
@@ -329,7 +325,6 @@ const projectCtr = {
       throw new Error(error?.message);
     }
   }),
-
   //
   fetchstaffmembers: asyncHandler(async (req, res) => {
     try {
@@ -362,9 +357,7 @@ const projectCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fetch single project
-
   fetchsingleprojects: asyncHandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
