@@ -4,7 +4,7 @@ const AutoIncrement = require("mongoose-sequence")(mongoose);
 // Define the Billing Status constants
 const BILLING_STATUS = ["NOT_BILLED", "BILLED", "PARTIALLY_BILLED"]; // Adjust as needed
 const TimesheetSchema = new Schema({
-  TaskId: {
+  Timesheet_Id: {
     type: Number,
     required: false,
     unique: true,
@@ -106,7 +106,7 @@ const TimesheetSchema = new Schema({
 
 // Create the model from the schema
 TimesheetSchema.plugin(AutoIncrement, {
-  inc_field: "TaskId",
+  inc_field: "Timesheet_Id",
   start_seq: 1,
 });
 
@@ -126,6 +126,16 @@ TimesheetSchema.pre("save", async function (next) {
     // Combine prefix and sequence number
     this.ts_code = `${prefix}${formattedNumber}`;
   }
+
+  // Calculate total hours
+  const totalHours = this.ok_hours + this.billed_hours + this.blank_hours;
+
+  if (totalHours !== this.hours) {
+    return next(
+      new Error(`Total hours must be exactly hour, but got ${totalHours}`)
+    );
+  }
+  this.hours = totalHours;
   next();
 });
 

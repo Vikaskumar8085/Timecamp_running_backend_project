@@ -1,1 +1,1 @@
-Project_Name,Project_Code,Start_Date,End_Date,Project_Type,Project_Hours,Project_Status,Customer_Email,Project_Manager_Email,Resource_Email
+hours,task_description,Description,start_time,end_time,day,approved,remarks,approval_status,billing_status,billed_hours,ok_hours,blank_hours,Resource_Email,Project_Code

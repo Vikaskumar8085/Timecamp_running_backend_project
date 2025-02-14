@@ -187,8 +187,6 @@ const csvuploadCtr = {
   //   generate Project csv
   generateProjectcsv: asyncHandler(async (req, res) => {
     try {
-      // const checkemployee = await
-
       const schemaFields = Object.keys(Project.schema.paths)
         .filter(
           (field) =>
@@ -203,6 +201,7 @@ const csvuploadCtr = {
             field !== "updatedAt" &&
             field !== "CompanyId" &&
             field !== "ProjectId" &&
+            field !== "Project_Code" &&
             field !== "clientId" &&
             field !== "Project_ManagersId"
         )
@@ -233,6 +232,16 @@ const csvuploadCtr = {
   generateTaskcsv: asyncHandler(async (req, res) => {
     try {
       // const checkemployee = await
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
 
       const schemaFields = Object.keys(Task.schema.paths).filter(
         (field) =>
@@ -271,6 +280,53 @@ const csvuploadCtr = {
   //   Timesheet csv
   generateTimesheetcsv: asyncHandler(async (req, res) => {
     try {
+      const user = await User?.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const schemaFields = Object.keys(TimeSheet.schema.paths)
+        .filter(
+          (field) =>
+            field !== "_id" &&
+            field !== "Timesheet_Id" &&
+            field !== "_V" &&
+            field !== "ts_code" &&
+            field !== "Staff_Id" &&
+            field !== "CompanyId" &&
+            field !== "project" &&
+            field !== "approved_date" &&
+            field !== "approved_by" &&
+            field !== "created_at" &&
+            field !== "__v" &&
+            field !== "createdAt" &&
+            field !== "updatedAt"
+        )
+        .concat("Resource_Email", "Project_Code");
+      // console.log(schemaFields)
+      // Convert to CSV format
+      const csvContent = schemaFields.join(",") + "\n";
+      // Define file path
+      const filePath = path.join(__dirname, "schema_fields.csv");
+
+      // Write CSV file
+      fs.writeFileSync(filePath, csvContent, "utf8");
+
+      //   res.download(filePath)
+      //   console.log(`CSV file created: ${filePath}`);
+      //   const filePath = path.join(__dirname, "schema_fields.csv");
+      res.download(filePath, "schema_fields.csv", (err) => {
+        if (err) {
+          console.error("Error downloading file:", err);
+          res.status(500).send("Error downloading file");
+        }
+      });
     } catch (error) {
       throw new Error(error?.message);
     }

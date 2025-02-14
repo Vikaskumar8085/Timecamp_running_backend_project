@@ -28,6 +28,7 @@ const userCtr = {
         Email,
         Password: hashpassword,
         Term,
+        IsAdmin: true,
       });
 
       if (resp) {
@@ -322,6 +323,7 @@ const userCtr = {
               Photo: response?.data?.picture,
               Role: "Admin",
               user_id: response?.data?.id,
+              IsAdmin: true,
               Term: true,
             }).save();
           }
@@ -337,6 +339,23 @@ const userCtr = {
       }
     } catch (error) {
       throw new Error(error.message);
+    }
+  }),
+
+  restrictionAdmin: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Un authorized user Please Signup");
+      }
+
+      const responsne = await User.findById({user_id: req.params.id});
+      if (responsne) {
+        await responsne.updateOne({BlockStatus: "Block"});
+      }
+    } catch (error) {
+      throw new Error(error?.message);
     }
   }),
 };

@@ -51,4 +51,17 @@ uploadcsvRouter.get(
   csvuploadCtr.generateProjectcsv
 );
 
+// employee
+
+uploadcsvRouter.get(
+  "/timesheet-csv-download",
+  verifyToken,
+  csvuploadCtr.generateTimesheetcsv
+);
+uploadcsvRouter.get(
+  "/task-csv-download",
+  verifyToken,
+  csvuploadCtr.generateTaskcsv
+);
+
 module.exports = uploadcsvRouter;

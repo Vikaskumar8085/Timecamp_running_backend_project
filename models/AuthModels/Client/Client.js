@@ -37,7 +37,6 @@ const ClientRegistrationSchema = mongoose.Schema(
       type: Number,
       required: false,
     },
-
     GstNumber: {
       type: String,
       required: false,
@@ -46,11 +45,15 @@ const ClientRegistrationSchema = mongoose.Schema(
       type: String,
       default: "Client",
     },
-
+    System_Access: {
+      type: Boolean,
+      deafult: false,
+    },
     Common_Id: {
       type: Number,
       required: false,
     },
+
     Client_Status: {
       type: String,
       enum: ["Active", "InActive", "Dead"],

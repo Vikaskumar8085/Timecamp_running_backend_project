@@ -55,6 +55,10 @@ const UserSchema = mongoose.Schema({
     required: true,
     default: false,
   },
+  IsAdmin: {
+    type: Boolean,
+    default: false,
+  },
   user_id: {
     type: Number,
     unique: true,
