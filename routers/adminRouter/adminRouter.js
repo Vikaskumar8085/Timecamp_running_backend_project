@@ -7,11 +7,13 @@ const projectCtr = require("../../controller/Project/projectCtr");
 const employeeCtr = require("../../controller/Authcontrollers/employee/employeeCtr");
 const contractorCtr = require("../../controller/Authcontrollers/contractor/contractorCtr");
 const TaskCtr = require("../../controller/Task/TaskCtr");
+const TimesheetCtr = require("../../controller/TimesheetCtr/TimesheetCtr");
 
 const adminRouter = express.Router();
 // admin create
 adminRouter.post("/create-admin", verifyToken, adminCtr.create_admin);
 adminRouter.get("/fetch-admin", verifyToken, adminCtr.getalladmin);
+adminRouter.get("/fetch-staffmembers",verifyToken,employeeCtr.fetch_staff);
 
 // client
 adminRouter.post("/create-client", verifyToken, clientCtr.create_client);
@@ -110,6 +112,11 @@ adminRouter.get(
 // task
 
 adminRouter.get("/fetch-project-task", verifyToken, TaskCtr.fetchprojectask);
-
 adminRouter.post("/create-task", verifyToken, TaskCtr?.create_task);
+
+
+// timesheet
+
+adminRouter.get("/fetch-timesheet",verifyToken,TimesheetCtr.fetch_timesheet)
+adminRouter.get("/fetch-project-time",verifyToken,TimesheetCtr.fetch_project_time);
 module.exports = adminRouter;

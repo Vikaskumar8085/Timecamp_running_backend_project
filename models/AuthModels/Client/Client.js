@@ -47,6 +47,7 @@ const ClientRegistrationSchema = mongoose.Schema(
     },
     System_Access: {
       type: Boolean,
+      required: true,
       deafult: false,
     },
     Common_Id: {

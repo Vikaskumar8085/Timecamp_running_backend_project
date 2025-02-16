@@ -13,7 +13,7 @@ const adminCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -27,14 +27,14 @@ const adminCtr = {
       } else {
         await createuser.save();
         await Company.updateOne(
-          {Company_Id: checkcompany?.Company_Id},
-          {$push: {UserId: createuser.user_id}}
+          { Company_Id: checkcompany?.Company_Id },
+          { $push: { UserId: createuser.user_id } }
         );
       }
 
       return res
         .status(HttpStatusCodes.CREATED)
-        .json({success: true, message: "admin created successfully"});
+        .json({ success: true, message: "admin created successfully" });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -49,8 +49,10 @@ const adminCtr = {
         res.status(StatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const getAdminuser = await Company.findOne({UserId: user?.user_id});
-      if (!getAdminuser) {
+      const getAdminuser = await Company.findOne({ UserId: user?.user_id });
+      if (!getAdminuser && getAdminuser.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("admin Not found");
       }
       // const result = await User.aggregate([
       //   // Stage 2: Lookup to join with the Company collection
@@ -82,7 +84,7 @@ const adminCtr = {
       // ]);
 
       let QueryObj = {};
-      QueryObj = {user_id: getAdminuser.UserId};
+      QueryObj = { user_id: getAdminuser.UserId };
       const result = await User.find(QueryObj).lean().exec();
 
       return res.status(200).json({

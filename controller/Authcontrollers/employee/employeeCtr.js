@@ -5,6 +5,7 @@ const Company = require("../../../models/Othermodels/Companymodels/Company");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 const bcrypt = require("bcryptjs");
 const Project = require("../../../models/Othermodels/Projectmodels/Project");
+const moment = require("moment");
 
 const employeeCtr = {
   // create employee
@@ -23,23 +24,12 @@ const employeeCtr = {
         throw new Error("company not exists please create first company");
       }
 
-      // const formattedDate = moment(Joining_Date, "YYYY-MM-DD", true); // Strict format validation
-
-      // if (!formattedDate.isValid()) {
-      //   return res
-      //     .status(400)
-      //     .json({message: "Invalid Joining Date format. Use 'YYYY-MM-DD'."});
-      // }
-
-      // // Optionally format the date in a desired format (e.g., 'DD MMMM YYYY')
-      // const humanReadableDate = formattedDate.format("DD MMMM YYYY");
-
       req.body.Password = req.body.Phone;
 
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(req.body.Password, genhash);
 
-      // create contractor
+      // create Employee
       const response = await StaffMember({
         FirstName: req.body.FirstName,
         LastName: req.body.LastName,
@@ -47,6 +37,12 @@ const employeeCtr = {
         Phone: req.body.Phone,
         Address: req.body.Address,
         Password: hashpassword,
+        Joining_Date: moment(req.body.Joining_Date).format("YYYY-MM-DD"),
+        DesignationId: req.body.DesignationId,
+        Backlog_Entries: req.body.Backlog_Entries,
+        Socail_Links: req.body.Socail_Links,
+        Permission: req.body.Permission,
+        ManagerId: req.body.ManagerId,
         Role: "Employee",
         CompanyId: company.Company_Id,
       });
@@ -228,6 +224,40 @@ const employeeCtr = {
       let queryObj = {};
 
       const response = await Project.find(queryObj).lean().exec();
+
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        result: response,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetch_staff: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized User Please singup");
+      }
+      const checkcompany = await Company.findOne({ UserId: user.user_id })
+        .lean()
+        .exec();
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+
+      let queryObj = {
+        CompanyId: checkcompany.Company_Id,
+      };
+
+      const response = await StaffMember.find(queryObj).lean().exec();
 
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);

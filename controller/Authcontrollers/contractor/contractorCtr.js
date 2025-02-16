@@ -5,6 +5,7 @@ const bcrypt = require("bcryptjs");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 const Project = require("../../../models/Othermodels/Projectmodels/Project");
+const moment = require("moment");
 
 const contractorCtr = {
   // create contractor
@@ -23,22 +24,12 @@ const contractorCtr = {
         throw new Error("company not exists please create first company");
       }
 
-      // const formattedDate = moment(Joining_Date, "YYYY-MM-DD", true); // Strict format validation
-
-      // if (!formattedDate.isValid()) {
-      //   return res
-      //     .status(400)
-      //     .json({message: "Invalid Joining Date format. Use 'YYYY-MM-DD'."});
-      // }
-
-      // // Optionally format the date in a desired format (e.g., 'DD MMMM YYYY')
-      // const humanReadableDate = formattedDate.format("DD MMMM YYYY");
-
       req.body.Password = req.body.Phone;
 
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(req.body.Password, genhash);
 
+      // const formattedDate = moment(req.body.Joining_Date).format("YYYY-MM-DD");
       // create contractor
       const response = await StaffMember({
         FirstName: req.body.FirstName,
@@ -47,6 +38,15 @@ const contractorCtr = {
         Phone: req.body.Phone,
         Address: req.body.Address,
         Password: hashpassword,
+        Joining_Date: moment(req.body.Joining_Date).format("YYYY-MM-DD"),
+        DesignationId: req.body.DesignationId,
+        ManagerId: req.body.ManagerId,
+        Permission: req.body.Permission,
+        Backlog_Entries: req.body.Backlog_Entries,
+        Socail_Links: req.body.Socail_Links,
+        Contractor_Company: req.body.Contractor_Company,
+        Hourly_Rate: req.body.Hourly_Rate,
+        Supervisor: req.body.Supervisor,
         Role: "Contractor",
         CompanyId: company.Company_Id,
       });
@@ -202,7 +202,6 @@ const contractorCtr = {
         throw new Error("Not Found");
       }
       return res.status(HttpStatusCodes.OK).json({
-        message: "fetch successfully contractor",
         result: response,
         success: true,
       });
@@ -244,9 +243,6 @@ const contractorCtr = {
       throw new Error(error?.message);
     }
   }),
-
-
-
 };
 
 module.exports = contractorCtr;

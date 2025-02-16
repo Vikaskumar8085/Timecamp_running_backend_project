@@ -20,6 +20,9 @@ const staffMemberSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    UserName: {
+      type: String,
+    },
     Email: {
       type: String,
       required: true,
@@ -50,9 +53,9 @@ const staffMemberSchema = mongoose.Schema(
       type: String,
       required: false,
     },
-    Designation: {
+    DesignationId: {
       type: String,
-      trim: false,
+      trim: true,
     },
     Role: {
       type: String,
@@ -67,24 +70,19 @@ const staffMemberSchema = mongoose.Schema(
         default: "",
       },
     ],
-    Manager: {
-      ManagerId: {
-        type: Number,
-        default: null,
-      },
-      Manager_Name: {
-        type: String,
-        default: "",
-      },
+    ManagerId: {
+      type: Number,
+      default: null,
     },
     Permission: {
       type: Boolean,
       required: false,
+      default: false,
     },
     Backlog_Entries: {
       type: Number,
       required: false,
-      default: 1,
+      default: 0,
     },
     Socail_Links: {
       type: String,
@@ -99,24 +97,46 @@ const staffMemberSchema = mongoose.Schema(
     Supervisor: {
       type: String,
     },
-    Phone: {
-      type: String,
-      // required: true,
-    },
+
     Photos: [
       {
-        type: String, // You could also use a more complex structure to handle image uploads
+        type: String,
       },
     ],
 
     //
   },
-  {timestamps: true}
+  { timestamps: true }
 );
 
 staffMemberSchema.plugin(AutoIncrement, {
   inc_field: "staff_Id",
   start_seq: 1,
+});
+
+staffMemberSchema.pre("save", async function (next) {
+  if (
+    this.isNew ||
+    this.isModified("FirstName") ||
+    this.isModified("LastName")
+  ) {
+    let prefix = `${this.FirstName.charAt(
+      0
+    ).toLowerCase()}${this.LastName.toLowerCase()}`;
+    let baseUserName = `${this.FirstName.toLowerCase()}_${this.LastName.toLowerCase()}`; // Special char (_)
+    let randomNum = Math.floor(1000 + Math.random() * 9000); // 4-digit random number
+    let uniqueUserName = `${prefix}.${baseUserName}${randomNum}`;
+    let counter = 1;
+
+    // Ensure uniqueness in the database
+    while (await StaffMember.findOne({ UserName: uniqueUserName })) {
+      uniqueUserName = `${prefix}.${baseUserName}${randomNum + counter}`;
+      counter++;
+    }
+
+    this.UserName = uniqueUserName;
+  }
+  next();
 });
 
 const StaffMember = mongoose.model("StaffMember", staffMemberSchema);

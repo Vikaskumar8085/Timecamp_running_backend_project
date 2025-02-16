@@ -58,6 +58,15 @@ uploadcsvRouter.get(
   verifyToken,
   csvuploadCtr.generateTimesheetcsv
 );
+
+uploadcsvRouter.post(
+  "/timesheet-csv-upload",
+  upload.single("file"),
+  verifyToken,
+  csvuploadCtr.uploadTimesheetCsv
+);
+
+//
 uploadcsvRouter.get(
   "/task-csv-download",
   verifyToken,

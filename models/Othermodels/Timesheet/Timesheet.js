@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const {Schema} = mongoose;
+const { Schema } = mongoose;
 const AutoIncrement = require("mongoose-sequence")(mongoose);
 // Define the Billing Status constants
 const BILLING_STATUS = ["NOT_BILLED", "BILLED", "PARTIALLY_BILLED"]; // Adjust as needed
@@ -127,15 +127,6 @@ TimesheetSchema.pre("save", async function (next) {
     this.ts_code = `${prefix}${formattedNumber}`;
   }
 
-  // Calculate total hours
-  const totalHours = this.ok_hours + this.billed_hours + this.blank_hours;
-
-  if (totalHours !== this.hours) {
-    return next(
-      new Error(`Total hours must be exactly hour, but got ${totalHours}`)
-    );
-  }
-  this.hours = totalHours;
   next();
 });
 

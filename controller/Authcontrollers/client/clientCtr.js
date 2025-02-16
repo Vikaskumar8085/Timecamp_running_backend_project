@@ -15,7 +15,7 @@ const clientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -38,13 +38,14 @@ const clientCtr = {
         Client_Address: req.body.Client_Address,
         Password: hashpassword,
         GstNumber: req.body.GstNumber,
+        System_Access: req.body.System_Access,
         Common_Id: company?.Company_Id,
       });
       if (addItem) {
         await addItem.save();
         return res
           .status(200)
-          .json({success: true, message: "successfully client added"});
+          .json({ success: true, message: "successfully client added" });
       }
     } catch (error) {
       throw new Error(error?.message);
@@ -62,7 +63,7 @@ const clientCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -99,7 +100,7 @@ const clientCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -137,7 +138,7 @@ const clientCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -174,7 +175,7 @@ const clientCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -208,13 +209,13 @@ const clientCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
       // response
-      const response = await Client.findOne({Client_Id: req.params.id})
+      const response = await Client.findOne({ Client_Id: req.params.id })
         .lean()
         .exec();
       if (!response) {
@@ -240,7 +241,7 @@ const clientCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -275,18 +276,13 @@ const clientCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
-
-
       // const getClient = await Client.find({Email:})
-
-
-
     } catch (error) {
       throw new Error(error?.message);
     }

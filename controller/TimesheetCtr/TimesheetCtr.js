@@ -4,6 +4,7 @@ const HttpStatusCodes = require("../../utils/StatusCodes/statusCodes");
 const User = require("../../models/AuthModels/User/User");
 const Company = require("../../models/Othermodels/Companymodels/Company");
 const Project = require("../../models/Othermodels/Projectmodels/Project");
+const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
 
 const TimesheetCtr = {
   // create timesheet
@@ -15,7 +16,7 @@ const TimesheetCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -29,12 +30,13 @@ const TimesheetCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
+      console.log(checkcompany);
       let queryObj = {};
 
       queryObj = {
@@ -45,13 +47,43 @@ const TimesheetCtr = {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Not Found Timesheet");
       }
+
+      const timesheetfetchdata = await Promise.all(
+        response.map(async (item) => {
+          const getprojectName = await Project.find({
+            ProjectId: item.project,
+          });
+
+          let ProjectName = await getprojectName.map((projectitem) => {
+            return projectitem.Project_Name;
+          });
+
+          const fetchStaff = await StaffMember.find({
+            staff_Id: item.Staff_Id,
+          });
+
+          let StaffName = await fetchStaff.map((staffItem) => {
+            return staffItem.FirstName;
+          });
+
+          const timesheetresponse = {
+            ProjectName: ProjectName,
+            StaffName: StaffName,
+            ...item.toObject(),
+          };
+
+          return timesheetresponse;
+        })
+      );
+
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: timesheetfetchdata });
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
+
   //   project timesheet
   fetch_project_time: asyncHandler(async (req, res) => {
     try {
@@ -61,7 +93,7 @@ const TimesheetCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -78,7 +110,7 @@ const TimesheetCtr = {
       if (!projects || projects.length === 0) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({message: "No projects found"});
+          .json({ message: "No projects found" });
       }
 
       // Extract project IDs
@@ -89,16 +121,16 @@ const TimesheetCtr = {
         {
           $match: {
             CompanyId: checkcompany.Company_Id,
-            project: {$in: projectIds},
+            project: { $in: projectIds },
           },
         },
         {
           $group: {
             _id: "$project",
-            totalHours: {$sum: {$toDouble: "$hours"}},
-            okHours: {$sum: {$toDouble: "$ok_hours"}},
-            billedHours: {$sum: {$toDouble: "$billed_hours"}},
-            totalEntries: {$sum: 1}, // Count total entries for this project
+            totalHours: { $sum: { $toDouble: "$hours" } },
+            okHours: { $sum: { $toDouble: "$ok_hours" } },
+            billedHours: { $sum: { $toDouble: "$billed_hours" } },
+            totalEntries: { $sum: 1 }, // Count total entries for this project
           },
         },
       ]);
@@ -129,7 +161,7 @@ const TimesheetCtr = {
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,
-        projects: result,
+        result,
       });
     } catch (error) {
       throw new Error(error?.message);

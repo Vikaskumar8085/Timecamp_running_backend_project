@@ -44,18 +44,18 @@ const milestoneCtr = {
         insertedMilestones.push(savedMilestone);
       }
 
-      res.json({
-        message: "Bulk upload successful!",
-        insertedCount: insertedMilestones.length,
-      });
+      // res.json({
+      //   message: "Bulk upload successful!",
+      //   insertedCount: insertedMilestones.length,
+      // });
 
       // console.log(insertedMilestones, "dasldkfskd");
-      //
-      // return res.status(HttpStatusCodes.OK).json({
-      //   message: "add milestone successfully",
-      //   success: true,
-      //   result: insertedMilestones,
-      // });
+
+      return res.status(HttpStatusCodes.OK).json({
+        message: " milestone created successfully",
+        success: true,
+        result: insertedMilestones,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
