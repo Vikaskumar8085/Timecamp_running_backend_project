@@ -23,7 +23,6 @@ const projectCtr = {
         clientId,
         Project_Type,
         Project_Hours,
-        Project_Status,
         Project_ManagersId,
         roleResources,
       } = req.body;
@@ -47,25 +46,26 @@ const projectCtr = {
         clientId,
         Project_Type,
         Project_Hours,
-        Project_Status,
+        Project_Status: true,
         Project_ManagersId,
       });
 
       await newProject.save();
 
       // Retrieve the generated ProjectId
-      const projectId = newProject.ProjectId;
+      const projectId = newProject?.ProjectId;
+      console.log(projectId, "...");
 
-      // Bulk insert RoleResource data with the new ProjectId
-      if (roleResources && roleResources.length > 0) {
-        const roleResourceData = roleResources.map((resource) => ({
-          RRId: resource.RRId,
-          RId: resource.RId,
-          ProjectId: projectId,
-        }));
+      // Exit early if roleResources is not a valid array or is empty
+      if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-        await RoleResource.insertMany(roleResourceData);
-      }
+      const roleResourceData = roleResources.map(({ RRId, RId }) => ({
+        RRId,
+        RId,
+        ProjectId: projectId,
+      }));
+
+      await RoleResource.insertMany(roleResourceData);
 
       res.status(201).json({
         message: "Project and Role Resources added successfully",

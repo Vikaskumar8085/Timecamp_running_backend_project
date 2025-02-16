@@ -83,10 +83,10 @@ const userCtr = {
         role = await user?.Role;
         redirectUrl = "/dashboard";
 
-        // if (user.System_Access === false) {
-        //   res.status(HttpStatusCodes.BAD_REQUEST);
-        //   throw new Error("you do not have system access");
-        // }
+        if (user.System_Access === false) {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error("you do not have system access");
+        }
       }
 
       if (!user && Email) {
