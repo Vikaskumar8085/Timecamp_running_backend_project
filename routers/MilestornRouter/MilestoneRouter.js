@@ -9,6 +9,6 @@ MilestoneRouter.post(
   verifyToken,
   milestoneCtr.createmilestone
 );
-MilestoneRouter.get("/fetch-milestone/:",)
+MilestoneRouter.get("/fetch-milestone/:id",verifyToken,milestoneCtr.fetchmilestone)
 
 module.exports = MilestoneRouter;

@@ -80,11 +80,10 @@ const milestoneCtr = {
       let queryObj = {};
 
       queryObj = {
-        ProjectId: req.params.id,
-        Company_Id: checkcompany.Company_Id,
+        ProjectId: parseInt(req.params.id),
       };
 
-      const response = await Milestone.find(queryObj).lean().exec();
+      const response = await Milestone.find(queryObj);
       return res
         .status(HttpStatusCodes.OK)
         .json({ success: true, result: response });
