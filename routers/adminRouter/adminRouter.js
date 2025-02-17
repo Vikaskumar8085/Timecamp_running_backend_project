@@ -8,12 +8,13 @@ const employeeCtr = require("../../controller/Authcontrollers/employee/employeeC
 const contractorCtr = require("../../controller/Authcontrollers/contractor/contractorCtr");
 const TaskCtr = require("../../controller/Task/TaskCtr");
 const TimesheetCtr = require("../../controller/TimesheetCtr/TimesheetCtr");
+const upload = require("../../utils/FileUpload/fileUpload");
 
 const adminRouter = express.Router();
 // admin create
 adminRouter.post("/create-admin", verifyToken, adminCtr.create_admin);
 adminRouter.get("/fetch-admin", verifyToken, adminCtr.getalladmin);
-adminRouter.get("/fetch-staffmembers",verifyToken,employeeCtr.fetch_staff);
+adminRouter.get("/fetch-staffmembers", verifyToken, employeeCtr.fetch_staff);
 
 // client
 adminRouter.post("/create-client", verifyToken, clientCtr.create_client);
@@ -59,7 +60,11 @@ adminRouter.get(
   projectCtr.fetchstaffmembers
 );
 
-adminRouter.get("/fetch-single-project/:id",verifyToken,projectCtr.fetchsingleprojects)
+adminRouter.get(
+  "/fetch-single-project/:id",
+  verifyToken,
+  projectCtr.fetchsingleprojects
+);
 
 // employee
 adminRouter.post("/create-employee", verifyToken, employeeCtr.create_employee);
@@ -79,6 +84,11 @@ adminRouter.get(
   "/fetch-single-employee/:id",
   verifyToken,
   employeeCtr.fetch_single_employee
+);
+adminRouter.get(
+  "/fetch-employee-project/:id",
+  verifyToken,
+  employeeCtr.fetch_employee_projects
 );
 
 // contractor
@@ -108,15 +118,37 @@ adminRouter.get(
   verifyToken,
   contractorCtr.fetch_single_contractor
 );
+adminRouter.get(
+  "/fetch-contractor-project/:id",
+  verifyToken,
+  contractorCtr.fetch_contractor_projects
+);
 
 // task
 
-adminRouter.get("/fetch-project-task", verifyToken, TaskCtr.fetchprojectask);
-adminRouter.post("/create-task", verifyToken, TaskCtr?.create_task);
-
-
+adminRouter.get(
+  "/fetch-project-task/:id",
+  verifyToken,
+  TaskCtr.fetchprojectask
+);
+adminRouter.post(
+  "/create-task/:id",
+  verifyToken,
+  upload.single("file"),
+  TaskCtr?.create_task
+);
+adminRouter.get("/fetch-tasks", verifyToken, TaskCtr.fetchTasks);
+adminRouter.get(
+  "/fetch-projectwithmilestone",
+  verifyToken,
+  TaskCtr.fetchProjectwithmilestones
+);
 // timesheet
 
-adminRouter.get("/fetch-timesheet",verifyToken,TimesheetCtr.fetch_timesheet)
-adminRouter.get("/fetch-project-time",verifyToken,TimesheetCtr.fetch_project_time);
+adminRouter.get("/fetch-timesheet", verifyToken, TimesheetCtr.fetch_timesheet);
+adminRouter.get(
+  "/fetch-project-time",
+  verifyToken,
+  TimesheetCtr.fetch_project_time
+);
 module.exports = adminRouter;

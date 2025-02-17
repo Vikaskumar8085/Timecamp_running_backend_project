@@ -9,7 +9,7 @@ const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResourc
 const Client = require("../../models/AuthModels/Client/Client");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const generateProjectCode = async () => {
-  const lastProject = await Project.findOne().sort({ ProjectId: -1 });
+  const lastProject = await Project.findOne().sort({ProjectId: -1});
   const lastId = lastProject ? lastProject.ProjectId : 0;
   const newProjectId = lastId + 1;
   return `P${newProjectId.toString().padStart(3, "0")}`;
@@ -34,7 +34,7 @@ const projectCtr = {
         throw new Error("Un Authorized User");
       }
 
-      const checkcompany = await Company?.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -52,6 +52,17 @@ const projectCtr = {
 
       await newProject.save();
 
+      let responseClientId = newProject.clientId;
+
+      if (!responseClientId) {
+        return; // Exit if clientId is undefined or empty
+      } else {
+        await Client.updateOne(
+          {Client_Id: responseClientId}, // Ensure we update the correct client
+          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
+        );
+      }
+
       // Retrieve the generated ProjectId
       const projectId = newProject?.ProjectId;
       console.log(projectId, "...");
@@ -59,7 +70,7 @@ const projectCtr = {
       // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({ RRId, RId }) => ({
+      const roleResourceData = roleResources.map(({RRId, RId}) => ({
         RRId,
         RId,
         ProjectId: projectId,
@@ -74,7 +85,7 @@ const projectCtr = {
     } catch (error) {
       res
         .status(500)
-        .json({ message: "Internal Server Error", error: error.message });
+        .json({message: "Internal Server Error", error: error.message});
     }
   }),
 
@@ -89,7 +100,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -112,14 +123,14 @@ const projectCtr = {
 
           // Extract RRId values
           const rIds = roleResources.map((rr) => rr.RId);
-          const roles = await Role.find({ RoleId: { $in: rIds } });
+          const roles = await Role.find({RoleId: {$in: rIds}});
           const rrid = roleResources.map((rr) => rr.RRId);
 
           const staffMember = await StaffMember.find({
-            staff_Id: { $in: rrid },
+            staff_Id: {$in: rrid},
           });
 
-          return { ...project, roles, staffMember };
+          return {...project, roles, staffMember};
         })
       );
 
@@ -142,7 +153,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -177,7 +188,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -213,7 +224,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -245,7 +256,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -269,18 +280,18 @@ const projectCtr = {
 
           // Extract RRId values
           const rIds = roleResources.map((rr) => rr.RId);
-          const roles = await Role.find({ RoleId: { $in: rIds } });
+          const roles = await Role.find({RoleId: {$in: rIds}});
           const rrid = roleResources.map((rr) => rr.RRId);
 
           const staffMember = await StaffMember.find({
-            staff_Id: { $in: rrid },
+            staff_Id: {$in: rrid},
           });
 
           const responseclient = await Client.find({
             Client_Id: projectitem.clientId,
           });
           const ProjectManager = await StaffMember.find({
-            staff_Id: { $in: projectitem.Project_ManagersId },
+            staff_Id: {$in: projectitem.Project_ManagersId},
           });
           const ProjectManagerName = await ProjectManager.map(
             (item) => item.FirstName
@@ -321,7 +332,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -363,7 +374,7 @@ const projectCtr = {
       );
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: timesheetfetchdata });
+        .json({success: true, result: timesheetfetchdata});
     } catch (error) {
       throw new Error(error?.message);
     }

@@ -6,6 +6,7 @@ const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMember
 const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 const Project = require("../../../models/Othermodels/Projectmodels/Project");
 const moment = require("moment");
+const RoleResource = require("../../../models/Othermodels/Projectmodels/RoleResources");
 
 const contractorCtr = {
   // create contractor
@@ -18,7 +19,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -77,7 +78,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -113,7 +114,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -150,7 +151,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -181,20 +182,20 @@ const contractorCtr = {
 
   fetch_single_contractor: asynchandler(async (req, res) => {
     try {
-      const { id } = req.params;
+      const {id} = req.params;
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
-      const response = await StaffMember.findOne({ staff_Id: parseInt(id) })
+      const response = await StaffMember.findOne({staff_Id: parseInt(id)})
         .lean()
         .exec();
       if (!response) {
@@ -212,32 +213,69 @@ const contractorCtr = {
 
   fetch_contractor_projects: asynchandler(async (req, res) => {
     try {
-      const { id } = req.params;
+      const {id} = req.params;
       const user = await User.findById(req.user).lean().exec();
+
       if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        return res
+          .status(HttpStatusCodes.UNAUTHORIZED)
+          .json({error: "Unauthorized User. Please Signup."});
       }
-      const checkcompany = await Company.findOne({ UserId: user.user_id })
+
+      const checkCompany = await Company.findOne({UserId: user.user_id})
         .lean()
         .exec();
-      if (!checkcompany) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request");
+      if (!checkCompany) {
+        return res
+          .status(HttpStatusCodes.BAD_REQUEST)
+          .json({error: "Bad Request"});
       }
 
-      let queryObj = {};
-
-      const response = await Project.find(queryObj).lean().exec();
-
+      const response = await StaffMember.findOne({staff_Id: Number(id)})
+        .lean()
+        .exec();
       if (!response) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("bad Requests");
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({error: "Staff Member not found"});
       }
+
+      // Find Projects where staff is a manager
+      const contractorProjectData = await Project.find({
+        Project_ManagersId: {$in: [response.staff_Id]},
+      })
+        .lean()
+        .exec();
+
+      // Find Resource Roles
+      const getResourceId = await RoleResource.find({
+        RRId: {$in: [response.staff_Id]},
+      })
+        .lean()
+        .exec();
+
+      // Extract project IDs from `getResourceId`
+      const projectIds = getResourceId.flatMap(
+        (resource) => resource.ProjectId || []
+      );
+
+      // Find Projects where staff is a resource
+      const findContractorProject = await Project.find({
+        ProjectId: {$in: projectIds},
+      })
+        .lean()
+        .exec();
+
+      // Format response
+      const contractorProjectsResponse = {
+        ...response,
+        ManagerProject: contractorProjectData,
+        ContractorProject: findContractorProject,
+      };
+
       return res.status(HttpStatusCodes.OK).json({
-        result: response,
+        result: contractorProjectsResponse,
         success: true,
-        message: "fetch contractor data successfully",
       });
     } catch (error) {
       throw new Error(error?.message);
