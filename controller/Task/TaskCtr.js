@@ -220,7 +220,6 @@ const TaskCtr = {
                 : [];
 
             let resourcedata = await fetchresourcesstaff.map((item) => ({
-              ProjectId: item.ProjectId,
               resourceId: item.staff_Id,
               resourceName: item.FirstName,
             }));
