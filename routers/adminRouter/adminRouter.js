@@ -125,7 +125,13 @@ adminRouter.get(
 );
 
 // task
-
+upload.single("file"),
+  adminRouter.post(
+    "/add-task",
+    upload.single("file"),
+    verifyToken,
+    TaskCtr.addTask
+  );
 adminRouter.get(
   "/fetch-project-task/:id",
   verifyToken,

@@ -10,6 +10,9 @@ const Company = require("../../../models/Othermodels/Companymodels/Company");
 const Task = require("../../../models/Othermodels/Task/Task");
 const Project = require("../../../models/Othermodels/Projectmodels/Project");
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
+const Milestone = require("../../../models/Othermodels/Milestones/Milestones");
+const moment = require("moment");
+const RoleResource = require("../../../models/Othermodels/Projectmodels/RoleResources");
 const csvuploadCtr = {
   generateClientCsvFile: asyncHandler(async (req, res) => {
     try {
@@ -18,7 +21,7 @@ const csvuploadCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -66,7 +69,7 @@ const csvuploadCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -129,7 +132,7 @@ const csvuploadCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -237,24 +240,33 @@ const csvuploadCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
-      const schemaFields = Object.keys(Task.schema.paths).filter(
-        (field) =>
-          field !== "_id" &&
-          field !== "Common_Id" &&
-          field !== "_V" &&
-          field !== "Role" &&
-          field !== "Client_Id" &&
-          field !== "Password" &&
-          field !== "__v" &&
-          field !== "createdAt" &&
-          field !== "updatedAt"
-      );
+      const schemaFields = Object.keys(Task.schema.paths)
+        .filter(
+          (field) =>
+            field !== "_id" &&
+            field !== "Common_Id" &&
+            field !== "_V" &&
+            field !== "Role" &&
+            field !== "Client_Id" &&
+            field !== "Password" &&
+            field !== "__v" &&
+            field !== "createdAt" &&
+            field !== "updatedAt" &&
+            field !== "task_Id" &&
+            field !== "Company_Id" &&
+            field !== "ProjectId" &&
+            field !== "MilestoneId" &&
+            field !== "Due_date" &&
+            field !== "Resource_Id" &&
+            field !== "Attachment"
+        )
+        .concat("MileStoneName", "ResourceEmail");
       // console.log(schemaFields)
       // Convert to CSV format
       const csvContent = schemaFields.join(",") + "\n";
@@ -285,7 +297,7 @@ const csvuploadCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -335,7 +347,7 @@ const csvuploadCtr = {
   uploadclientcsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -343,7 +355,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const checkCompany = await Company?.findOne({ UserId: user?.user_id });
+      const checkCompany = await Company?.findOne({UserId: user?.user_id});
       if (!checkCompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -376,7 +388,7 @@ const csvuploadCtr = {
   uploadcontractorcsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -384,7 +396,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -418,7 +430,7 @@ const csvuploadCtr = {
   uploademployeecsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -426,7 +438,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -460,7 +472,7 @@ const csvuploadCtr = {
   uploadTaskcsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -468,7 +480,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -482,14 +494,57 @@ const csvuploadCtr = {
 
       const insertdata = [];
 
-      for await (let newdata of data) {
-        const taskdata = await Task({
-          CompanyId: company.Company_Id,
-          ...newdata,
+      for await (let newData of data) {
+        const milestoneName =
+          typeof newData.MileStoneName === "string"
+            ? newData.MileStoneName.trim()
+            : "";
+        const resourceEmail =
+          typeof newData.ResourceEmail === "string"
+            ? newData.ResourceEmail.trim()
+            : "";
+
+        const startDate = moment(newData.StartDate, "DD/MM/YYYY").toDate();
+        const endDate = moment(newData.EndDate, "DD/MM/YYYY").toDate();
+
+        // Find Milestone (Case-insensitive search)
+        const findmilestone = await Milestone.findOne({
+          Name: {$regex: new RegExp(`^${milestoneName}$`, "i")},
         });
-        const savetask = await taskdata.save();
+
+        if (!findmilestone) {
+          return res
+            .status(HttpStatusCodes.NOT_FOUND)
+            .json({error: "Milestone Not Found"});
+        }
+
+        // Find Staff Member by Email
+        const findstaffmember = await StaffMember.findOne({
+          Email: resourceEmail,
+        });
+
+        if (!findstaffmember) {
+          return res
+            .status(HttpStatusCodes.NOT_FOUND)
+            .json({error: "Staff Member Not Found"});
+        }
+
+        // Create Task Object
+        const createtask = new Task({
+          Company_Id: company.Company_Id,
+          MilestoneId: findmilestone.Milestone_id, // Use _id instead of Milestone_id
+          Resource_Id: findstaffmember.staff_Id, // Use _id instead of staff_Id
+          ProjectId: req.params.id,
+          StartDate: startDate,
+          EndDate: endDate,
+          ...newData,
+        });
+
+        // Save Task
+        const savetask = await createtask.save();
         insertdata.push(savetask);
       }
+
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result: insertdata,
@@ -501,7 +556,7 @@ const csvuploadCtr = {
   uploadprojectCsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -509,7 +564,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -533,56 +588,52 @@ const csvuploadCtr = {
           });
         }
 
-        //
         // 📌 Step 2: Validate Project Manager (Staff Member)
+
         const staffMember = await StaffMember.findOne({
-          Email: newdata.Resource_Email,
+          Email: newdata.Resource_Email.trim(),
         });
         if (!staffMember) {
           return res.status(400).json({
-            error: `Project Manager ID ${row.Project_ManagersId} does not exist in StaffMemberSchema`,
+            error: `Project Manager ID ${newdata.Project_ManagersId} does not exist in StaffMemberSchema`,
           });
         }
 
-        // // 📌 Step 3: Validate ResourseEmail and Find Corresponding staff_id
+        // 📌 Step 3: Validate ResourseEmail and Find Corresponding staff_id
         const resourceStaff = await StaffMember.findOne({
-          Email: row.Project_Manager_Email,
+          Email: newdata.Project_Manager_Email.trim(),
         });
         if (!resourceStaff) {
           return res.status(400).json({
-            error: `ResourseEmail ${newdata.ResourseEmail} not found in StaffMemberSchema`,
+            error: `ResourseEmail ${newdata.Project_Manager_Email} not found in StaffMemberSchema`,
           });
         }
-
-        // // 📌 Step 4: Validate Role Resources and Store RRId as staff_id
-        // let parsedRoleResources = [];
-        // try {
-        //   parsedRoleResources = JSON.parse(row.roleResources || "[]");
-        // } catch (error) {
-        //   return res.status(400).json({ error: "Invalid roleResources format" });
-        // }
-
-        // let validRoles = [];
-        // for (const role of parsedRoleResources) {
-        //   const roleExists = await RoleResource.findOne({ RRId: resourceStaff.staff_id, RId: role.RId });
-        //   if (!roleExists) {
-        //     await RoleResource.create({ RRId: resourceStaff.staff_id, RId: role.RId });
-        //   }
-        //   validRoles.push({ RRId: resourceStaff.staff_id, RId: role.RId });
-        // }
-        //
 
         const projectdata = await Project({
           CompanyId: company.Company_Id,
           clientId: client.Client_Id,
+          Project_ManagersId: resourceStaff.staff_Id,
           ...newdata,
         });
+
         const saveproject = await projectdata.save();
-        insertdata.push(saveproject);
+
+        // Assuming ProjectId is a single value, not an array
+        const projectid = saveproject.ProjectId; // Use singular since it's likely one value, not an array
+
+        // Check if the projectid exists (not an empty string or undefined)
+        if (projectid) {
+          const saveResourcedata = new RoleResource({
+            ProjectId: projectid,
+            RRId: staffMember.staff_Id,
+            RId: "1",
+          });
+          await saveResourcedata.save();
+        }
       }
       return res.status(HttpStatusCodes.OK).json({
         success: true,
-        result: insertdata,
+        message: "project upload successfully",
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -591,7 +642,7 @@ const csvuploadCtr = {
   uploadTimesheetCsv: asyncHandler(async (req, res) => {
     try {
       if (!req.file) {
-        return res.status(400).json({ error: "No file uploaded." });
+        return res.status(400).json({error: "No file uploaded."});
       }
       const user = await User?.findById(req.user);
       if (!user) {
@@ -599,7 +650,7 @@ const csvuploadCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -611,12 +662,11 @@ const csvuploadCtr = {
       const sheetName = workbook.SheetNames[0];
       const sheet = workbook.Sheets[sheetName];
       const data = xlsx.utils.sheet_to_json(sheet);
-      console.log(data, "asdf");
       const insertdata = [];
 
       for await (let newdata of data) {
         const findstaffmember = await StaffMember.findOne({
-          Email: newdata.Resource_Email,
+          Email: newdata.Resource_Email.trim(),
         });
 
         if (!findstaffmember) {
@@ -639,12 +689,11 @@ const csvuploadCtr = {
 
           continue;
         }
-        console.log(findproject);
-
         const timesheetdata = await TimeSheet({
           CompanyId: company.Company_Id,
           Staff_Id: findstaffmember.staff_Id,
           project: findproject.ProjectId,
+
           ...newdata,
         });
         const savetimesheet = await timesheetdata.save();

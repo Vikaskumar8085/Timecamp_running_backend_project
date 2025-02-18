@@ -50,7 +50,52 @@ const TaskCtr = {
       });
 
       // Save the task to the database
-      const savedTask = await newTask.save();
+      await newTask.save();
+      res.status(201).json({
+        message: "Task created successfully",
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  addTask: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          message: "Unauthorized User. Please Signup.",
+        });
+        return; // Ensure no further code runs after sending the response
+      }
+
+      // Check company
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST).json({
+          message: "Company not exists. Please create a company first.",
+        });
+        return; // Ensure no further code runs after sending the response
+      }
+      let attachmentPath = req.file ? req.file.filename : Attachment;
+
+      const newTask = new Task({
+        Company_Id: checkcompany?.Company_Id,
+        Task_Name: req.body.Task_Name,
+        ProjectId: req.body.ProjectId,
+        MilestoneId: req.body.MilestoneId,
+        Priority: req.body.Priority,
+        StartDate: req.body.StartDate,
+        EndDate: req.body.EndDate,
+        Estimated_Time: req.body.Estimated_Time,
+        Task_description: req.body.Task_Description,
+        Attachment: attachmentPath,
+        Resource_Id: req.body.Resource_Id,
+      });
+
+      // Save the task to the database
+      await newTask.save();
       res.status(201).json({
         message: "Task created successfully",
         success: true,
@@ -194,24 +239,24 @@ const TaskCtr = {
       const fetchprojectresponse = await Promise.all(
         response.map(async (item) => {
           try {
-            const fetchmilestone = await Milestone.find({
-              ProjectId: item.ProjectId,
-            }).lean();
+            // Fetch Milestone and RoleResource in parallel
+            const [fetchmilestone, fetchrrid] = await Promise.all([
+              Milestone.find({ProjectId: item.ProjectId}).lean(),
+              RoleResource.find({ProjectId: item.ProjectId}).lean(),
+            ]);
 
-            let mileStonedata = fetchmilestone.map((Item) => ({
-              ProjectId: item.ProjectId,
-              milestoneId: Item.Milestone_id,
-              milestoneName: Item.Name,
-            }));
-            const fetchrrid = await RoleResource.find({
-              ProjectId: item.ProjectId,
-            }).lean();
+            // Process milestones
+            const mileStonedata =
+              fetchmilestone?.map((milestone) => ({
+                ProjectId: item.ProjectId,
+                milestoneId: milestone.Milestone_id,
+                milestoneName: milestone.Name,
+              })) || [];
 
-            // Ensure fetchrrid is an array before mapping
-            const fetchresourcesId = Array.isArray(fetchrrid)
-              ? fetchrrid.map((rrid) => rrid.RRId)
-              : [];
+            // Extract resource IDs
+            const fetchresourcesId = fetchrrid?.map((rr) => rr.RRId) || [];
 
+            // Fetch resource staff only if IDs exist
             const fetchresourcesstaff =
               fetchresourcesId.length > 0
                 ? await StaffMember.find({
@@ -219,10 +264,13 @@ const TaskCtr = {
                   }).lean()
                 : [];
 
-            let resourcedata = await fetchresourcesstaff.map((item) => ({
-              resourceId: item.staff_Id,
-              resourceName: item.FirstName,
-            }));
+            // Process resource staff and include ProjectId
+            const resourcedata =
+              fetchresourcesstaff?.map((staff) => ({
+                ProjectId: item.ProjectId, // Include ProjectId here
+                resourceId: staff.staff_Id,
+                resourceName: staff.FirstName,
+              })) || [];
 
             return {
               ...item,
@@ -236,9 +284,9 @@ const TaskCtr = {
             );
             return {
               ...item,
-              fetchmilestone: [],
-              fetchresourcesstaff: [],
-              error: "Data fetch failed",
+              mileStonedata: [],
+              resourcedata: [],
+              error: error.message,
             };
           }
         })

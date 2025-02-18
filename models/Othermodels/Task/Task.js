@@ -38,11 +38,11 @@ const TaskSchema = new mongoose.Schema(
       default: "LOW",
     },
     StartDate: {
-      type: Date,
+      type: String,
       required: true,
     },
     EndDate: {
-      type: Date,
+      type: String,
       required: true,
     },
     Status: {
