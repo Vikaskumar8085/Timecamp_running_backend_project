@@ -78,18 +78,6 @@ const userCtr = {
 
       // admin functionality
 
-      // If not found, check in the Client model for Email match
-      if (!user && Email) {
-        user = await Client.findOne({Client_Email: Email});
-        role = await user?.Role;
-        redirectUrl = "/dashboard";
-
-        if (user.System_Access === false) {
-          res.status(HttpStatusCodes.BAD_REQUEST);
-          throw new Error("you do not have system access");
-        }
-      }
-
       if (!user && Email) {
         user = await StaffMember.findOne({UserName: Email});
         role = await user?.Role;
@@ -114,6 +102,17 @@ const userCtr = {
       // }
 
       // check if user data exists,
+      // If not found, check in the Client model for Email match
+      if (!user && Email) {
+        user = await Client.findOne({Client_Email: Email});
+        role = await user?.Role;
+        redirectUrl = "/dashboard";
+
+        if (user.System_Access === false) {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error("you do not have system access");
+        }
+      }
 
       // User exists, check if password is correct
       const passwordIsCorrect = await bcrypt.compare(

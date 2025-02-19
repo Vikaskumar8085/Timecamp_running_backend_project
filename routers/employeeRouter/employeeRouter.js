@@ -1,7 +1,9 @@
 const express = require("express");
 const EmployeeCtr = require("../../controller/EmployeeController/EmployeeCtr");
+const verifyToken = require("../../Auth/verifyAuth");
 
 const employeeRouter = express.Router();
+employeeRouter.use(verifyToken);
 
 employeeRouter.get("/employee-project", EmployeeCtr.fetchemployeeprojects);
 employeeRouter.get(

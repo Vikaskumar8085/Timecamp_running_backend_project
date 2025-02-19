@@ -6,6 +6,7 @@ const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Task = require("../../models/Othermodels/Task/Task");
 
 const ClientCtr = {
+  // Client Project
   fetchClientprojects: asyncHandler(async (req, res) => {
     try {
       const user = await Client.findById(req.user).lean().exec();
@@ -34,20 +35,7 @@ const ClientCtr = {
     }
   }),
 
-  fetchclientprojectTask: asyncHandler(async (req, res) => {
-    try {
-      const user = await Client.findById(req.user);
-      if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Un Authorized User please Singup");
-      }
-      //   const
-    } catch (error) {
-      throw new Error(error?.message);
-    }
-  }),
-
-  //   fetch client active projects
+  //   Active Project
   fetchclientActiveProjects: asyncHandler(async (req, res) => {
     try {
       const user = await Client.findById(req.user);
@@ -76,7 +64,7 @@ const ClientCtr = {
       throw new Error(error?.message);
     }
   }),
-
+  // InActive Project
   fetchclientInactiveprojects: asyncHandler(async (req, res) => {
     try {
       const user = await Client.findById(req.user);
@@ -105,8 +93,8 @@ const ClientCtr = {
       throw new Error(error?.message);
     }
   }),
-
-  fetchclientsingleproject: asyncHandler(async (req, res) => {
+  // Timesheet
+  fetchclientprojectTimesheet: asyncHandler(async (req, res) => {
     try {
       const user = await Client.findById(req.user);
       if (!user) {
@@ -141,7 +129,6 @@ const ClientCtr = {
             .skip(skip)
             .limit(limit);
 
-
           return {...item.toObject(), timesheets: findtimesheet};
         })
       );
@@ -154,8 +141,7 @@ const ClientCtr = {
     }
   }),
 
-  // ProjectId
-
+  // Task
   fetchclientprojecttask: asyncHandler(async (req, res) => {
     try {
       const user = await Client.findById(req.user);
@@ -176,18 +162,123 @@ const ClientCtr = {
         throw new Error("Project Not Found");
       }
 
-      const projecttask = Promise.all((projects) => {
-        projects.map(async (item) => {
+      const projecttask = await Promise.all(
+        findProject.map(async (item) => {
           let fetchtasks = await Task.find({
             ProjectId: item.ProjectId,
           });
-          return {...projects, fetchtasks};
-        });
-      });
 
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, result: projecttask});
+          return {
+            ...item.toObject(),
+            fetchtasks,
+          };
+        })
+      );
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: projecttask,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // Single Project
+  fetchclientSingleproject: asyncHandler(async (req, res) => {
+    try {
+      const user = await Client.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please Singup");
+      }
+
+      let queryObj = {};
+      queryObj = {
+        clientId: user?.Client_Id,
+        ProjectId: req.params.id,
+      };
+      const findProject = await Project.find(queryObj);
+      if (!findProject || findProject.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Project Not Found");
+      }
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: findProject,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // fetch client task
+
+  fetchClientTask: asyncHandler(async (req, res) => {
+    try {
+      const user = await Client.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please Singup");
+      }
+
+      let queryObj = {};
+      queryObj = {
+        clientId: user?.Client_Id,
+      };
+      const findProject = await Project.find(queryObj);
+
+      if (!findProject?.length) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Project Not found");
+      }
+
+      const projectids = findProject.map((item) => item.ProjectId);
+      const projecttask = await Task.find({ProjectId: {$in: projectids}});
+      if (!projecttask?.length) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Task Not Found");
+      }
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: projecttask,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchClientTimesheet: asyncHandler(async (req, res) => {
+    try {
+      const user = await Client.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please Singup");
+      }
+      let queryObj = {};
+      queryObj = {
+        clientId: user?.Client_Id,
+      };
+      const findProject = await Project.find(queryObj);
+
+      if (!findProject?.length) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Project Not found");
+      }
+
+      const projectids = findProject.map((item) => item.ProjectId);
+      const projectTimesheet = await TimeSheet.find({
+        project: {$in: projectids},
+      });
+      if (!projectTimesheet?.length) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Timesheet Not Found");
+      }
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: projectTimesheet,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }

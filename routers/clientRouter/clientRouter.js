@@ -12,6 +12,19 @@ clientRouter.get(
   "/client-inactive-project",
   ClientCtr.fetchclientInactiveprojects
 );
-clientRouter.get("/client-project-task", ClientCtr.fetchclientprojectTask);
+clientRouter.get("/client-project-task/:id", ClientCtr.fetchclientprojecttask);
+clientRouter.get(
+  "/client-project-timesheet/:id",
+  ClientCtr.fetchclientprojectTimesheet
+);
 
+clientRouter.get(
+  "/client-single-project/:id",
+  ClientCtr.fetchclientSingleproject
+);
+// task
+clientRouter.get("/client-project-task", ClientCtr.fetchClientTask);
+
+// timesheet
+clientRouter.get("/client-project-timesheet", ClientCtr.fetchClientTimesheet);
 module.exports = clientRouter;
