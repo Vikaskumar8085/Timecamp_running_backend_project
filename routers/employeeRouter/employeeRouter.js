@@ -1,6 +1,7 @@
 const express = require("express");
 const EmployeeCtr = require("../../controller/EmployeeController/EmployeeCtr");
 const verifyToken = require("../../Auth/verifyAuth");
+const upload = require("../../utils/FileUpload/fileUpload");
 
 const employeeRouter = express.Router();
 employeeRouter.use(verifyToken);
@@ -16,7 +17,15 @@ employeeRouter.get(
 );
 
 // employee single project
+employeeRouter.get(
+  "/fetch-employee-project-information/:id",
+  EmployeeCtr.getemployeesingleprojectinformation
+);
 
+employeeRouter.get(
+  "/fetch-employee-project-tasks/:id",
+  EmployeeCtr.getemployeesingleporjectTask
+);
 employeeRouter.get(
   "/fetch-employee-project-timesheet/:id",
   EmployeeCtr.getemployeesingleporjectTimesheet
@@ -26,5 +35,11 @@ employeeRouter.get(
   EmployeeCtr.getEmployeeTimesheet
 );
 employeeRouter.get("/fetch-employee-tasks", EmployeeCtr.getEmployeetasks);
+
+employeeRouter.post(
+  "/fill-project-timesheet",
+  upload.single("file"),
+  EmployeeCtr.FillEmployeeProjectTimesheet
+);
 
 module.exports = employeeRouter;
