@@ -106,7 +106,7 @@ const staffMemberSchema = mongoose.Schema(
 
     //
   },
-  { timestamps: true }
+  {timestamps: true}
 );
 
 staffMemberSchema.plugin(AutoIncrement, {
@@ -129,7 +129,7 @@ staffMemberSchema.pre("save", async function (next) {
     let counter = 1;
 
     // Ensure uniqueness in the database
-    while (await StaffMember.findOne({ UserName: uniqueUserName })) {
+    while (await StaffMember.findOne({UserName: uniqueUserName})) {
       uniqueUserName = `${prefix}.${baseUserName}${randomNum + counter}`;
       counter++;
     }

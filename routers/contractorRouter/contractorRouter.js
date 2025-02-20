@@ -17,4 +17,19 @@ contractorRouter.get(
   ContractorCtr.fetchContractorInactiveProjects
 );
 
+contractorRouter.get(
+  "/contract-project-timesheet/:id",
+  ContractorCtr.fetchContractorProjectTimesheet
+);
+
+contractorRouter.get(
+  "/contractor-project-task/:id",
+  ContractorCtr.fetchContractorProjectTask
+);
+contractorRouter.get(
+  "/fetch-contractor-single-project/:id",
+  ContractorCtr.fetchcontractorsingletprojectinformation
+);
+
+
 module.exports = contractorRouter;

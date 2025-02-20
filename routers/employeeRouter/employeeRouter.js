@@ -15,4 +15,8 @@ employeeRouter.get(
   EmployeeCtr.fetchemployeeInactiveProjects
 );
 
+// employee single project
+
+employeeRouter.get("/fetch-employee-project-timesheet/:id",EmployeeCtr.getemployeesingleporjectTimesheet)
+
 module.exports = employeeRouter;

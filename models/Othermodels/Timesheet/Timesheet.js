@@ -1,12 +1,12 @@
 const mongoose = require("mongoose");
-const { Schema } = mongoose;
+const {Schema} = mongoose;
 const AutoIncrement = require("mongoose-sequence")(mongoose);
 // Define the Billing Status constants
 const BILLING_STATUS = ["NOT_BILLED", "BILLED", "PARTIALLY_BILLED"]; // Adjust as needed
 const TimesheetSchema = new Schema({
   Timesheet_Id: {
     type: Number,
-    required: false,
+    trim: true,
     unique: true,
   },
   ts_code: {
@@ -46,24 +46,32 @@ const TimesheetSchema = new Schema({
     maxlength: 5000, // Optional: limit the description length
   },
   start_time: {
-    type: Date,
-    default: null,
+    type: String,
+    default: function () {
+      return moment().format("DD/MM/YYYY");
+    },
   },
   end_time: {
-    type: Date,
-    default: null,
+    type: String,
+    default: function () {
+      return moment().format("DD/MM/YYYY");
+    },
   },
   day: {
-    type: Date,
-    required: false,
+    type: String,
+    default: function () {
+      return moment().format("DD/MM/YYYY");
+    },
   },
   approved: {
     type: Boolean,
     default: false,
   },
   created_at: {
-    type: Date,
-    default: Date.now,
+    type: String,
+    default: function () {
+      return moment().format("DD/MM/YYYY");
+    },
   },
   remarks: {
     type: String,
@@ -82,7 +90,7 @@ const TimesheetSchema = new Schema({
     default: "NOT_BILLED",
   },
   approved_date: {
-    type: Date,
+    type: String,
     default: null,
   },
   approved_by: {

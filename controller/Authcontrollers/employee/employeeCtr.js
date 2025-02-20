@@ -49,6 +49,15 @@ const employeeCtr = {
         CompanyId: company.Company_Id,
       });
 
+      const managerids = await response.ManagerId;
+      const checkmanagerids = await StaffMember.findOne({staff_Id: managerids});
+      if (checkmanagerids) {
+        await StaffMember.updateOne(
+          {staff_Id: managerids},
+          {SubRole: "Manager"}
+        );
+      }
+
       await response.save();
 
       if (!response) {
@@ -87,11 +96,23 @@ const employeeCtr = {
         CompanyId: company?.Company_Id,
         Role: "Employee",
       };
-      const response = await StaffMember.find(queryObj).lean().exec();
-      if (!response) {
+      const staffresponse = await StaffMember.find(queryObj).lean().exec();
+      if (!staffresponse) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad request");
       }
+      const response = await Promise.all(
+        staffresponse.map(async (item) => {
+          const staffManager = await StaffMember.findOne({
+            staff_Id: item.ManagerId,
+          });
+          return {
+            ...item,
+            Manager: staffManager?.FirstName || null, // More concise null handling
+          };
+        })
+      );
+
       return res.status(HttpStatusCodes.OK).json({
         result: response,
         success: true,
