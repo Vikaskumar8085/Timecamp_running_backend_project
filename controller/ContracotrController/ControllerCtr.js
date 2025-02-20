@@ -281,24 +281,43 @@ const ContractorCtr = {
     }
   }),
 
-  // getcontractortimesheet: asyncHandler(async (req, res) => {
-  //   try {
-  //     const user = await StaffMember.findById(req.user);
-  //     if (!user) {
-  //       res.status(HttpStatusCodes.UNAUTHORIZED);
-  //       throw new error("UnAuthorized User Please Singup ");
-  //     }
+  getcontractortimesheet: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
 
-  //   } catch (error) {
-  //     throw new Error(error?.message);
-  //   }
-  // }),
-  // getcontractortasks: asyncHandler(async (req, res) => {
-  //   try {
-  //   } catch (error) {
-  //     throw new Error(error?.message);
-  //   }
-  // }),
+      const fetchTimesheet = await TimeSheet.find({
+        Staff_Id: user.staff_Id,
+      });
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: fetchTimesheet, success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  getcontractortasks: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const fetchtaskresponse = await Task.find({
+        Staff_Id: user.staff_Id,
+      });
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: fetchtaskresponse, success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = ContractorCtr;

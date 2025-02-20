@@ -17,6 +17,14 @@ employeeRouter.get(
 
 // employee single project
 
-employeeRouter.get("/fetch-employee-project-timesheet/:id",EmployeeCtr.getemployeesingleporjectTimesheet)
+employeeRouter.get(
+  "/fetch-employee-project-timesheet/:id",
+  EmployeeCtr.getemployeesingleporjectTimesheet
+);
+employeeRouter.get(
+  "/fetch-employee-timesheet",
+  EmployeeCtr.getEmployeeTimesheet
+);
+employeeRouter.get("/fetch-employee-tasks", EmployeeCtr.getEmployeetasks);
 
 module.exports = employeeRouter;

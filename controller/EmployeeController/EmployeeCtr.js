@@ -5,6 +5,7 @@ const Project = require("../../models/Othermodels/Projectmodels/Project");
 const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
 const Timesheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Task = require("../../models/Othermodels/Task/Task");
+const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 
 const EmployeeCtr = {
   fetchemployeeprojects: asyncHandler(async (req, res) => {
@@ -293,10 +294,13 @@ const EmployeeCtr = {
         throw new error("UnAuthorized User Please Singup ");
       }
 
-    
+      const fetchTimesheet = await TimeSheet.find({
+        Staff_Id: user.staff_Id,
+      });
 
-
-
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: fetchTimesheet, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -308,8 +312,13 @@ const EmployeeCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
+      const fetchtaskresponse = await Task.find({
+        Resource_Id: user.staff_Id,
+      });
 
-      const response = await Project.find({});
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: fetchtaskresponse, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
