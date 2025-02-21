@@ -28,7 +28,7 @@ const CompanySchema = mongoose.Schema({
   },
   Company_Logo: {
     type: String,
-    required: true,
+    required: false,
   },
   Employee_No: {
     type: Number,

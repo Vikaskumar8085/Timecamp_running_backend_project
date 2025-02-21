@@ -121,28 +121,32 @@ const EmployeeCtr = {
 
   FillEmployeeProjectTimesheet: asyncHandler(async (req, res) => {
     try {
-      const newdata = req.body;
-
+      const {newdata} = req.body;
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
       let attachmentPath = req.file ? req.file.filename : Attachment;
-      const inputdata = [];
-      for (let item of newdata) {
-        const Timesheetdata = new Timesheet({
-          Staff_Id: user.staff_Id,
-          hours: item.hours,
-          project: item.Projectid,
-          day: item.day,
-          Description: item.Description,
-          task_description: item.task_description,
-          attachement: attachmentPath,
-        });
-        const saveTimesheetdata = await Timesheetdata.save();
-        inputdata.push(saveTimesheetdata);
-      }
+      const response = new Timesheet({
+        attachement: attachmentPath,
+        ...req.body,
+      });
+
+      await response.save();
+      // for (let item of newdata) {
+      //   const Timesheetdata = new Timesheet({
+      //     Staff_Id: user.staff_Id,
+      //     hours: item.hours,
+      //     project: item.Projectid,
+      //     day: item.day,
+      //     Description: item.Description,
+      //     task_description: item.task_description,
+      //     attachement: attachmentPath,
+      //   });
+      //   const saveTimesheetdata = await Timesheetdata.save();
+      //   inputdata.push(saveTimesheetdata);
+      // }
 
       return res.status(HttpStatusCodes.CREATED).json({
         message: "Timesheet Filled Successfully",
