@@ -17,7 +17,7 @@ const DepartmentCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -61,7 +61,7 @@ const DepartmentCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -81,7 +81,7 @@ const DepartmentCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -97,25 +97,26 @@ const DepartmentCtr = {
         throw new Error("Un authorized user Please Signup");
       }
       // check company
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(StatusCodes.NOT_FOUND);
         throw new Error("company does not exists please create your company");
       }
 
       // deleted
-      const removedepartment = await Department.findById({
+      const removedepartment = await Department.findOne({
         Department_Id: req.params.id,
       });
+      console.log(removedepartment, "??????????/");
 
       if (!removedepartment) {
-        res.status(StatusCodes.NOT_FOUND);
+        res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Department Not Found for deletion");
       } else {
         await removedepartment.deleteOne();
         return res
-          .status(StatusCodes.OK)
-          .json({message: "department deleted successfully", success: true});
+          .status(HttpStatusCodes.OK)
+          .json({ message: "department deleted successfully", success: true });
       }
     } catch (error) {
       throw new Error(error?.message);
@@ -131,26 +132,28 @@ const DepartmentCtr = {
         throw new Error("Un authorized user Please Signup");
       }
       // check company
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("company does not exists please create your company");
       }
 
-      const editdepartment = await Department.findByIdAndUpdate(
-        {Department_Id: req.params.id},
-        req.body,
-        {runValidator: true, new: true}
-      );
+      const editdepartment = await Department.findOne({
+        Department_Id: req.params.id,
+      });
 
       if (!editdepartment) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Department Not Found for updation");
+      } else {
+        await editdepartment.updateOne({
+          $set: { Department_Name: req.body.Department_Name },
+        });
       }
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({message: "department updated successfully", success: true});
+        .json({ message: "department updated successfully", success: true });
     } catch (error) {
       throw new Error(error?.message);
     }

@@ -7,6 +7,7 @@ const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 const Project = require("../../../models/Othermodels/Projectmodels/Project");
 const moment = require("moment");
 const RoleResource = require("../../../models/Othermodels/Projectmodels/RoleResources");
+const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 
 const contractorCtr = {
   // create contractor
@@ -19,7 +20,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -78,7 +79,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -114,7 +115,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -151,7 +152,7 @@ const contractorCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -182,20 +183,20 @@ const contractorCtr = {
 
   fetch_single_contractor: asynchandler(async (req, res) => {
     try {
-      const {id} = req.params;
+      const { id } = req.params;
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
       // chcek companys
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
-      const response = await StaffMember.findOne({staff_Id: parseInt(id)})
+      const response = await StaffMember.findOne({ staff_Id: parseInt(id) })
         .lean()
         .exec();
       if (!response) {
@@ -213,43 +214,43 @@ const contractorCtr = {
 
   fetch_contractor_projects: asynchandler(async (req, res) => {
     try {
-      const {id} = req.params;
+      const { id } = req.params;
       const user = await User.findById(req.user).lean().exec();
 
       if (!user) {
         return res
           .status(HttpStatusCodes.UNAUTHORIZED)
-          .json({error: "Unauthorized User. Please Signup."});
+          .json({ error: "Unauthorized User. Please Signup." });
       }
 
-      const checkCompany = await Company.findOne({UserId: user.user_id})
+      const checkCompany = await Company.findOne({ UserId: user.user_id })
         .lean()
         .exec();
       if (!checkCompany) {
         return res
           .status(HttpStatusCodes.BAD_REQUEST)
-          .json({error: "Bad Request"});
+          .json({ error: "Bad Request" });
       }
 
-      const response = await StaffMember.findOne({staff_Id: Number(id)})
+      const response = await StaffMember.findOne({ staff_Id: Number(id) })
         .lean()
         .exec();
       if (!response) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({error: "Staff Member not found"});
+          .json({ error: "Staff Member not found" });
       }
 
       // Find Projects where staff is a manager
       const contractorProjectData = await Project.find({
-        Project_ManagersId: {$in: [response.staff_Id]},
+        Project_ManagersId: { $in: [response.staff_Id] },
       })
         .lean()
         .exec();
 
       // Find Resource Roles
       const getResourceId = await RoleResource.find({
-        RRId: {$in: [response.staff_Id]},
+        RRId: { $in: [response.staff_Id] },
       })
         .lean()
         .exec();
@@ -261,7 +262,7 @@ const contractorCtr = {
 
       // Find Projects where staff is a resource
       const findContractorProject = await Project.find({
-        ProjectId: {$in: projectIds},
+        ProjectId: { $in: projectIds },
       })
         .lean()
         .exec();
@@ -279,6 +280,71 @@ const contractorCtr = {
       });
     } catch (error) {
       throw new Error(error?.message);
+    }
+  }),
+  fetch_contractor_Timesheet: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized User. Please sign up.");
+      }
+
+      const checkCompany = await Company.findOne({ UserId: user.user_id })
+        .lean()
+        .exec();
+      if (!checkCompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request. Company not found.");
+      }
+
+      let queryObj = {
+        CompanyId: checkCompany.Company_Id,
+        staff_Id: req.params.id,
+      };
+
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      const staffMembers = await StaffMember.find(queryObj)
+        .skip(skip)
+        .limit(limit);
+      const totalRecords = await StaffMember.countDocuments(queryObj);
+      console.log(staffMembers, "staffMembers");
+
+      const projectTimesheet = await Promise.all(
+        staffMembers.map(async (item) => {
+          const fetchProject = await Project.find({
+            Project_ManagersId: item.staff_Id,
+          });
+          const rrids = await RoleResource.find({ RRId: item.staff_Id });
+          const projectIds = rrids.map((item) => item.ProjectId);
+
+          const employeeTimesheets = await TimeSheet.find({
+            project: { $in: projectIds },
+          });
+          const projectManagerTimesheet = await TimeSheet.find({
+            project: { $in: fetchProject.map((p) => p.ProjectId) },
+          });
+
+          return { employeeTimesheets, projectManagerTimesheet };
+        })
+      );
+
+      return res.status(HttpStatusCodes.OK).json({
+        result: projectTimesheet,
+        success: true,
+        pagination: {
+          totalRecords,
+          currentPage: page,
+          totalPages: Math.ceil(totalRecords / limit),
+        },
+      });
+    } catch (error) {
+      return res
+        .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
+        .json({ error: error?.message });
     }
   }),
 };

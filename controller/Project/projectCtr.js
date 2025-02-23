@@ -9,7 +9,7 @@ const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResourc
 const Client = require("../../models/AuthModels/Client/Client");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const generateProjectCode = async () => {
-  const lastProject = await Project.findOne().sort({ProjectId: -1});
+  const lastProject = await Project.findOne().sort({ ProjectId: -1 });
   const lastId = lastProject ? lastProject.ProjectId : 0;
   const newProjectId = lastId + 1;
   return `P${newProjectId.toString().padStart(3, "0")}`;
@@ -34,7 +34,7 @@ const projectCtr = {
         throw new Error("Un Authorized User");
       }
 
-      const checkcompany = await Company?.findOne({UserId: user?.user_id});
+      const checkcompany = await Company?.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -58,8 +58,8 @@ const projectCtr = {
         return; // Exit if clientId is undefined or empty
       } else {
         await Client.updateOne(
-          {Client_Id: responseClientId}, // Ensure we update the correct client
-          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
+          { Client_Id: responseClientId }, // Ensure we update the correct client
+          { $set: { Client_Status: "Active" } } // Set Client_Status to Active
         );
       }
 
@@ -70,7 +70,7 @@ const projectCtr = {
       // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({RRId, RId}) => ({
+      const roleResourceData = roleResources.map(({ RRId, RId }) => ({
         RRId,
         RId,
         ProjectId: projectId,
@@ -80,12 +80,10 @@ const projectCtr = {
 
       res.status(201).json({
         message: "Project and Role Resources added successfully",
-        project: newProject,
+        success: true,
       });
     } catch (error) {
-      res
-        .status(500)
-        .json({message: "Internal Server Error", error: error.message});
+      throw new Error(error?.message);
     }
   }),
 
@@ -100,7 +98,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -123,14 +121,14 @@ const projectCtr = {
 
           // Extract RRId values
           const rIds = roleResources.map((rr) => rr.RId);
-          const roles = await Role.find({RoleId: {$in: rIds}});
+          const roles = await Role.find({ RoleId: { $in: rIds } });
           const rrid = roleResources.map((rr) => rr.RRId);
 
           const staffMember = await StaffMember.find({
-            staff_Id: {$in: rrid},
+            staff_Id: { $in: rrid },
           });
 
-          return {...project, roles, staffMember};
+          return { ...project, roles, staffMember };
         })
       );
 
@@ -153,7 +151,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -188,7 +186,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -224,7 +222,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -256,7 +254,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -280,18 +278,18 @@ const projectCtr = {
 
           // Extract RRId values
           const rIds = roleResources.map((rr) => rr.RId);
-          const roles = await Role.find({RoleId: {$in: rIds}});
+          const roles = await Role.find({ RoleId: { $in: rIds } });
           const rrid = roleResources.map((rr) => rr.RRId);
 
           const staffMember = await StaffMember.find({
-            staff_Id: {$in: rrid},
+            staff_Id: { $in: rrid },
           });
 
           const responseclient = await Client.find({
             Client_Id: projectitem.clientId,
           });
           const ProjectManager = await StaffMember.find({
-            staff_Id: {$in: projectitem.Project_ManagersId},
+            staff_Id: { $in: projectitem.Project_ManagersId },
           });
           const ProjectManagerName = await ProjectManager.map(
             (item) => item.FirstName
@@ -325,14 +323,14 @@ const projectCtr = {
 
   fetchProjectTimesheet: asyncHandler(async (req, res) => {
     try {
-      const user = await User.findById(req.user);
+      const user = await User.findOne(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User");
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company?.findOne({ UserId: user?.user_id });
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -340,7 +338,7 @@ const projectCtr = {
 
       let queryObj = {
         CompanyId: company.Company_Id,
-        ProjectId: req.params.id,
+        project: req.params.id,
       };
 
       const response = await TimeSheet.find(queryObj);
@@ -374,7 +372,7 @@ const projectCtr = {
       );
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: timesheetfetchdata});
+        .json({ success: true, result: timesheetfetchdata });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -382,128 +380,3 @@ const projectCtr = {
 };
 
 module.exports = projectCtr;
-
-// addProject: asyncHandler(async (req, res) => {
-//   try {
-//     const {
-//       Project_Name,
-//       clientId,
-//       Project_Type,
-//       Project_Hours,
-//       Project_ManagersId,
-//       RoleResource,
-//       Start_Date,
-//       End_Date,
-//     } = req.body;
-
-//     const Project_Code = await generateProjectCode();
-//     const user = await User.findById(req.user);
-//     if (!user) {
-//       res.status(HttpStatusCodes.UNAUTHORIZED);
-//       throw new Error("Un Authorized User");
-//     }
-
-//     // check company
-//     const company = await Company?.findOne({UserId: user?.user_id});
-//     if (!company) {
-//       res.status(HttpStatusCodes?.BAD_REQUEST);
-//       throw new Error("company not exists please create first company");
-//     }
-//     const newProject = await Project({
-//       CompanyId: company.Company_Id,
-//       Project_Name,
-//       Project_Code: parseInt(Project_Code.substring(1)),
-//       clientId,
-//       Project_Type,
-//       Project_Hours,
-//       Project_ManagersId,
-//       RoleResource,
-//       Start_Date: Start_Date || moment().format("DD/MM/YYYY"),
-//       End_Date: End_Date || moment().format("DD/MM/YYYY"),
-//     });
-
-//     await newProject.save();
-//     res.status(201).json({
-//       success: true,
-//       message: "Project created successfully",
-//       data: newProject,
-//     });
-//   } catch (error) {
-//     throw new Error(error?.message);
-//   }
-// }),
-// bulk upload project
-// bulkupload_projects: asyncHandler(async (req, res) => {
-//   try {
-//     try {
-//       if (!req.file) {
-//         return res.status(400).json({ success: false, message: "No file uploaded." });
-//       }
-
-//       const filePath = req.file.path;
-//       const projects = [];
-//       const errors = [];
-
-//       let lastProject = await Project.findOne().sort({ ProjectId: -1 });
-//       let lastId = lastProject ? lastProject.ProjectId : 0;
-
-//       // Read CSV file
-//       fs.createReadStream(filePath)
-//         .pipe(csvParser())
-//         .on("data", async (row) => {
-//           const existingProject = await Project.findOne({
-//             $or: [{ Project_Name: row.Project_Name }, { Project_Code: row.Project_Code }],
-//           });
-
-//           if (existingProject) {
-//             errors.push({
-//               row: row,
-//               message: `Duplicate Project: ${row.Project_Name} or Code: ${row.Project_Code} already exists.`,
-//             });
-//           } else {
-//             lastId++;
-//             const projectCode = `P${lastId.toString().padStart(3, "0")}`;
-
-//             projects.push({
-//               CompanyId: parseInt(row.CompanyId),
-//               ProjectId: lastId,
-//               Project_Name: row.Project_Name,
-//               Project_Code: projectCode,
-//               Start_Date: row.Start_Date || moment().format("DD/MM/YYYY"),
-//               End_Date: row.End_Date || moment().format("DD/MM/YYYY"),
-//               clientId: parseInt(row.clientId),
-//               Client_Email: row.Client_Email || "",
-//               Project_Type: row.Project_Type || "",
-//               Project_Hours: row.Project_Hours || "",
-//               Project_Status: row.Project_Status || "InActive",
-//               RoleResource: row.RoleResource ? JSON.parse(row.RoleResource) : [],
-//               ResourseEmail: row.ResourseEmail || "",
-//               Project_ManagersId: parseInt(row.Project_ManagersId),
-//             });
-//           }
-//         })
-//         .on("end", async () => {
-//           try {
-//             if (projects.length > 0) {
-//               await Project.insertMany(projects);
-//             }
-
-//             fs.unlinkSync(filePath); // Delete file after processing
-
-//             if (errors.length > 0) {
-//               return res.status(400).json({
-//                 success: false,
-//                 message: "Some projects were not uploaded due to duplicates.",
-//                 errors,
-//               });
-//             }
-
-//             res.status(201).json({ success: true, message: "CSV uploaded successfully", data: projects });
-//           } catch (error) {
-//             res.status(500).json({ success: false, message: "Error inserting projects", error: error.message });
-//           }
-//         });
-//   } catch (error) {
-//     throw new Error(error?.message);
-//   }
-// }),

@@ -40,6 +40,12 @@ adminRouter.get(
   verifyToken,
   clientCtr.fetch_client_projects
 );
+
+adminRouter.get(
+  "/fetch-client-timesheet/:id",
+  verifyToken,
+  clientCtr.fetch_client_Timesheets
+);
 // create project
 
 adminRouter.post("/create-projects", verifyToken, projectCtr.create_Project);
@@ -66,6 +72,13 @@ adminRouter.get(
   projectCtr.fetchsingleprojects
 );
 
+adminRouter.get(
+  "/fetch-project-timesheet/:id",
+  projectCtr.fetchProjectTimesheet
+);
+
+// project
+
 // employee
 adminRouter.post("/create-employee", verifyToken, employeeCtr.create_employee);
 adminRouter.get("/fetch-employee", verifyToken, employeeCtr.fetch_employee);
@@ -89,6 +102,12 @@ adminRouter.get(
   "/fetch-employee-project/:id",
   verifyToken,
   employeeCtr.fetch_employee_projects
+);
+
+adminRouter.get(
+  "/fetch-employee-timesheet/:id",
+  verifyToken,
+  employeeCtr.fetch_employee_Timesheet
 );
 
 // contractor
@@ -124,6 +143,11 @@ adminRouter.get(
   contractorCtr.fetch_contractor_projects
 );
 
+adminRouter.get(
+  "/fetch-contractor-timesheet/:id",
+  verifyToken,
+  contractorCtr.fetch_contractor_Timesheet
+);
 // task
 upload.single("file"),
   adminRouter.post(

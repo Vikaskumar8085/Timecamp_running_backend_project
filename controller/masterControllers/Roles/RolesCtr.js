@@ -17,7 +17,7 @@ const RolesCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -53,7 +53,7 @@ const RolesCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -70,7 +70,7 @@ const RolesCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -85,25 +85,24 @@ const RolesCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // check company
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
-      const removerole = await Role.findById({Role_Id: req.params.id});
+      const removerole = await Role.findOne({ RoleId: req.params.id });
+      console.log(removerole, "????????//");
       if (!removerole) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Role does not found for deletion");
       } else {
         await removerole.deleteOne();
-
-        return res.status(HttpStatusCodes.OK).json({
-          success: true,
-          message: "role successfully deleted",
-          result: removerole,
-        });
       }
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "role successfully deleted",
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -119,30 +118,25 @@ const RolesCtr = {
         throw new Error("Un authorized user Please Signup");
       }
       // check company
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("company does not exists please create your company");
       }
 
-      const editRole = await Role.findByIdAndUpdate(
-        {Role_Id: req.params.id},
-        req.body,
-        {runValidator: true, new: true}
-      );
+      const editRole = await Role.findOne({ RoleId: req.params.id });
 
       if (!editRole) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Role Not Found for updation");
+      } else {
+        await editRole.updateOne({ $set: { RoleName: req.body.RoleName } });
       }
-
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({
-          success: true,
-          message: "role successfully updated",
-          result: editRole,
-        });
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "role successfully updated",
+        result: editRole,
+      });
     } catch (error) {
       throw new Error(error.message);
     }

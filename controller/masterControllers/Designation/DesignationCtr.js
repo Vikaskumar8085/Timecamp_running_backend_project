@@ -17,7 +17,7 @@ const DesignationCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -47,7 +47,7 @@ const DesignationCtr = {
   // fetch designation
   fetch_designation: asynchandler(async (req, res) => {
     try {
-      const {search, filter, page = 0, limit = 10} = req.query; // Default skip=0, limit=10
+      const { search, filter, page = 0, limit = 10 } = req.query; // Default skip=0, limit=10
 
       // pagination
       const parsedSkip = parseInt(page - 1);
@@ -60,7 +60,7 @@ const DesignationCtr = {
       // Search functionality - case-insensitive regex for department name and description
       if (search) {
         query.$or = [
-          {Department_Name: {$regex: search, $options: "i"}}, // Case-insensitive search in departmentName
+          { Department_Name: { $regex: search, $options: "i" } }, // Case-insensitive search in departmentName
         ];
       }
 
@@ -73,12 +73,12 @@ const DesignationCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
-      query = {CompanyId: checkcompany.Company_Id}; // Ensure the CompanyId is correct
+      query = { CompanyId: checkcompany.Company_Id }; // Ensure the CompanyId is correct
 
       const response = await Designation.find(query);
       if (!response) {
@@ -87,7 +87,7 @@ const DesignationCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -102,16 +102,15 @@ const DesignationCtr = {
         throw new Error("Un authorized user Please Signup");
       }
       // check company
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("company does not exists please create your company");
       }
-      const removedesignation = await Designation.findById({
+      const removedesignation = await Designation.findOne({
         Designation_Id: req.params.id,
-      })
-        .lean()
-        .exec();
+      });
+
       if (!removedesignation) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Designation does Not Found for deletion");
@@ -138,26 +137,28 @@ const DesignationCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
-      const desingationedit = await Designation.findByIdAndUpdate(
-        {Designation_Id: req.params.id},
-        req.body,
-        {runValidator: true, new: true}
-      );
+      const desingationedit = await Designation.findOne({
+        Designation_Id: req.params.id,
+      });
 
       if (!desingationedit) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("desingation Not Found for updation");
+      } else {
+        await desingationedit.updateOne({
+          $set: { Designation_Name: req.body.Designation_Name },
+        });
       }
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, message: "desingation successfully updated"});
+        .json({ success: true, message: "desingation successfully updated" });
     } catch (error) {
       throw new Error(error?.message);
     }

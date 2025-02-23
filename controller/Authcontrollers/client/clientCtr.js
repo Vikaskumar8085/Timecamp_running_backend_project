@@ -5,6 +5,8 @@ const User = require("../../../models/AuthModels/User/User");
 const Company = require("../../../models/Othermodels/Companymodels/Company");
 const bcrypt = require("bcryptjs");
 const Project = require("../../../models/Othermodels/Projectmodels/Project");
+const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
+const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 
 const clientCtr = {
   // create client
@@ -270,19 +272,74 @@ const clientCtr = {
 
   fetch_client_Timesheets: asyncHandler(async (req, res) => {
     try {
-      const user = await User?.findById(req.user);
+      const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
-      }
-      // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
-      if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        throw new Error("Unauthorized User. Please Sign Up.");
       }
 
-      // const getClient = await Client.find({Email:})
+      // Check if the company exists
+      const company = await Company.findOne({ UserId: user?.user_id });
+      if (!company) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
+      }
+
+      let queryObj = {
+        clientId: req.params.id,
+        CompanyId: company.Company_Id,
+      };
+
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1; // Default to page 1
+      const limit = parseInt(req.query.limit) || 10; // Default to 10 items per page
+      const skip = (page - 1) * limit;
+
+      // Get paginated projects
+      const response = await Project.find(queryObj).skip(skip).limit(limit);
+
+      if (!response || response.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Projects Not Found");
+      }
+
+      // Fetch timesheet data for the projects
+      const timesheetresponse = await Promise.all(
+        response.map(async (item) => {
+          const timesheetdata = await TimeSheet.find({
+            project: item?.ProjectId,
+          })
+            .skip(skip)
+            .limit(limit); // Apply pagination to timesheet data
+
+          // Extract all staff IDs
+          const staffIds = await timesheetdata.map((ts) => ts.Staff_Id);
+
+          const members = await StaffMember.find({
+            staff_Id: { $in: staffIds },
+          });
+
+          const MemberName = await members.map((member) => member.FirstName);
+
+          return { timesheetdata, MemberName };
+        })
+      );
+
+      // Get total count of projects (for frontend pagination)
+      const totalProjects = await Project.countDocuments(queryObj);
+
+      return res.status(HttpStatusCodes.OK).json({
+        result: timesheetresponse,
+        success: true,
+        message: "Timesheet client",
+        pagination: {
+          totalPages: Math.ceil(totalProjects / limit),
+          currentPage: page,
+          totalItems: totalProjects,
+        },
+      });
     } catch (error) {
       throw new Error(error?.message);
     }

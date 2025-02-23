@@ -29,7 +29,7 @@ const ClientCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -59,7 +59,7 @@ const ClientCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -88,7 +88,7 @@ const ClientCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -98,9 +98,10 @@ const ClientCtr = {
     try {
       const user = await Client.findById(req.user);
       if (!user) {
-        return res
-          .status(HttpStatusCodes.UNAUTHORIZED)
-          .json({success: false, message: "Unauthorized User, please Signup"});
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User, please Signup",
+        });
       }
 
       // Query object for finding projects
@@ -114,7 +115,7 @@ const ClientCtr = {
       if (!findProject || findProject.length === 0) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({success: false, message: "Project Not Found"});
+          .json({ success: false, message: "Project Not Found" });
       }
 
       // Pagination setup for timesheets
@@ -125,17 +126,19 @@ const ClientCtr = {
       // Fetch project data with timesheets
       const projectData = await Promise.all(
         findProject.map(async (item) => {
-          const findtimesheet = await TimeSheet.find({project: item.ProjectId})
+          const findtimesheet = await TimeSheet.find({
+            project: item.ProjectId,
+          })
             .skip(skip)
             .limit(limit);
 
-          return {...item.toObject(), timesheets: findtimesheet};
+          return { ...item.toObject(), timesheets: findtimesheet };
         })
       );
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: projectData, page, limit});
+        .json({ success: true, result: projectData, page, limit });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -233,7 +236,7 @@ const ClientCtr = {
       }
 
       const projectids = findProject.map((item) => item.ProjectId);
-      const projecttask = await Task.find({ProjectId: {$in: projectids}});
+      const projecttask = await Task.find({ ProjectId: { $in: projectids } });
       if (!projecttask?.length) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Task Not Found");
@@ -259,8 +262,10 @@ const ClientCtr = {
       queryObj = {
         clientId: user?.Client_Id,
       };
+
       const findProject = await Project.find(queryObj);
 
+      console.log(findProject);
       if (!findProject?.length) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Project Not found");
@@ -268,7 +273,7 @@ const ClientCtr = {
 
       const projectids = findProject.map((item) => item.ProjectId);
       const projectTimesheet = await TimeSheet.find({
-        project: {$in: projectids},
+        project: { $in: projectids },
       });
       if (!projectTimesheet?.length) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -283,6 +288,8 @@ const ClientCtr = {
       throw new Error(error?.message);
     }
   }),
+
+  // update client
 };
 
 module.exports = ClientCtr;
