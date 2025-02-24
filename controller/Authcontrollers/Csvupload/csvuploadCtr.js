@@ -693,7 +693,6 @@ const csvuploadCtr = {
           CompanyId: company.Company_Id,
           Staff_Id: findstaffmember.staff_Id,
           project: findproject.ProjectId,
-
           ...newdata,
         });
         const savetimesheet = await timesheetdata.save();

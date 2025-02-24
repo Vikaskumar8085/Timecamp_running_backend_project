@@ -9,6 +9,7 @@ const contractorRouter = require("./contractorRouter/contractorRouter");
 const employeeRouter = require("./employeeRouter/employeeRouter");
 const MilestoneRouter = require("./MilestornRouter/MilestoneRouter");
 const timesheetRouter = require("./timesheetRouter/TimesheetRouter");
+const managerRouter = require("./managerRouter/managerRouter");
 
 const indexRouter = express.Router();
 
@@ -22,5 +23,6 @@ indexRouter.use("/v2/contractor", contractorRouter);
 indexRouter.use("/v2/employee", employeeRouter);
 indexRouter.use("/v2/milestone", MilestoneRouter);
 indexRouter.use("/v2/timesheet", timesheetRouter);
+indexRouter.use("/v2/manager", managerRouter);
 
 module.exports = indexRouter;

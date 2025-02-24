@@ -4,7 +4,7 @@ const HttpStatusCodes = require("../../utils/StatusCodes/statusCodes");
 const Project = require("../../models/Othermodels/Projectmodels/Project");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Task = require("../../models/Othermodels/Task/Task");
-
+const moment = require("moment");
 const ClientCtr = {
   // Client Project
   fetchClientprojects: asyncHandler(async (req, res) => {
@@ -29,7 +29,7 @@ const ClientCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -59,7 +59,7 @@ const ClientCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -88,7 +88,7 @@ const ClientCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -115,7 +115,7 @@ const ClientCtr = {
       if (!findProject || findProject.length === 0) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ success: false, message: "Project Not Found" });
+          .json({success: false, message: "Project Not Found"});
       }
 
       // Pagination setup for timesheets
@@ -132,13 +132,13 @@ const ClientCtr = {
             .skip(skip)
             .limit(limit);
 
-          return { ...item.toObject(), timesheets: findtimesheet };
+          return {...item.toObject(), timesheets: findtimesheet};
         })
       );
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: projectData, page, limit });
+        .json({success: true, result: projectData, page, limit});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -236,7 +236,7 @@ const ClientCtr = {
       }
 
       const projectids = findProject.map((item) => item.ProjectId);
-      const projecttask = await Task.find({ ProjectId: { $in: projectids } });
+      const projecttask = await Task.find({ProjectId: {$in: projectids}});
       if (!projecttask?.length) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Task Not Found");
@@ -273,7 +273,7 @@ const ClientCtr = {
 
       const projectids = findProject.map((item) => item.ProjectId);
       const projectTimesheet = await TimeSheet.find({
-        project: { $in: projectids },
+        project: {$in: projectids},
       });
       if (!projectTimesheet?.length) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -290,6 +290,163 @@ const ClientCtr = {
   }),
 
   // update client
+
+  approvetimesheet: asyncHandler(async (req, res) => {
+    try {
+      console.log(req.body, req.params.id, "approv timesheet ???????");
+      const approveIds = req.body;
+      const user = await Client.findById(req.user);
+
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED).send({
+          message: "Unauthorized User, please Sign up",
+        });
+        throw new Error("Unauthorized User, please Sign up");
+      }
+
+      const findTimesheet = await TimeSheet.findOne({
+        project: req.params.id,
+      });
+
+      if (!findTimesheet) {
+        res.status(HttpStatusCodes.NOT_FOUND).send({
+          message: "Timesheet Not Found",
+        });
+        throw new Error("Timesheet Not Found");
+      }
+
+      // Using async/await with Promise.all to ensure all updates are completed
+      try {
+        await Promise.all(
+          approveIds.map(async (item) => {
+            // Find the specific Timesheet by Timesheet_Id
+            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
+
+            // Check if the timesheet exists and if the status is "PENDING"
+            if (!timesheet) {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(`Timesheet with Timesheet_Id ${item} not found.`);
+            }
+
+            if (timesheet.approval_status !== "PENDING") {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(
+                `Timesheet cannot be approved because it's not in 'PENDING' status.`
+              );
+            }
+
+            // Proceed with the update if it's 'PENDING'
+            const updatedTimesheet = await TimeSheet.findOneAndUpdate(
+              {Timesheet_Id: item},
+              {
+                $set: {
+                  approval_status: "APPROVED",
+                  approved_by: user.Client_Id,
+                  approved_date: moment().format("DD/MM/YYYY"),
+                },
+              },
+              {new: true, runValidators: true}
+            );
+
+            if (!updatedTimesheet) {
+              res.status(HttpStatusCodes.BAD_REQUEST);
+              throw new Error(
+                `Timesheet with Timesheet_Id ${item} was not updated successfully.`
+              );
+            }
+          })
+        );
+
+        res.status(HttpStatusCodes.OK).json({
+          success: true,
+          message: "Timesheets  successfully updated.",
+        });
+      } catch (error) {
+        res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
+        throw new Error("An error occurred while updating timesheets.");
+      }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  disapprovetimesheet: asyncHandler(async (req, res) => {
+    try {
+      console.log(req.body, req.params.id, "approv timesheet ???????");
+      const approveIds = req.body;
+      const user = await Client.findById(req.user);
+
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED).send({
+          message: "Unauthorized User, please Sign up",
+        });
+        throw new Error("Unauthorized User, please Sign up");
+      }
+
+      const findTimesheet = await TimeSheet.findOne({
+        project: req.params.id,
+      });
+
+      if (!findTimesheet) {
+        res.status(HttpStatusCodes.NOT_FOUND).send({
+          message: "Timesheet Not Found",
+        });
+        throw new Error("Timesheet Not Found");
+      }
+
+      // Using async/await with Promise.all to ensure all updates are completed
+      try {
+        await Promise.all(
+          approveIds.map(async (item) => {
+            // Find the specific Timesheet by Timesheet_Id
+            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
+
+            // Check if the timesheet exists and if the status is "PENDING"
+            if (!timesheet) {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(`Timesheet with Timesheet_Id ${item} not found.`);
+            }
+
+            if (timesheet.approval_status !== "PENDING") {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(
+                `Timesheet cannot be approved because it's not in 'PENDING' status.`
+              );
+            }
+
+            // Proceed with the update if it's 'PENDING'
+            const updatedTimesheet = await TimeSheet.findOneAndUpdate(
+              {Timesheet_Id: item},
+              {
+                $set: {
+                  approval_status: "DISAPPROVED",
+                  approved_by: user.Client_Id,
+                  approved_date: moment().format("DD/MM/YYYY"),
+                },
+              },
+              {new: true, runValidators: true}
+            );
+
+            if (!updatedTimesheet) {
+              res.status(HttpStatusCodes.BAD_REQUEST);
+              throw new Error(
+                `Timesheet with Timesheet_Id ${item} was not updated successfully.`
+              );
+            }
+          })
+        );
+
+        res.status(HttpStatusCodes.OK).send({
+          message: "Timesheets Disapproved successfully updated.",
+        });
+      } catch (error) {
+        res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
+        throw new Error("An error occurred while updating timesheets.");
+      }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = ClientCtr;

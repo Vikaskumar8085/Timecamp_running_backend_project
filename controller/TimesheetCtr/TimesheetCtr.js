@@ -16,7 +16,7 @@ const TimesheetCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -30,7 +30,7 @@ const TimesheetCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -78,7 +78,7 @@ const TimesheetCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: timesheetfetchdata });
+        .json({success: true, result: timesheetfetchdata});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -93,7 +93,7 @@ const TimesheetCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -110,7 +110,7 @@ const TimesheetCtr = {
       if (!projects || projects.length === 0) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "No projects found" });
+          .json({message: "No projects found"});
       }
 
       // Extract project IDs
@@ -121,16 +121,16 @@ const TimesheetCtr = {
         {
           $match: {
             CompanyId: checkcompany.Company_Id,
-            project: { $in: projectIds },
+            project: {$in: projectIds},
           },
         },
         {
           $group: {
             _id: "$project",
-            totalHours: { $sum: { $toDouble: "$hours" } },
-            okHours: { $sum: { $toDouble: "$ok_hours" } },
-            billedHours: { $sum: { $toDouble: "$billed_hours" } },
-            totalEntries: { $sum: 1 }, // Count total entries for this project
+            totalHours: {$sum: {$toDouble: "$hours"}},
+            okHours: {$sum: {$toDouble: "$ok_hours"}},
+            billedHours: {$sum: {$toDouble: "$billed_hours"}},
+            totalEntries: {$sum: 1}, // Count total entries for this project
           },
         },
       ]);
@@ -163,6 +163,63 @@ const TimesheetCtr = {
         success: true,
         result,
       });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  approved_timesheet: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+      // approved timesheet
+
+      
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  disapproved_timesheet: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  billed_timesheet: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
     } catch (error) {
       throw new Error(error?.message);
     }

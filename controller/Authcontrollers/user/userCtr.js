@@ -14,10 +14,10 @@ const userCtr = {
   // register
   register: asynchandler(async (req, res) => {
     try {
-      const { FirstName, LastName, Email, Password, Term } = req.body;
+      const {FirstName, LastName, Email, Password, Term} = req.body;
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(Password, genhash);
-      const userExists = await User.findOne({ Email: req.body.Email });
+      const userExists = await User.findOne({Email: req.body.Email});
       if (userExists) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Email has already been registered");
@@ -46,7 +46,7 @@ const userCtr = {
   }),
   // login
   login: asynchandler(async (req, res) => {
-    const { Email, Username } = req.body;
+    const {Email, Username} = req.body;
     try {
       console.log(Email, Username);
       let user = null;
@@ -57,15 +57,15 @@ const userCtr = {
       // admin Role check by user
 
       if (Email) {
-        user = await User.findOne({ Email: req.body.Email });
+        user = await User.findOne({Email: req.body.Email});
         role = await user?.Role;
       } else if (Username) {
-        user = await User.findOne({ FirstName: Username });
+        user = await User.findOne({FirstName: Username});
         role = await user?.Role;
       }
 
       if (user?.Role === role || user?.Role === "Admin") {
-        const checkCompany = await Company.findOne({ UserId: user?.user_id })
+        const checkCompany = await Company.findOne({UserId: user?.user_id})
           .lean()
           .exec();
 
@@ -79,7 +79,7 @@ const userCtr = {
       // admin functionality
 
       if (!user && Email) {
-        user = await StaffMember.findOne({ UserName: Email });
+        user = await StaffMember.findOne({UserName: Email});
         role = await user?.Role;
         redirectUrl = "/dashboard";
       }
@@ -104,8 +104,9 @@ const userCtr = {
       // check if user data exists,
       // If not found, check in the Client model for Email match
       if (!user && Email) {
-        user = await Client.findOne({ Client_Email: Email });
+        user = await Client.findOne({Client_Email: Email});
         redirectUrl = "/dashboard";
+        console.log(user, "??>FF");
 
         if (user.System_Access === false) {
           res.status(HttpStatusCodes.BAD_REQUEST);
@@ -113,20 +114,18 @@ const userCtr = {
         }
       }
 
-      console.log(user.Password);
       // User exists, check if password is correct
-      // const passwordIsCorrect = await bcrypt?.compare(
-      //   req.body.Password,
-      //   user.Password
-      // );
-      // console.log(passwordIsCorrect, "????????>>>>>>>>>>>>>.");
+      const passwordIsCorrect = await bcrypt?.compare(
+        req.body.Password,
+        user.Password
+      );
 
-      // if (!passwordIsCorrect) {
-      //   res.status(HttpStatusCodes.BAD_REQUEST);
-      //   throw new Error("User and Password Invalid");
-      // }
+      if (!passwordIsCorrect) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("User and Password Invalid");
+      }
 
-      const token = await generateToken({ id: user._id });
+      const token = await generateToken({id: user._id});
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "login successfully",
@@ -163,17 +162,17 @@ const userCtr = {
 
   verifyUser: asynchandler(async (req, res) => {
     try {
-      const { token } = req.params;
+      const {token} = req.params;
 
       if (!token) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Token Not Found" });
+          .json({message: "Token Not Found"});
       }
 
       const checktoken = await Token.findOne({
         token: token,
-        expireAt: { $gte: Date.now() },
+        expireAt: {$gte: Date.now()},
       });
       if (!checktoken) {
         return res
@@ -181,9 +180,9 @@ const userCtr = {
           .json("token has been exprired");
       }
 
-      const user = await User.findById({ _id: checktoken.userId });
+      const user = await User.findById({_id: checktoken.userId});
       if (user) {
-        await User.updateOne({ isVerify: true });
+        await User.updateOne({isVerify: true});
       }
 
       return res.status(HttpStatusCodes.OK).json({
@@ -237,14 +236,14 @@ const userCtr = {
   ForgetPasswordCtr: asynchandler(async (req, res) => {
     try {
       let user = null;
-      user = await User.findOne({ Email: req.body.Email });
+      user = await User.findOne({Email: req.body.Email});
       // check client
       if (!user) {
-        user = await Client.findOne({ Client_Email: req.body.Email });
+        user = await Client.findOne({Client_Email: req.body.Email});
       }
       // check StaffmembersF
       if (!user) {
-        user = await StaffMember.findOne({ Email: req.body.Emal });
+        user = await StaffMember.findOne({Email: req.body.Emal});
       }
 
       if (!user) {
@@ -252,7 +251,7 @@ const userCtr = {
         throw new Error("User does not exist");
       }
 
-      let token = await Token.findOne({ userId: user._id });
+      let token = await Token.findOne({userId: user._id});
 
       if (token) {
         await token.deleteOne();
@@ -293,7 +292,7 @@ const userCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, message: "Please check your Email " });
+        .json({success: true, message: "Please check your Email "});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -320,7 +319,7 @@ const userCtr = {
         );
 
         if (response) {
-          const checkUser = await User.findOne({ Email: response.data?.email });
+          const checkUser = await User.findOne({Email: response.data?.email});
           if (!checkUser) {
             await User({
               FirstName: response?.data?.given_name,
@@ -336,20 +335,20 @@ const userCtr = {
           }
         }
 
-        const user = await User.findOne({ Email: response.data?.email });
+        const user = await User.findOne({Email: response.data?.email});
         let redirectUrl = null;
 
-        const checkCompany = await Company.findOne({ UserId: user?.user_id });
+        const checkCompany = await Company.findOne({UserId: user?.user_id});
 
         if (!checkCompany) {
           redirectUrl = "/company";
         } else {
           redirectUrl = "/dashboard";
         }
-        const TOKEN = await generateToken({ id: user._id });
+        const TOKEN = await generateToken({id: user._id});
         return res
           .status(HttpStatusCodes.OK)
-          .json({ success: true, result: TOKEN, redirectUrl });
+          .json({success: true, result: TOKEN, redirectUrl});
       }
     } catch (error) {
       throw new Error(error.message);
@@ -364,9 +363,9 @@ const userCtr = {
         throw new Error("Un authorized user Please Signup");
       }
 
-      const responsne = await User.findById({ user_id: req.params.id });
+      const responsne = await User.findById({user_id: req.params.id});
       if (responsne) {
-        await responsne.updateOne({ BlockStatus: "Block" });
+        await responsne.updateOne({BlockStatus: "Block"});
       }
     } catch (error) {
       throw new Error(error?.message);

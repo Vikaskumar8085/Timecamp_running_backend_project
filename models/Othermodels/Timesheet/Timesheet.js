@@ -14,7 +14,7 @@ const TimesheetSchema = new Schema({
     type: String,
     maxlength: 10,
     unique: true,
-    sparse: true, // Allows blank entries but maintains uniqueness
+    sparse: true,
   },
   Staff_Id: {
     type: Number,
@@ -82,8 +82,8 @@ const TimesheetSchema = new Schema({
   },
   approval_status: {
     type: String,
-    enum: ["PENDING", "APPROVED", "REJECTED"],
-    default: "PENDING",
+    enum: ["PENDING", "APPROVED", "DISAPPROVED"],
+    default: null,
   },
   billing_status: {
     type: String,
@@ -96,7 +96,6 @@ const TimesheetSchema = new Schema({
   },
   approved_by: {
     type: Number,
-    ref: "User ",
     default: null,
   },
   billed_hours: {

@@ -22,6 +22,12 @@ clientRouter.get(
   "/client-single-project/:id",
   ClientCtr.fetchclientSingleproject
 );
+
+clientRouter.put("/client-approve-timesheet/:id", ClientCtr.approvetimesheet);
+clientRouter.put(
+  "/client-disapprove-timesheet/:id",
+  ClientCtr.disapprovetimesheet
+);
 // task
 clientRouter.get("/client-project-task", ClientCtr.fetchClientTask);
 
