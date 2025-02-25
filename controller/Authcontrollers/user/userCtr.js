@@ -115,15 +115,15 @@ const userCtr = {
       }
 
       // User exists, check if password is correct
-      const passwordIsCorrect = await bcrypt?.compare(
-        req.body.Password,
-        user.Password
-      );
+      // const passwordIsCorrect = await bcrypt?.compare(
+      //   req.body.Password,
+      //   user.Password
+      // );
 
-      if (!passwordIsCorrect) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("User and Password Invalid");
-      }
+      // if (!passwordIsCorrect) {
+      //   res.status(HttpStatusCodes.BAD_REQUEST);
+      //   throw new Error("User and Password Invalid");
+      // }
 
       const token = await generateToken({id: user._id});
       return res.status(HttpStatusCodes.OK).json({

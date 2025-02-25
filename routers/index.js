@@ -8,8 +8,8 @@ const clientRouter = require("./clientRouter/clientRouter");
 const contractorRouter = require("./contractorRouter/contractorRouter");
 const employeeRouter = require("./employeeRouter/employeeRouter");
 const MilestoneRouter = require("./MilestornRouter/MilestoneRouter");
-const timesheetRouter = require("./timesheetRouter/TimesheetRouter");
 const managerRouter = require("./managerRouter/managerRouter");
+const timesheetRouter = require("./TimesheetRouter/TimesheetRouter");
 
 const indexRouter = express.Router();
 

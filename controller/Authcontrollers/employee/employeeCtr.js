@@ -370,9 +370,11 @@ const employeeCtr = {
 
           const employeeTimesheets = await TimeSheet.find({
             project: {$in: projectIds},
+            approval_status: "PENDING",
           });
           const projectManagerTimesheet = await TimeSheet.find({
             project: {$in: fetchProject.map((p) => p.ProjectId)},
+            approval_status: "PENDING",
           });
 
           return {employeeTimesheets, projectManagerTimesheet};

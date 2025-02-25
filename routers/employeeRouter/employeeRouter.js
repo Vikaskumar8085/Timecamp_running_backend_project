@@ -42,4 +42,10 @@ employeeRouter.post(
   EmployeeCtr.FillEmployeeProjectTimesheet
 );
 
+employeeRouter.delete(
+  "/remove-employee-timesheet/:id",
+  EmployeeCtr.removeEmployeeTimesheet
+);
+
+employeeRouter.put("/send-for-approvel/:id", EmployeeCtr.SendForApprovel);
 module.exports = employeeRouter;

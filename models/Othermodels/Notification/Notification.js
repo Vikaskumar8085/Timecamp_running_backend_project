@@ -8,6 +8,14 @@ const NotificationSchema = mongoose.Schema(
       unique: true,
       trim: true,
     },
+    SenderId: {
+      type: Number,
+      default: null,
+    },
+    ReciverId: {
+      type: Number,
+      default: null,
+    },
     Name: {
       type: String,
       required: true,

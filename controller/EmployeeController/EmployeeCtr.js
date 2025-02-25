@@ -27,15 +27,15 @@ const EmployeeCtr = {
         throw new Error("Bad Request");
       }
 
-      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
+      const responseResult = await RoleResource.find({RRId: user.staff_Id});
       const rrid = await responseResult.map((item) => item.ProjectId);
 
-      const employeeProjects = await Project.find({ ProjectId: rrid });
+      const employeeProjects = await Project.find({ProjectId: rrid});
 
-      const allProjects = { response, employeeProjects };
+      const allProjects = {response, employeeProjects};
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: allProjects });
+        .json({success: true, result: allProjects});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -61,7 +61,7 @@ const EmployeeCtr = {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
-      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
+      const responseResult = await RoleResource.find({RRId: user.staff_Id});
       const rrid = await responseResult.map((item) => item.ProjectId);
 
       const employeeactiveProjects = await Project.find({
@@ -69,11 +69,11 @@ const EmployeeCtr = {
         Project_Status: true,
       });
 
-      const activeprojects = { response, employeeactiveProjects };
+      const activeprojects = {response, employeeactiveProjects};
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: activeprojects });
+        .json({success: true, result: activeprojects});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -99,7 +99,7 @@ const EmployeeCtr = {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
-      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
+      const responseResult = await RoleResource.find({RRId: user.staff_Id});
       const rrid = await responseResult.map((item) => item.ProjectId);
 
       const employeeinactiveProjects = await Project.find({
@@ -107,11 +107,11 @@ const EmployeeCtr = {
         Project_Status: false,
       });
 
-      const inactiveprojects = { response, employeeinactiveProjects };
+      const inactiveprojects = {response, employeeinactiveProjects};
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: inactiveprojects });
+        .json({success: true, result: inactiveprojects});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -121,7 +121,7 @@ const EmployeeCtr = {
 
   FillEmployeeProjectTimesheet: asyncHandler(async (req, res) => {
     try {
-      const { newdata } = req.body;
+      const {newdata} = req.body;
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
@@ -192,7 +192,7 @@ const EmployeeCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: projectDetails });
+        .json({success: true, result: projectDetails});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -230,7 +230,7 @@ const EmployeeCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: taskDetails });
+        .json({success: true, result: taskDetails});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -269,7 +269,7 @@ const EmployeeCtr = {
 
           // Find all team members based on rrids
           const findTeamName = await StaffMember.find({
-            staff_Id: { $in: rrids },
+            staff_Id: {$in: rrids},
           });
 
           return {
@@ -306,7 +306,7 @@ const EmployeeCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ result: fetchTimesheet, success: true });
+        .json({result: fetchTimesheet, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -318,14 +318,100 @@ const EmployeeCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const gettaskresponse = await Task.find({ Resource_Id: user.staff_Id });
+      const gettaskresponse = await Task.find({Resource_Id: user.staff_Id});
       if (!gettaskresponse) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Task Not Found");
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ result: gettaskresponse, success: true });
+        .json({result: gettaskresponse, success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  removeEmployeeTimesheet: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const response = await TimeSheet.findOne({Timesheet_Id: req.params.id});
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("TimeSheet NOT FOUND");
+      } else {
+        await response.deleteOne();
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, message: "Timesheet Remove Successfully"});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  SendForApprovel: asyncHandler(async (req, res) => {
+    try {
+      var approveIds = req.body;
+
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const findTimesheet = await TimeSheet.find({
+        project: req.params.id,
+      });
+
+      if (!findTimesheet) {
+        res.status(HttpStatusCodes.NOT_FOUND).send({
+          message: "Timesheet Not Found",
+        });
+        throw new Error("Timesheet Not Found");
+      }
+      try {
+        await Promise.all(
+          approveIds.map(async (item) => {
+            // Find the specific Timesheet by Timesheet_Id
+            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
+
+            // Check if the timesheet exists and if the status is "PENDING"
+            if (!timesheet) {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(`Timesheet with Timesheet_Id ${item} not found.`);
+            }
+
+            // Proceed with the update if it's 'PENDING'
+            const updatedTimesheet = await TimeSheet.findOneAndUpdate(
+              {Timesheet_Id: item},
+              {
+                $set: {
+                  approval_status: "PENDING",
+                },
+              },
+              {new: true, runValidators: true}
+            );
+
+            if (!updatedTimesheet) {
+              res.status(HttpStatusCodes.BAD_REQUEST);
+              throw new Error(
+                `Timesheet with Timesheet_Id ${item} was not updated successfully.`
+              );
+            }
+          })
+        );
+
+        res.status(HttpStatusCodes.OK).json({
+          success: true,
+          message: "Timesheets  successfully updated.",
+        });
+      } catch (error) {
+        res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
+        throw new Error("An error occurred while updating timesheets.");
+      }
     } catch (error) {
       throw new Error(error?.message);
     }

@@ -548,6 +548,7 @@ const csvuploadCtr = {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result: insertdata,
+        message: "upload task successfully",
       });
     } catch (error) {
       throw new Error(error?.message);
