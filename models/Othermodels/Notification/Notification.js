@@ -29,6 +29,10 @@ const NotificationSchema = mongoose.Schema(
       required: true,
       default: false,
     },
+    click: {
+      type: String,
+      default: "",
+    },
   },
   {timestamps: true}
 );
@@ -38,5 +42,5 @@ NotificationSchema.plugin(AutoIncrement, {
   start_seq: 1,
 });
 
-const Notification = mongoose.model("NotificationSchema", Notification);
+const Notification = mongoose.model("Notification", NotificationSchema);
 module.exports = Notification;

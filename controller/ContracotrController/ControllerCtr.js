@@ -5,6 +5,9 @@ const Project = require("../../models/Othermodels/Projectmodels/Project");
 const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Task = require("../../models/Othermodels/Task/Task");
+const Company = require("../../models/Othermodels/Companymodels/Company");
+const Roles = require("../../models/MasterModels/Roles/Roles");
+const Client = require("../../models/AuthModels/Client/Client");
 
 const ContractorCtr = {
   fetchcontractorprojects: asyncHandler(async (req, res) => {
@@ -317,6 +320,98 @@ const ContractorCtr = {
       return res
         .status(HttpStatusCodes.OK)
         .json({result: gettaskresponse, success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // fetch company
+  fetchcontractorroles: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not Found");
+      }
+
+      const fetchRoles = await Roles.find({
+        CompanyId: {$in: checkcompany?.Company_Id},
+      });
+
+      if (!fetchRoles) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Designation Not Found");
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: fetchRoles});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // fetch clients
+
+  fetchContractorclients: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not Found");
+      }
+
+      const response = await Client?.find({
+        Common_Id: checkcompany?.Company_Id,
+      });
+      if (!response) {
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Client Not Found");
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // fetch staff memeber
+  fetchContractorstaffmember: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not Found");
+      }
+      const response = await StaffMember.find({
+        CompanyId: checkcompany?.Company_Id,
+      });
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Staff Not Found");
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  fetchContractorNotificationMessage: asyncHandler(async (req, res) => {
+    try {
     } catch (error) {
       throw new Error(error?.message);
     }

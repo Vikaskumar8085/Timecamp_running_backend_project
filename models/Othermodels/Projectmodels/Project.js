@@ -51,7 +51,11 @@ const ProjectSchema = mongoose.Schema({
     required: false,
     default: false,
   },
-
+  createdBy: {
+    type: Number,
+    required: false,
+    default: null,
+  },
   Project_ManagersId: {
     type: Number,
     required: false,

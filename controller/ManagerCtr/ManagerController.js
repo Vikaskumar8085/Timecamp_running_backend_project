@@ -3,6 +3,9 @@ const HttpStatusCodes = require("../../utils/StatusCodes/statusCodes");
 const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
 const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
 const Project = require("../../models/Othermodels/Projectmodels/Project");
+const Company = require("../../models/Othermodels/Companymodels/Company");
+const Roles = require("../../models/MasterModels/Roles/Roles");
+const Client = require("../../models/AuthModels/Client/Client");
 const managerCtr = {
   // fetch manager team
   fetchmanagerTeam: asyncHandler(async (req, res) => {
@@ -159,6 +162,166 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unauthorized User, please Signup");
       }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // create manager project
+  createManagerProject: asyncHandler(async (req, res) => {
+    try {
+      const {
+        Project_Name,
+        clientId,
+        Project_Type,
+        Project_Hours,
+        Project_ManagersId,
+        roleResources,
+      } = req.body;
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not Found");
+      }
+
+      const createproject = new Project({
+        CompanyId: checkcompany.Company_Id,
+        Project_Name,
+        clientId,
+        Project_Type,
+        Project_Hours,
+        Project_Status: true,
+        Project_ManagersId,
+        createdBy: user?.staff_Id,
+      });
+      if (!createproject) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Project Not Found");
+      }
+
+      await createproject.save();
+
+      let responseClientId = createproject.clientId;
+
+      if (!responseClientId) {
+        return; // Exit if clientId is undefined or empty
+      } else {
+        await Client.updateOne(
+          {Client_Id: responseClientId}, // Ensure we update the correct client
+          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
+        );
+      }
+      const projectId = createproject?.ProjectId;
+      console.log(projectId, "...");
+
+      // Exit early if roleResources is not a valid array or is empty
+      if (!Array.isArray(roleResources) || roleResources.length === 0) return;
+
+      const roleResourceData = roleResources.map(({RRId, RId}) => ({
+        RRId,
+        RId,
+        ProjectId: projectId,
+      }));
+
+      await RoleResource.insertMany(roleResourceData);
+
+      res.status(201).json({
+        message: "Project and Role Resources added successfully",
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchmanagerRoles: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not Found");
+      }
+
+      const response = await Roles.find({CompanyId: checkcompany?.Company_Id});
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Roles Not Found");
+      }
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: response, success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchmanagerclients: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not Found");
+      }
+
+      const response = await Client?.find({
+        Common_Id: checkcompany?.Company_Id,
+      });
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Client Not Found");
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: response, success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchmanagerstaffmembers: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not Found");
+      }
+      const response = await StaffMember.find({
+        CompanyId: checkcompany?.Company_Id,
+      });
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Staff Not Found");
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchMannagerNotificationmessage: asyncHandler(async (req, res) => {
+    try {
     } catch (error) {
       throw new Error(error?.message);
     }
