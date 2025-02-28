@@ -59,7 +59,7 @@ const staffMemberSchema = mongoose.Schema(
     },
     Role: {
       type: String,
-      enum: ["Employee", "Contractor"],
+      enum: ["Employee", "Contractor", "Manager"],
       default: "Employee",
       required: true,
     },

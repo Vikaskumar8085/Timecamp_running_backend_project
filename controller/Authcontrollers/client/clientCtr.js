@@ -7,6 +7,7 @@ const bcrypt = require("bcryptjs");
 const Project = require("../../../models/Othermodels/Projectmodels/Project");
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
+const Notification = require("../../../models/Othermodels/Notification/Notification");
 
 const clientCtr = {
   // create client
@@ -17,7 +18,7 @@ const clientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -45,13 +46,70 @@ const clientCtr = {
       });
       if (addItem) {
         await addItem.save();
+        await Notification({
+          SenderId: user?.user_id,
+          ReciverId: addItem.Client_Id,
+          Name: user?.Role.concat(" ", user?.FirstName),
+          Description: `Dear ${addItem.Client_Name}, your account has been successfully created. Welcome aboard!`,
+        }).save();
         return res
           .status(200)
-          .json({ success: true, message: "successfully client added" });
+          .json({success: true, message: "successfully client added"});
       }
     } catch (error) {
       throw new Error(error?.message);
     }
+  }),
+
+  edit_client: asyncHandler(async (req, res) => {
+    try {
+      // Find user
+      let updateData = {...req.body};
+
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized user. Please sign up.");
+      }
+      // Check if the company exists
+      const company = await Company.findOne({UserId: user.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Company not found. Please create a company first.");
+      }
+      // Find the client to update
+      const client = await Client.findOne({
+        Client_Id: parseInt(req.params.id),
+      });
+
+      if (["Active", "InActive", "Dead"].includes(client?.Client_Status)) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          `You cannot update the client because their status is ${client.Client_Status}.`
+        );
+      }
+      if (req.body.Password) {
+        const salt = await bcrypt.genSalt(12);
+        updateData.Password = await bcrypt.hash(req.body.Password, salt);
+      }
+
+      if (!client) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Client not found.");
+      } else {
+        await client.updateOne({$set: {...updateData}});
+      }
+   
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Client updated successfully.",
+        result: client,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+
+    //
   }),
 
   // fetch clients
@@ -65,7 +123,7 @@ const clientCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -102,7 +160,7 @@ const clientCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -140,7 +198,7 @@ const clientCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -177,7 +235,7 @@ const clientCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -211,13 +269,13 @@ const clientCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
       // response
-      const response = await Client.findOne({ Client_Id: req.params.id })
+      const response = await Client.findOne({Client_Id: req.params.id})
         .lean()
         .exec();
       if (!response) {
@@ -243,7 +301,7 @@ const clientCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -279,7 +337,7 @@ const clientCtr = {
       }
 
       // Check if the company exists
-      const company = await Company.findOne({ UserId: user?.user_id });
+      const company = await Company.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error(
@@ -318,12 +376,12 @@ const clientCtr = {
           const staffIds = await timesheetdata.map((ts) => ts.Staff_Id);
 
           const members = await StaffMember.find({
-            staff_Id: { $in: staffIds },
+            staff_Id: {$in: staffIds},
           });
 
           const MemberName = await members.map((member) => member.FirstName);
 
-          return { timesheetdata, MemberName };
+          return {timesheetdata, MemberName};
         })
       );
 

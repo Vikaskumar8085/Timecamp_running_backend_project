@@ -48,4 +48,7 @@ employeeRouter.delete(
 );
 
 employeeRouter.put("/send-for-approvel/:id", EmployeeCtr.SendForApprovel);
+employeeRouter.get("/fetch-employee-staff", EmployeeCtr.fetchstaffmember);
+employeeRouter.get("/fetch-employee-roles", EmployeeCtr.fetchemployeeRole);
+employeeRouter.get("/fetch-employee-client", EmployeeCtr.fetchclients);
 module.exports = employeeRouter;

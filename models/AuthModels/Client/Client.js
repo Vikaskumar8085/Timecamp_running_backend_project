@@ -58,7 +58,7 @@ const ClientRegistrationSchema = mongoose.Schema(
     Client_Status: {
       type: String,
       enum: ["Active", "InActive", "Dead"],
-      default: "InActive",
+      default: null,
     },
   },
   {

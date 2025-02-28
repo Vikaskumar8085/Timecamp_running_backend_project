@@ -50,14 +50,31 @@ const companyCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User please login first");
       }
-      const response = await Company.findOne({ UserId: user.user_id });
+      const response = await Company.findOne({UserId: user.user_id});
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("bad requests");
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  editcompany: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please login first");
+      }
+      const response = await Company.findOne({UserId: user.user_id});
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("bad requests");
+      }
     } catch (error) {
       throw new Error(error?.message);
     }

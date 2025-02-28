@@ -19,6 +19,7 @@ adminRouter.get("/fetch-staffmembers", verifyToken, employeeCtr.fetch_staff);
 // client
 adminRouter.post("/create-client", verifyToken, clientCtr.create_client);
 adminRouter.get("/fetch-client", verifyToken, clientCtr.fetch_client);
+adminRouter.put("/edit-client/:id", verifyToken, clientCtr.edit_client);
 adminRouter.get(
   "/fetch-active-client",
   verifyToken,

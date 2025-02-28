@@ -6,6 +6,7 @@ const Project = require("../../models/Othermodels/Projectmodels/Project");
 const Company = require("../../models/Othermodels/Companymodels/Company");
 const Roles = require("../../models/MasterModels/Roles/Roles");
 const Client = require("../../models/AuthModels/Client/Client");
+const Milestone = require("../../models/Othermodels/Milestones/Milestones");
 const managerCtr = {
   // fetch manager team
   fetchmanagerTeam: asyncHandler(async (req, res) => {
@@ -55,7 +56,6 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fetch manager projects
   fetchmanagerProjects: asyncHandler(async (req, res) => {
     try {
@@ -75,11 +75,11 @@ const managerCtr = {
       const search = req.query.search || "";
       let query = {ManagerId: user.staff_Id};
       if (search) {
-        query["name"] = {$regex: search, $options: "i"}; // Case-insensitive search
+        query["FirstName"] = {$regex: search, $options: "i"}; // Case-insensitive search
       }
 
       // Sorting
-      const sortBy = req.query.sortBy || "name";
+      const sortBy = req.query.sortBy || "FirstName";
       const order = req.query.order === "desc" ? -1 : 1;
 
       // Fetch staff with pagination, search, and sorting
@@ -142,7 +142,6 @@ const managerCtr = {
         .json({message: error.message});
     }
   }),
-
   fetchmanagerActiveprojects: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -154,7 +153,6 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchmanagerteamtasks: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -237,7 +235,6 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchmanagerRoles: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -264,7 +261,6 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchmanagerclients: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -292,7 +288,6 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchmanagerstaffmembers: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -319,9 +314,91 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchMannagerNotificationmessage: asyncHandler(async (req, res) => {
     try {
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchmanagermilestons: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not Found");
+      }
+      let queryObj = {};
+      queryObj = {
+        CompanyId: checkcompany.Company_Id,
+      };
+
+      const response = await Project.find(queryObj).lean().exec();
+
+      const fetchprojectresponse = await Promise.all(
+        response.map(async (item) => {
+          try {
+            // Fetch Milestone and RoleResource in parallel
+            const [fetchmilestone, fetchrrid] = await Promise.all([
+              Milestone.find({ProjectId: item.ProjectId}).lean(),
+              RoleResource.find({ProjectId: item.ProjectId}).lean(),
+            ]);
+
+            // Process milestones
+            const mileStonedata =
+              fetchmilestone?.map((milestone) => ({
+                ProjectId: item.ProjectId,
+                milestoneId: milestone.Milestone_id,
+                milestoneName: milestone.Name,
+              })) || [];
+
+            // Extract resource IDs
+            const fetchresourcesId = fetchrrid?.map((rr) => rr.RRId) || [];
+
+            // Fetch resource staff only if IDs exist
+            const fetchresourcesstaff =
+              fetchresourcesId.length > 0
+                ? await StaffMember.find({
+                    staff_Id: {$in: fetchresourcesId},
+                  }).lean()
+                : [];
+
+            // Process resource staff and include ProjectId
+            const resourcedata =
+              fetchresourcesstaff?.map((staff) => ({
+                ProjectId: item.ProjectId, // Include ProjectId here
+                resourceId: staff.staff_Id,
+                resourceName: staff.FirstName,
+              })) || [];
+
+            return {
+              ...item,
+              mileStonedata,
+              resourcedata,
+            };
+          } catch (error) {
+            console.error(
+              `Error processing projectId ${item.ProjectId}:`,
+              error
+            );
+            return {
+              ...item,
+              mileStonedata: [],
+              resourcedata: [],
+              error: error.message,
+            };
+          }
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: fetchprojectresponse});
     } catch (error) {
       throw new Error(error?.message);
     }

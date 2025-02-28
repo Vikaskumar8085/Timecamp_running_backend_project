@@ -9,12 +9,15 @@ const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMember
 const Token = require("../../../models/Othermodels/Token/Token");
 const credentials = require("../../../credential/credential");
 const axios = require("axios");
+const Notification = require("../../../models/Othermodels/Notification/Notification");
+const sendEmail = require("../../../utils/SendMail/SendMail");
+const crypto = require("crypto");
 
 const userCtr = {
   // register
   register: asynchandler(async (req, res) => {
     try {
-      const {FirstName, LastName, Email, Password, Term} = req.body;
+      let {FirstName, LastName, Email, Password, Term} = req.body;
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(Password, genhash);
       const userExists = await User.findOne({Email: req.body.Email});
@@ -32,14 +35,93 @@ const userCtr = {
       });
 
       if (resp) {
-        await resp.save();
-      }
+        const hashgen = crypto.randomBytes(32).toString("hex") + resp._id;
+        const hash = crypto.createHash("sha256").update(hashgen).digest("hex");
+        const saveToken = await Token({
+          userId: resp._id,
+          token: hash,
+          createdAt: Date.now(),
+          expireAt: Date.now() + 30 * 60 * 1000, // 30 min expire
+        });
 
-      return res.status(HttpStatusCodes.CREATED).json({
-        message: "registeration successfully",
-        success: true,
-        result: resp,
-      });
+        const send_to = Email;
+        const subject = "verification mail from Timecamp team";
+        const message = `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f4f4f4;
+                }
+                .container {
+                    width: 100%;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                }
+                .header {
+                    text-align: center;
+                    padding-bottom: 20px;
+                }
+                .header img {
+                    max-width: 100px;
+                    height: auto;
+                }
+                .content {
+                    font-size: 16px;
+                    line-height: 1.5;
+                    color: #333333;
+                }
+                .footer {
+                    text-align: center;
+                    padding-top: 20px;
+                    font-size: 14px;
+                    color: #666666;
+                }
+                .footer a {
+                    color: #0066cc;
+                    text-decoration: none;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <img src="https://example.com/logo.png" alt="Company Logo">
+                </div>
+                <div class="content">
+                    <h1>Hello [Recipient's Name],</h1>
+                    <p>We hope this email finds you well. here is your verify link  <a href="http://localhost:5173/verify/${hash}">http://localhost:5173/verify</a></p>
+                    <p>Thank you for your attention!</p>
+                    <p>Best regards,<br>Time Camp</p>
+                </div>
+                <div class="footer">
+                    <p>If you no longer wish to receive these emails, you can .</p>
+                    <p>1234 Street Address, City, State, ZIP</p>
+                </div>
+            </div>
+        </body>
+        </htm>`;
+        // const message = `here is your verify link  <a href="http://localhost:5173/verify/${hash}">http://localhost:5173/verify</a>`;
+        const mailsend = await sendEmail(subject, message, send_to);
+        if (mailsend) {
+          console.log("mail send");
+          await saveToken.save();
+          await resp.save();
+          return res.status(HttpStatusCodes.CREATED).json({
+            message: "registeration successfully ! please check your email",
+            success: true,
+          });
+        }
+      }
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -59,8 +141,15 @@ const userCtr = {
       if (Email) {
         user = await User.findOne({Email: req.body.Email});
         role = await user?.Role;
-      } else if (Username) {
-        user = await User.findOne({FirstName: Username});
+
+        if (user.isVerify === false) {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error(
+            `Dear ${user.FirstName}, your email is not verified. Please verify your email at your earliest convenience. Thank you!`
+          );
+        }
+      } else {
+        user = await User.findOne({FirstName: req.body.Email});
         role = await user?.Role;
       }
 
@@ -115,15 +204,15 @@ const userCtr = {
       }
 
       // User exists, check if password is correct
-      // const passwordIsCorrect = await bcrypt?.compare(
-      //   req.body.Password,
-      //   user.Password
-      // );
+      const passwordIsCorrect = await bcrypt?.compare(
+        req.body.Password,
+        user.Password
+      );
 
-      // if (!passwordIsCorrect) {
-      //   res.status(HttpStatusCodes.BAD_REQUEST);
-      //   throw new Error("User and Password Invalid");
-      // }
+      if (!passwordIsCorrect) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("User and Password Invalid");
+      }
 
       const token = await generateToken({id: user._id});
       return res.status(HttpStatusCodes.OK).json({
@@ -142,6 +231,15 @@ const userCtr = {
       let user = null;
       user = await User.findById(req.user);
       // check client
+      if (user.Role === "Admin") {
+        const checkcompany = await Company.findOne({UserId: user?.user_id});
+        if (!checkcompany) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error(
+            "Company not found. Please create your company to proceed. Thank you!"
+          );
+        }
+      }
       if (!user) {
         user = await Client.findById(req.user);
       }
