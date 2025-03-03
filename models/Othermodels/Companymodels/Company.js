@@ -13,6 +13,7 @@ const CompanySchema = mongoose.Schema({
   Company_Email: {
     type: String,
     required: true,
+    unique: true,
   },
   Address: {
     type: String,

@@ -135,42 +135,36 @@ const userCtr = {
       var role = null;
       let redirectUrl = null;
 
-      // First check for the user in the Admin (User) model
-      // admin Role check by user
-
       if (Email) {
         user = await User.findOne({Email: req.body.Email});
-        role = await user?.Role;
 
-        if (user.isVerify === false) {
-          res.status(HttpStatusCodes.BAD_REQUEST);
-          throw new Error(
-            `Dear ${user.FirstName}, your email is not verified. Please verify your email at your earliest convenience. Thank you!`
-          );
-        }
-      } else {
-        user = await User.findOne({FirstName: req.body.Email});
-        role = await user?.Role;
-      }
+        if (user) {
+          role = user.Role; // No need to await
 
-      if (user?.Role === role || user?.Role === "Admin") {
-        const checkCompany = await Company.findOne({UserId: user?.user_id})
-          .lean()
-          .exec();
+          if (!user.isVerify) {
+            res.status(HttpStatusCodes.BAD_REQUEST);
+            throw new Error(
+              `Dear ${user.FirstName}, your email is not verified. Please verify your email at your earliest convenience. Thank you!`
+            );
+          }
 
-        if (!checkCompany) {
-          redirectUrl = "/company";
-        } else {
-          redirectUrl = "/dashboard";
+          if (user.Role === "Admin" || user.Role === role) {
+            const checkCompany = await Company.findOne({UserId: user.user_id})
+              .lean()
+              .exec();
+            redirectUrl = checkCompany ? "/dashboard" : "/company";
+          }
         }
       }
 
-      // admin functionality
-
+      // Admin functionality
       if (!user && Email) {
         user = await StaffMember.findOne({UserName: Email});
-        role = await user?.Role;
-        redirectUrl = "/dashboard";
+
+        if (user) {
+          role = await user?.Role;
+          redirectUrl = "/dashboard";
+        }
       }
 
       // if (!user) {
@@ -194,26 +188,34 @@ const userCtr = {
       // If not found, check in the Client model for Email match
       if (!user && Email) {
         user = await Client.findOne({Client_Email: Email});
-        redirectUrl = "/dashboard";
-        console.log(user, "??>FF");
 
-        if (user.System_Access === false) {
-          res.status(HttpStatusCodes.BAD_REQUEST);
-          throw new Error("you do not have system access");
+        console.log(user, "??>FF"); // Debugging log
+
+        if (user) {
+          if (user.System_Access === false) {
+            res.status(HttpStatusCodes.BAD_REQUEST);
+            throw new Error("You do not have system access");
+          }
+          redirectUrl = "/dashboard";
         }
       }
 
+      // Ensure user exists before checking password
+      if (!user) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("User not found");
+      }
+
       // User exists, check if password is correct
-      const passwordIsCorrect = await bcrypt?.compare(
+      const passwordIsCorrect = await bcrypt.compare(
         req.body.Password,
         user.Password
       );
 
       if (!passwordIsCorrect) {
         res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("User and Password Invalid");
+        throw new Error("Invalid username or password");
       }
-
       const token = await generateToken({id: user._id});
       return res.status(HttpStatusCodes.OK).json({
         success: true,
@@ -228,24 +230,34 @@ const userCtr = {
   // get user profile
   getUserProfile: asynchandler(async (req, res) => {
     try {
-      let user = null;
-      user = await User.findById(req.user);
-      // check client
-      if (user.Role === "Admin") {
-        const checkcompany = await Company.findOne({UserId: user?.user_id});
-        if (!checkcompany) {
+      let user = await User.findById(req.user);
+
+      // If user is found and is an Admin, check for associated company
+      if (user?.Role === "Admin") {
+        const checkCompany = await Company.findOne({UserId: user.user_id});
+
+        if (!checkCompany) {
           res.status(HttpStatusCodes.NOT_FOUND);
           throw new Error(
             "Company not found. Please create your company to proceed. Thank you!"
           );
         }
       }
+
+      // If user is not found in `User`, check `Client`
       if (!user) {
         user = await Client.findById(req.user);
       }
-      // check StaffmembersF
+
+      // If user is still not found, check `StaffMember`
       if (!user) {
         user = await StaffMember.findById(req.user);
+      }
+
+      // If user is still null, return an error
+      if (!user) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("User not found");
       }
 
       return res.status(HttpStatusCodes.OK).json({
@@ -465,6 +477,28 @@ const userCtr = {
       if (responsne) {
         await responsne.updateOne({BlockStatus: "Block"});
       }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchusernotification: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please Singup");
+      }
+      const response = await Notification.find({
+        ReciverId: user?.staff_Id,
+      }).sort({createdAt: -1});
+      if (!response) {
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Client Not Found");
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }

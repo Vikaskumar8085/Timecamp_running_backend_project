@@ -46,7 +46,7 @@ const staffMemberSchema = mongoose.Schema(
     IsActive: {
       type: String,
       enum: ["Active", "InActive"],
-      default: "InActive",
+      default: "",
     },
 
     Password: {

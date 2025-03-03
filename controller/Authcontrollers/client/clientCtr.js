@@ -8,6 +8,7 @@ const Project = require("../../../models/Othermodels/Projectmodels/Project");
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 const Notification = require("../../../models/Othermodels/Notification/Notification");
+const sendEmail = require("../../../utils/SendMail/SendMail");
 
 const clientCtr = {
   // create client
@@ -44,6 +45,7 @@ const clientCtr = {
         System_Access: req.body.System_Access,
         Common_Id: company?.Company_Id,
       });
+
       if (addItem) {
         await addItem.save();
         await Notification({
@@ -52,6 +54,81 @@ const clientCtr = {
           Name: user?.Role.concat(" ", user?.FirstName),
           Description: `Dear ${addItem.Client_Name}, your account has been successfully created. Welcome aboard!`,
         }).save();
+
+        const send_to = addItem?.Client_Email;
+        const subject = "Welcome! Your Timecamp Account Credentials";
+        const message = `<!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 0;
+                    padding: 0;
+                    background-color: #f4f4f4;
+                }
+                .container {
+                    width: 100%;
+                    max-width: 600px;
+                    margin: 0 auto;
+                    background-color: #ffffff;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+                }
+                .header {
+                    text-align: center;
+                    padding-bottom: 20px;
+                }
+                .header img {
+                    max-width: 100px;
+                    height: auto;
+                }
+                .content {
+                    font-size: 16px;
+                    line-height: 1.5;
+                    color: #333333;
+                }
+                .footer {
+                    text-align: center;
+                    padding-top: 20px;
+                    font-size: 14px;
+                    color: #666666;
+                }
+                .footer a {
+                    color: #0066cc;
+                    text-decoration: none;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <div class="header">
+                    <img src="https://example.com/logo.png" alt="Company Logo">
+                </div>
+                <div class="content">
+                    <h1>Hello Dear Sir/Mam,</h1>
+                    <p>Your Account has been created succsfully </p>
+                    <h1>Your user name is ${addItem?.Client_Email} </h1>
+                    <h1>Your Password is ${addItem?.Client_Phone}  </h1>
+  
+                    <p>Thank you for your attention!</p>
+                    <p>Best regards,<br>Time Camp</p>
+                </div>
+                <div class="footer">
+                    <p>If you no longer wish to receive these emails, you can .</p>
+                    <p>1234 Street Address, City, State, ZIP</p>
+                </div>
+            </div>
+        </body>
+        </htm>`;
+        const mailsend = await sendEmail(subject, message, send_to);
+        if (!mailsend) {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error("Email not sent");
+        }
         return res
           .status(200)
           .json({success: true, message: "successfully client added"});
@@ -99,7 +176,7 @@ const clientCtr = {
       } else {
         await client.updateOne({$set: {...updateData}});
       }
-   
+
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "Client updated successfully.",
@@ -112,41 +189,105 @@ const clientCtr = {
     //
   }),
 
+  remove_client: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized user. Please sign up.");
+      }
+      // Check if the company exists
+      const company = await Company.findOne({UserId: user.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Company not found. Please create a company first.");
+      }
+
+      const response = await Client.findOne({Client_Id: req.params.id});
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("client Not Found");
+      } else {
+        const restrictedStatuses = ["Active", "InActive", "Dead"];
+        if (restrictedStatuses.includes(response?.Client_Status)) {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error(
+            `you can not remove client because client is ${response?.Client_Status}`
+          );
+        }
+        await response.deleteOne();
+        res
+          .status(HttpStatusCodes.OK)
+          .json({
+            success: true,
+            message: "The client has been successfully removed.",
+          });
+      }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
   // fetch clients
   fetch_client: asyncHandler(async (req, res) => {
     try {
-      // check user
-      const user = await User?.findById(req.user);
+      // Check user authentication
+      const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please sign up.");
       }
 
-      // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      // Check if company exists
+      const company = await Company.findOne({UserId: user?.user_id});
       if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
 
-      let queryObj = {};
-      queryObj = {
+      // Filtering and searching
+      let {search, page = 1, limit = 10} = req.query;
+      page = parseInt(page);
+      limit = parseInt(limit);
+
+      let queryObj = {
         Common_Id: company?.Company_Id,
         Role: "Client",
       };
-      const response = await Client.find(queryObj).lean().exec();
-      if (!response) {
+
+      if (search) {
+        queryObj.$or = [
+          {Client_Name: {$regex: search, $options: "i"}}, // Case-insensitive search
+          {Client_Email: {$regex: search, $options: "i"}},
+        ];
+      }
+
+      // Pagination
+      const totalClients = await Client.countDocuments(queryObj);
+      const clients = await Client.find(queryObj)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec();
+
+      if (!clients) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
+
       return res.status(HttpStatusCodes.OK).json({
-        result: response,
+        result: clients,
+        totalPages: Math.ceil(totalClients / limit),
+        currentPage: page,
         success: true,
       });
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
+
   // fetch active client
 
   // fetch clients

@@ -9,7 +9,7 @@ const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResourc
 const Client = require("../../models/AuthModels/Client/Client");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const generateProjectCode = async () => {
-  const lastProject = await Project.findOne().sort({ ProjectId: -1 });
+  const lastProject = await Project.findOne().sort({ProjectId: -1});
   const lastId = lastProject ? lastProject.ProjectId : 0;
   const newProjectId = lastId + 1;
   return `P${newProjectId.toString().padStart(3, "0")}`;
@@ -34,7 +34,7 @@ const projectCtr = {
         throw new Error("Un Authorized User");
       }
 
-      const checkcompany = await Company?.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -58,8 +58,18 @@ const projectCtr = {
         return; // Exit if clientId is undefined or empty
       } else {
         await Client.updateOne(
-          { Client_Id: responseClientId }, // Ensure we update the correct client
-          { $set: { Client_Status: "Active" } } // Set Client_Status to Active
+          {Client_Id: responseClientId}, // Ensure we update the correct client
+          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
+        );
+      }
+
+      let responseProjectmangerid = newProject.Project_ManagersId;
+      if (!responseProjectmangerid) {
+        return;
+      } else {
+        await StaffMember.updateOne(
+          {staff_Id: responseProjectmangerid},
+          {$set: {IsActive: "Active"}}
         );
       }
 
@@ -70,7 +80,7 @@ const projectCtr = {
       // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({ RRId, RId }) => ({
+      const roleResourceData = roleResources.map(({RRId, RId}) => ({
         RRId,
         RId,
         ProjectId: projectId,
@@ -78,6 +88,15 @@ const projectCtr = {
 
       await RoleResource.insertMany(roleResourceData);
 
+      let updatestaffmember = await Promise.all(
+        roleResources?.map(({RRId, RId}) =>
+          StaffMember.updateOne({staff_Id: RRId}, {$set: {IsActive: "Active"}})
+        ) || []
+      );
+      if (!updatestaffmember) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("staff Not found");
+      }
       res.status(201).json({
         message: "Project and Role Resources added successfully",
         success: true,
@@ -98,7 +117,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -121,14 +140,14 @@ const projectCtr = {
 
           // Extract RRId values
           const rIds = roleResources.map((rr) => rr.RId);
-          const roles = await Role.find({ RoleId: { $in: rIds } });
+          const roles = await Role.find({RoleId: {$in: rIds}});
           const rrid = roleResources.map((rr) => rr.RRId);
 
           const staffMember = await StaffMember.find({
-            staff_Id: { $in: rrid },
+            staff_Id: {$in: rrid},
           });
 
-          return { ...project, roles, staffMember };
+          return {...project, roles, staffMember};
         })
       );
 
@@ -151,7 +170,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -186,7 +205,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -222,7 +241,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -254,7 +273,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -278,18 +297,18 @@ const projectCtr = {
 
           // Extract RRId values
           const rIds = roleResources.map((rr) => rr.RId);
-          const roles = await Role.find({ RoleId: { $in: rIds } });
+          const roles = await Role.find({RoleId: {$in: rIds}});
           const rrid = roleResources.map((rr) => rr.RRId);
 
           const staffMember = await StaffMember.find({
-            staff_Id: { $in: rrid },
+            staff_Id: {$in: rrid},
           });
 
           const responseclient = await Client.find({
             Client_Id: projectitem.clientId,
           });
           const ProjectManager = await StaffMember.find({
-            staff_Id: { $in: projectitem.Project_ManagersId },
+            staff_Id: {$in: projectitem.Project_ManagersId},
           });
           const ProjectManagerName = await ProjectManager.map(
             (item) => item.FirstName
@@ -330,7 +349,7 @@ const projectCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -372,7 +391,7 @@ const projectCtr = {
       );
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: timesheetfetchdata });
+        .json({success: true, result: timesheetfetchdata});
     } catch (error) {
       throw new Error(error?.message);
     }

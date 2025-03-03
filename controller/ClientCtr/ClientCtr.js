@@ -5,6 +5,7 @@ const Project = require("../../models/Othermodels/Projectmodels/Project");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Task = require("../../models/Othermodels/Task/Task");
 const moment = require("moment");
+const Notification = require("../../models/Othermodels/Notification/Notification");
 const ClientCtr = {
   // Client Project
   fetchClientprojects: asyncHandler(async (req, res) => {
@@ -443,6 +444,28 @@ const ClientCtr = {
         res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
         throw new Error("An error occurred while updating timesheets.");
       }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchClientNotification: asyncHandler(async (req, res) => {
+    try {
+      const user = await Client.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please Singup");
+      }
+      const response = await Notification.find({
+        ReciverId: user?.staff_Id,
+      }).sort({createdAt: -1});
+      if (!response) {
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Client Not Found");
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }

@@ -18,4 +18,9 @@ userRouter.post("/forget-password", userCtr.ForgetPasswordCtr);
 userRouter.put("/reset-password/:resetToken", userCtr.ResetPasswordCtr);
 userRouter.get("/verify/:token", userCtr.verifyUser);
 userRouter.post("/google-auth", userCtr.Googleauth);
+userRouter.get(
+  "/fetch-user-notification",
+  verifyToken,
+  userCtr.fetchusernotification
+);
 module.exports = userRouter;

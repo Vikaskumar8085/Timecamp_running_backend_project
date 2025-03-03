@@ -104,9 +104,7 @@ const TaskCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fetch task by project
-
   fetchprojectask: asynchandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
@@ -161,7 +159,6 @@ const TaskCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchTasks: asynchandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
@@ -301,18 +298,3 @@ const TaskCtr = {
   }),
 };
 module.exports = TaskCtr;
-
-// {
-//   "Company_Id": 1,
-//   "Task_Name": "Design Homepage",
-//   "ProjectId": 101,
-//   "Project_Code": "PROJ001",
-//   "MilestoneId": "MILE001",
-//   "Priority": "HIGH",
-//   "StartDate": "2024-02-12",
-//   "EndDate": "2024-02-20",
-//   "Status": "INPROGRESS",
-//   "Estimated_Time": 20,
-//   "Task_description": "Create homepage design",
-//   "Resource_Email": "developer@example.com"
-// }

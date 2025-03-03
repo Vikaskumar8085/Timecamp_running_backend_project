@@ -7,6 +7,7 @@ const Company = require("../../models/Othermodels/Companymodels/Company");
 const Roles = require("../../models/MasterModels/Roles/Roles");
 const Client = require("../../models/AuthModels/Client/Client");
 const Milestone = require("../../models/Othermodels/Milestones/Milestones");
+const Notification = require("../../models/Othermodels/Notification/Notification");
 const managerCtr = {
   // fetch manager team
   fetchmanagerTeam: asyncHandler(async (req, res) => {
@@ -399,6 +400,120 @@ const managerCtr = {
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, result: fetchprojectresponse});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  addmanagerProject: asyncHandler(async (req, res) => {
+    try {
+      const {
+        Project_Name,
+        clientId,
+        Project_Type,
+        Project_Hours,
+        Project_ManagersId,
+        roleResources,
+      } = req.body;
+      console.log(req.body);
+
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+      // Create the project
+      const newProject = new Project({
+        CompanyId: checkcompany.Company_Id,
+        Project_Name,
+        clientId,
+        Project_Type,
+        Project_Hours,
+        Project_Status: true,
+        Project_ManagersId,
+        createdBy: user?.staff_Id,
+      });
+
+      await newProject.save();
+
+      let responseClientId = newProject.clientId;
+
+      if (!responseClientId) {
+        return; // Exit if clientId is undefined or empty
+      } else {
+        await Client.updateOne(
+          {Client_Id: responseClientId}, // Ensure we update the correct client
+          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
+        );
+      }
+
+      let responseProjectmangerid = newProject.Project_ManagersId;
+      if (!responseProjectmangerid) {
+        return;
+      } else {
+        await StaffMember.updateOne(
+          {staff_Id: responseProjectmangerid},
+          {$set: {IsActive: "Active"}}
+        );
+      }
+
+      // Retrieve the generated ProjectId
+      const projectId = newProject?.ProjectId;
+      console.log(projectId, "...");
+
+      // Exit early if roleResources is not a valid array or is empty
+      if (!Array.isArray(roleResources) || roleResources.length === 0) return;
+
+      const roleResourceData = roleResources.map(({RRId, RId}) => ({
+        RRId,
+        RId,
+        ProjectId: projectId,
+      }));
+
+      await RoleResource.insertMany(roleResourceData);
+
+      let updatestaffmember = await Promise.all(
+        roleResources?.map(({RRId, RId}) =>
+          StaffMember.updateOne({staff_Id: RRId}, {$set: {IsActive: "Active"}})
+        ) || []
+      );
+      if (!updatestaffmember) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("staff Not found");
+      }
+      res.status(201).json({
+        message: "Project and Role Resources added successfully",
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchManagerNotification: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const response = await Notification.find({
+        ReciverId: user?.staff_Id,
+      }).sort({createdAt: -1});
+
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Employee Notficaiton Not Found");
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: response, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }

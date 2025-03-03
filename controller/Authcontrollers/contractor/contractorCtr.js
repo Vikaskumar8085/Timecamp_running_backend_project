@@ -8,6 +8,7 @@ const Project = require("../../../models/Othermodels/Projectmodels/Project");
 const moment = require("moment");
 const RoleResource = require("../../../models/Othermodels/Projectmodels/RoleResources");
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
+const sendEmail = require("../../../utils/SendMail/SendMail");
 
 const contractorCtr = {
   // create contractor
@@ -58,6 +59,82 @@ const contractorCtr = {
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("bad request");
+      }
+
+      const send_to = Email;
+      const subject = "Account Credential ";
+      const message = `<!DOCTYPE html>
+      <html lang="en">
+      <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <style>
+              body {
+                  font-family: Arial, sans-serif;
+                  margin: 0;
+                  padding: 0;
+                  background-color: #f4f4f4;
+              }
+              .container {
+                  width: 100%;
+                  max-width: 600px;
+                  margin: 0 auto;
+                  background-color: #ffffff;
+                  padding: 20px;
+                  border-radius: 8px;
+                  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+              }
+              .header {
+                  text-align: center;
+                  padding-bottom: 20px;
+              }
+              .header img {
+                  max-width: 100px;
+                  height: auto;
+              }
+              .content {
+                  font-size: 16px;
+                  line-height: 1.5;
+                  color: #333333;
+              }
+              .footer {
+                  text-align: center;
+                  padding-top: 20px;
+                  font-size: 14px;
+                  color: #666666;
+              }
+              .footer a {
+                  color: #0066cc;
+                  text-decoration: none;
+              }
+          </style>
+      </head>
+      <body>
+          <div class="container">
+              <div class="header">
+                  <img src="https://example.com/logo.png" alt="Company Logo">
+              </div>
+              <div class="content">
+                  <h1>Hello Dear Sir/Mam,</h1>
+                  <p>Your Account has been created succsfully </p>
+                  <h1>Your user name is ${response?.Email}</h1>
+                  <h1>Password is ${response?.Phone} </h1>
+
+                  <p>Thank you for your attention!</p>
+                  <p>Best regards,<br>Time Camp</p>
+              </div>
+              <div class="footer">
+                  <p>If you no longer wish to receive these emails, you can .</p>
+                  <p>1234 Street Address, City, State, ZIP</p>
+              </div>
+          </div>
+      </body>
+      </htm>`;
+      const mailsend = await sendEmail(subject, message, send_to);
+
+      if (!mailsend) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("mail not send ");
       }
 
       return res.status(HttpStatusCodes.CREATED).json({
