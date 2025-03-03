@@ -33,14 +33,14 @@ const managerCtr = {
         ManagerId: user.staff_Id,
         ...(search && {
           $or: [
-            {FirstName: {$regex: search, $options: "i"}},
-            {Email: {$regex: search, $options: "i"}},
+            { FirstName: { $regex: search, $options: "i" } },
+            { Email: { $regex: search, $options: "i" } },
           ],
         }),
       };
 
       const fetchmanager = await StaffMember.find(query)
-        .sort({[sortBy]: order})
+        .sort({ [sortBy]: order })
         .skip((page - 1) * limit)
         .limit(limit);
 
@@ -64,7 +64,7 @@ const managerCtr = {
       if (!user) {
         return res
           .status(HttpStatusCodes.UNAUTHORIZED)
-          .json({message: "Unauthorized User, please Signup"});
+          .json({ message: "Unauthorized User, please Signup" });
       }
 
       // Pagination
@@ -74,9 +74,9 @@ const managerCtr = {
 
       // Searching
       const search = req.query.search || "";
-      let query = {ManagerId: user.staff_Id};
+      let query = { ManagerId: user?.staff_Id };
       if (search) {
-        query["FirstName"] = {$regex: search, $options: "i"}; // Case-insensitive search
+        query["FirstName"] = { $regex: search, $options: "i" }; // Case-insensitive search
       }
 
       // Sorting
@@ -84,15 +84,15 @@ const managerCtr = {
       const order = req.query.order === "desc" ? -1 : 1;
 
       // Fetch staff with pagination, search, and sorting
-      const fetchstaff = await StaffMember.find(query)
-        .sort({[sortBy]: order})
+      const fetchstaff = await StaffMember?.find(query)
+        .sort({ [sortBy]: order })
         .skip(skip)
         .limit(limit);
 
-      if (!fetchstaff.length) {
+      if (!fetchstaff) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({message: "Staff Not Found"});
+          .json({ message: "Staff Not Found" });
       }
 
       // Fetch projects for each staff member
@@ -109,7 +109,7 @@ const managerCtr = {
 
             // Fetch projects
             const fetchproject = projectids.length
-              ? await Project.find({ProjectId: {$in: projectids}})
+              ? await Project.find({ ProjectId: { $in: projectids } })
               : [];
 
             // Fetch projects where staff is a direct project manager
@@ -117,13 +117,13 @@ const managerCtr = {
               Project_ManagersId: item?.staff_Id,
             });
 
-            return {fetchproject, fetchteamproject};
+            return { fetchproject, fetchteamproject };
           } catch (error) {
             console.error(
               `Error fetching projects for staff ${item?.staff_Id}:`,
               error
             );
-            return {fetchproject: [], fetchteamproject: []};
+            return { fetchproject: [], fetchteamproject: [] };
           }
         })
       );
@@ -140,7 +140,7 @@ const managerCtr = {
     } catch (error) {
       res
         .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
-        .json({message: error.message});
+        .json({ message: error.message });
     }
   }),
   fetchmanagerActiveprojects: asyncHandler(async (req, res) => {
@@ -181,7 +181,7 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -210,8 +210,8 @@ const managerCtr = {
         return; // Exit if clientId is undefined or empty
       } else {
         await Client.updateOne(
-          {Client_Id: responseClientId}, // Ensure we update the correct client
-          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
+          { Client_Id: responseClientId }, // Ensure we update the correct client
+          { $set: { Client_Status: "Active" } } // Set Client_Status to Active
         );
       }
       const projectId = createproject?.ProjectId;
@@ -220,7 +220,7 @@ const managerCtr = {
       // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({RRId, RId}) => ({
+      const roleResourceData = roleResources.map(({ RRId, RId }) => ({
         RRId,
         RId,
         ProjectId: projectId,
@@ -243,13 +243,15 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
       }
 
-      const response = await Roles.find({CompanyId: checkcompany?.Company_Id});
+      const response = await Roles.find({
+        CompanyId: checkcompany?.Company_Id,
+      });
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Roles Not Found");
@@ -257,7 +259,7 @@ const managerCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({result: response, success: true});
+        .json({ result: response, success: true });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -269,7 +271,7 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -284,7 +286,7 @@ const managerCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({result: response, success: true});
+        .json({ result: response, success: true });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -296,7 +298,7 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -310,7 +312,7 @@ const managerCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -329,7 +331,7 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -346,8 +348,8 @@ const managerCtr = {
           try {
             // Fetch Milestone and RoleResource in parallel
             const [fetchmilestone, fetchrrid] = await Promise.all([
-              Milestone.find({ProjectId: item.ProjectId}).lean(),
-              RoleResource.find({ProjectId: item.ProjectId}).lean(),
+              Milestone.find({ ProjectId: item.ProjectId }).lean(),
+              RoleResource.find({ ProjectId: item.ProjectId }).lean(),
             ]);
 
             // Process milestones
@@ -365,7 +367,7 @@ const managerCtr = {
             const fetchresourcesstaff =
               fetchresourcesId.length > 0
                 ? await StaffMember.find({
-                    staff_Id: {$in: fetchresourcesId},
+                    staff_Id: { $in: fetchresourcesId },
                   }).lean()
                 : [];
 
@@ -399,7 +401,7 @@ const managerCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: fetchprojectresponse});
+        .json({ success: true, result: fetchprojectresponse });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -423,7 +425,7 @@ const managerCtr = {
         throw new error("UnAuthorized User Please Singup ");
       }
 
-      const checkcompany = await Company?.findOne({UserId: user?.user_id});
+      const checkcompany = await Company?.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -448,8 +450,8 @@ const managerCtr = {
         return; // Exit if clientId is undefined or empty
       } else {
         await Client.updateOne(
-          {Client_Id: responseClientId}, // Ensure we update the correct client
-          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
+          { Client_Id: responseClientId }, // Ensure we update the correct client
+          { $set: { Client_Status: "Active" } } // Set Client_Status to Active
         );
       }
 
@@ -458,8 +460,8 @@ const managerCtr = {
         return;
       } else {
         await StaffMember.updateOne(
-          {staff_Id: responseProjectmangerid},
-          {$set: {IsActive: "Active"}}
+          { staff_Id: responseProjectmangerid },
+          { $set: { IsActive: "Active" } }
         );
       }
 
@@ -470,7 +472,7 @@ const managerCtr = {
       // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({RRId, RId}) => ({
+      const roleResourceData = roleResources.map(({ RRId, RId }) => ({
         RRId,
         RId,
         ProjectId: projectId,
@@ -479,8 +481,11 @@ const managerCtr = {
       await RoleResource.insertMany(roleResourceData);
 
       let updatestaffmember = await Promise.all(
-        roleResources?.map(({RRId, RId}) =>
-          StaffMember.updateOne({staff_Id: RRId}, {$set: {IsActive: "Active"}})
+        roleResources?.map(({ RRId, RId }) =>
+          StaffMember.updateOne(
+            { staff_Id: RRId },
+            { $set: { IsActive: "Active" } }
+          )
         ) || []
       );
       if (!updatestaffmember) {
@@ -505,7 +510,7 @@ const managerCtr = {
       }
       const response = await Notification.find({
         ReciverId: user?.staff_Id,
-      }).sort({createdAt: -1});
+      }).sort({ createdAt: -1 });
 
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -513,7 +518,7 @@ const managerCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({result: response, success: true});
+        .json({ result: response, success: true });
     } catch (error) {
       throw new Error(error?.message);
     }

@@ -13,5 +13,6 @@ managerRouter.get(
   "/fetch-manager-projectwithmilestone",
   managerCtr.fetchmanagermilestons
 );
+managerRouter.post("/create-manager-project", managerCtr.createManagerProject);
 
 module.exports = managerRouter;
