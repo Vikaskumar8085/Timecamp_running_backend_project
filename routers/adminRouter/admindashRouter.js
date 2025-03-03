@@ -9,5 +9,9 @@ admindashRouter.get(
   verifyToken,
   admindashboardCtr.fetchtotalCounter
 );
-
+admindashRouter.get(
+  "/fetch-dash-recent-project",
+  verifyToken,
+  admindashboardCtr.fetchrecentproject
+);
 module.exports = admindashRouter;

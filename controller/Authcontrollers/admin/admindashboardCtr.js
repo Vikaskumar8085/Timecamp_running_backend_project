@@ -15,7 +15,7 @@ const admindashboardCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -39,9 +39,44 @@ const admindashboardCtr = {
         staffNo: staffcount.length,
       };
 
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({ success: true, result: resp });
+      return res.status(HttpStatusCodes.OK).json({success: true, result: resp});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchrecentproject: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {};
+      queryObj = {
+        CompanyId: checkcompany?.Company_Id,
+      };
+      const response = await Project.find(queryObj)
+        .sort({createdAt: -1})
+        .limit(5)
+        ?.select("Project_Name Start_Date End_Date");
+
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Recent Project Not Found");
+      }
+
+      return res.status(HttpStatusCodes.OK).json({
+        result: response,
+        success: true,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
