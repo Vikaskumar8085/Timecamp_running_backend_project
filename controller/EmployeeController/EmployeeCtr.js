@@ -8,6 +8,7 @@ const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Company = require("../../models/Othermodels/Companymodels/Company");
 const Roles = require("../../models/MasterModels/Roles/Roles");
 const Client = require("../../models/AuthModels/Client/Client");
+const Notification = require("../../models/Othermodels/Notification/Notification");
 const EmployeeCtr = {
   fetchemployeeprojects: asyncHandler(async (req, res) => {
     try {
@@ -118,7 +119,6 @@ const EmployeeCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fill timesheet by employee
 
   FillEmployeeProjectTimesheet: asyncHandler(async (req, res) => {
@@ -466,11 +466,33 @@ const EmployeeCtr = {
           {Client_Id: responseClientId}, // Ensure we update the correct client
           {$set: {Client_Status: "Active"}} // Set Client_Status to Active
         );
+
+        await Notification({
+          SenderId: user?.staff_Id,
+          ReciverId: responseClientId,
+          Name: user?.FirstName,
+          Description: `You have been assigned to the ${Project_Name} project as a new client.`,
+          IsRead: false,
+        }).save();
+
+        let responseProjectmangerid = createproject?.Project_ManagersId;
+        if (!responseProjectmangerid) {
+          return;
+        } else {
+          await StaffMember.updateOne(
+            {staff_Id: responseProjectmangerid},
+            {$set: {IsActive: "Active"}}
+          );
+          await Notification({
+            SenderId: user?.staff_Id,
+            ReciverId: responseProjectmangerid,
+            Name: user?.FirstName,
+            Description: `You have been assigned to the ${Project_Name} project as a new project Manager.`,
+            IsRead: false,
+          }).save();
+        }
       }
       const projectId = createproject?.ProjectId;
-      console.log(projectId, "...");
-
-      // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
       const roleResourceData = roleResources.map(({RRId, RId}) => ({
@@ -480,6 +502,36 @@ const EmployeeCtr = {
       }));
 
       await RoleResource.insertMany(roleResourceData);
+
+      try {
+        let updatestaffmember = await Promise.all(
+          (roleResources || []).map(async ({RRId, RId}) => {
+            if (!RRId) return; // Skip invalid entries
+
+            // Update staff member status
+            await StaffMember.updateOne(
+              {staff_Id: RRId},
+              {$set: {IsActive: "Active"}}
+            );
+
+            // Send notification
+            await Notification.create({
+              SenderId: user?.staff_Id,
+              ReciverId: RRId, // Receiver is RRId
+              Name: user?.FirstName,
+              Description: "Your role has been updated to Active",
+              IsRead: false,
+            });
+          })
+        );
+
+        if (!updatestaffmember) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error("staff Not found");
+        }
+      } catch (error) {
+        console.error("Error updating staff members:", error);
+      }
 
       res.status(201).json({
         message: "Project and Role Resources added successfully",

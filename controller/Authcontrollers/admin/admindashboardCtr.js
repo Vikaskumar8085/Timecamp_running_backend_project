@@ -5,6 +5,7 @@ const Project = require("../../../models/Othermodels/Projectmodels/Project");
 const User = require("../../../models/AuthModels/User/User");
 const Company = require("../../../models/Othermodels/Companymodels/Company");
 const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
+const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 
 const admindashboardCtr = {
   fetchtotalCounter: asynchandler(async (req, res) => {
@@ -32,11 +33,23 @@ const admindashboardCtr = {
       const projectcount = await Project.find({
         CompanyId: checkcompany.Company_Id,
       });
+      const approvedTimesheets = await TimeSheet.find({
+        CompanyId: checkcompany.Company_Id,
+        approval_status: "APPROVED",
+      });
+
+      const totalHours = approvedTimesheets.reduce(
+        (sum, entry) => sum + (parseInt(entry.hours) || 0),
+        0
+      );
+
+      console.log("Total Approved Work Hours:", totalHours);
 
       const resp = {
         projectNo: projectcount.length,
         clientNo: clientcount.length,
         staffNo: staffcount.length,
+        totalHours: totalHours,
       };
 
       return res.status(HttpStatusCodes.OK).json({success: true, result: resp});
@@ -81,6 +94,8 @@ const admindashboardCtr = {
       throw new Error(error?.message);
     }
   }),
+
+
 };
 
 module.exports = admindashboardCtr;

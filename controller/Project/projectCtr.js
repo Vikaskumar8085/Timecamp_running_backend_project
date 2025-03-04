@@ -8,6 +8,7 @@ const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers")
 const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
 const Client = require("../../models/AuthModels/Client/Client");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
+const Notification = require("../../models/Othermodels/Notification/Notification");
 const generateProjectCode = async () => {
   const lastProject = await Project.findOne().sort({ProjectId: -1});
   const lastId = lastProject ? lastProject.ProjectId : 0;
@@ -61,6 +62,14 @@ const projectCtr = {
           {Client_Id: responseClientId}, // Ensure we update the correct client
           {$set: {Client_Status: "Active"}} // Set Client_Status to Active
         );
+
+        await Notification({
+          SenderId: user?.user_id,
+          ReciverId: newProject?.clientId,
+          Name: user?.FirstName,
+          Description: `You have been assigned to the ${Project_Name} project as a new client by the admin.`,
+          IsRead: false,
+        }).save();
       }
 
       let responseProjectmangerid = newProject.Project_ManagersId;
@@ -71,6 +80,14 @@ const projectCtr = {
           {staff_Id: responseProjectmangerid},
           {$set: {IsActive: "Active"}}
         );
+
+        await Notification({
+          SenderId: user?.user_id,
+          ReciverId: newProject?.responseProjectmangerid,
+          Name: user?.FirstName,
+          Description: `You have been assigned to the ${Project_Name} project as a new projectmanager by the admin.`,
+          IsRead: false,
+        }).save();
       }
 
       // Retrieve the generated ProjectId
@@ -88,15 +105,36 @@ const projectCtr = {
 
       await RoleResource.insertMany(roleResourceData);
 
-      let updatestaffmember = await Promise.all(
-        roleResources?.map(({RRId, RId}) =>
-          StaffMember.updateOne({staff_Id: RRId}, {$set: {IsActive: "Active"}})
-        ) || []
-      );
-      if (!updatestaffmember) {
-        res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("staff Not found");
+      try {
+        let updatestaffmember = await Promise.all(
+          (roleResources || []).map(async ({RRId, RId}) => {
+            if (!RRId) return; // Skip invalid entries
+
+            // Update staff member status
+            await StaffMember.updateOne(
+              {staff_Id: RRId},
+              {$set: {IsActive: "Active"}}
+            );
+
+            // Send notification
+            await Notification.create({
+              SenderId: user?.user_id,
+              ReciverId: RRId, // Receiver is RRId
+              Name: user?.FirstName,
+              Description: "Your role has been updated to Active",
+              IsRead: false,
+            });
+          })
+        );
+
+        if (!updatestaffmember) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error("staff Not found");
+        }
+      } catch (error) {
+        console.error("Error updating staff members:", error);
       }
+
       res.status(201).json({
         message: "Project and Role Resources added successfully",
         success: true,
@@ -105,9 +143,7 @@ const projectCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fetch projects
-
   fetch_projects: asyncHandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
@@ -160,7 +196,6 @@ const projectCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetch_active_projects: asyncHandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
@@ -339,7 +374,6 @@ const projectCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchProjectTimesheet: asyncHandler(async (req, res) => {
     try {
       const user = await User.findOne(req.user);

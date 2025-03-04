@@ -28,6 +28,10 @@ const TimesheetSchema = new Schema({
     default: null,
     required: false,
   },
+  billed_By: {
+    type: Number,
+    ref: "User",
+  },
   hours: {
     type: String,
     default: 0,
@@ -109,6 +113,9 @@ const TimesheetSchema = new Schema({
   blank_hours: {
     type: Number,
     default: 0,
+  },
+  attachement: {
+    type: String,
   },
 });
 

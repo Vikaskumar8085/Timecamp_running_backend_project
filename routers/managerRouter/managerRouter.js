@@ -1,7 +1,7 @@
 const express = require("express");
 const managerCtr = require("../../controller/ManagerCtr/ManagerController");
 const verifyToken = require("../../Auth/verifyAuth");
-
+const upload = require("../../utils/FileUpload/fileUpload");
 const managerRouter = express.Router();
 managerRouter.use(verifyToken);
 managerRouter.get("/fetch-manager-team", managerCtr.fetchmanagerTeam);
@@ -14,5 +14,16 @@ managerRouter.get(
   managerCtr.fetchmanagermilestons
 );
 managerRouter.post("/create-manager-project", managerCtr.createManagerProject);
+managerRouter.post(
+  "/fill-manager-timesheet",
+  upload.array("file"),
+  managerCtr.FillManagerTimesheet
+);
 
+managerRouter.delete(
+  "/remove-manager-timesheet",
+  managerCtr.RemovemanagerTimesheet
+);
+
+managerRouter.post("/send-for-approvel-manager-timesheet");
 module.exports = managerRouter;

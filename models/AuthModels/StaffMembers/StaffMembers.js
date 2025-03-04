@@ -46,7 +46,7 @@ const staffMemberSchema = mongoose.Schema(
     IsActive: {
       type: String,
       enum: ["Active", "InActive"],
-      default: "",
+      default: null,
     },
 
     Password: {
@@ -61,7 +61,6 @@ const staffMemberSchema = mongoose.Schema(
       type: String,
       enum: ["Employee", "Contractor", "Manager"],
       default: "Employee",
-      required: true,
     },
     SubRole: [
       {

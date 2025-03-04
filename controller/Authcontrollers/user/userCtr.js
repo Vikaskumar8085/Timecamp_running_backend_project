@@ -317,27 +317,46 @@ const userCtr = {
 
   ChangepasswordCtr: asynchandler(async (req, res) => {
     try {
-      // const {oldPassword, Password} = req.body;
-      // const user = await User.findById(req.user);
-      // if (!user) {
-      //   res.status(StatusCodes.UNAUTHORIZED);
-      //   throw new Error("User not found, please signup");
-      // }
-      // if (!oldPassword || !Password) {
-      //   res.status(StatusCodes.BAD_REQUEST);
-      //   throw new Error("Please add old and new password");
-      // }
-      // // check if old password matches password in DB
-      // const passwordIsCorrect = await bcrypt.compare(
-      //   oldPassword,
-      //   user.Password
-      // );
-      // // Save new password
-      // if (user && passwordIsCorrect) {
-      //   user.Password = Password;
-      //   await user.save();
-      //   res.status(StatusCodes.OK).send("Password change successful");
-      // }
+      const {oldPassword, newPassword} = req.body;
+      // Validate request body
+      if (!oldPassword || !newPassword) {
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("All fields are required");
+      }
+
+      let user = await User.findOne(req.user);
+      // Check Client Schema
+      if (!user) {
+        user = await Client.findOne(req.user);
+      }
+
+      // Check StaffMember Schema
+      if (!user) {
+        user = await StaffMember.findOne({Email});
+      }
+
+      if (!user) {
+        return res
+          .status(404)
+          .json({success: false, message: "User does not exist"});
+      }
+
+      // Verify old password
+      const isMatch = await bcrypt.compare(oldPassword, user.Password);
+      if (!isMatch) {
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Old password is incorrects");
+      }
+
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+      // Update password in database
+      user.Password = hashedPassword;
+      await user.save();
+      return res
+        .status(200)
+        .json({success: true, message: "Password changed successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -383,22 +402,27 @@ const userCtr = {
         .digest("hex");
 
       // Save Token to DB
-
       // Construct Reset Url
       const resetUrl = `${credentials.FRONTEND_URL}/resetpassword/${resetToken}`;
-
-      //   const message = `
-      //   <h2>Hello ${user.FirstName}</h2>
-      //   <p>Please use the url below to reset your password</p>
-      //   <p>This reset link is valid for only 30minutes.</p>
-
-      //   <a href=${resetUrl} clicktracking=off>${resetUrl}</a>
-
-      //   <p>Regards...</p>
-      //   <p>Ignitive Team</p>
-      // `;
-      //   const subject = "Password Reset Request";
-      //   const send_to = user.Email;
+      // Construct Reset URL
+      let userName = user?.Firstname || user?.Client_Name;
+      // Email content
+      const subject = "Password Reset Request";
+      const message = `
+    <h2>Hello ${userName || "User"}</h2>
+    <p>Please use the link below to reset your password:</p>
+    <p>This reset link is valid for only 30 minutes.</p>
+    <a href="${resetUrl}" clicktracking="off">${resetUrl}</a>
+    <p>Regards,</p>
+    <p>Ignitive Team</p>
+  `;
+      const send_to = user.Client_Email || user.Email; // Ensure correct email field is used
+      // Send Email
+      const emailSent = await sendEmail(subject, message, send_to);
+      if (!emailSent) {
+        res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
+        throw new Error("Email sending Failed");
+      }
 
       return res
         .status(HttpStatusCodes.OK)
@@ -409,6 +433,37 @@ const userCtr = {
   }),
   ResetPasswordCtr: asynchandler(async (req, res) => {
     try {
+      const {password} = req.body;
+      const {resetToken} = req.params;
+      const hashedToken = crypto
+        .createHash("sha256")
+        .update(resetToken)
+        .digest("hex");
+
+      // fIND tOKEN in DB
+      const userToken = await Token.findOne({
+        token: hashedToken,
+        expiresAt: {$gt: Date.now()},
+      });
+      if (!userToken) {
+        res.status(404);
+        throw new Error("Invalid or Expired Token");
+      }
+      const user = null;
+      if (!user) {
+        user = await User.findOne({_id: userToken.userId});
+      }
+      if (!user) {
+        user = await Client?.findOne({_id: userToken.userId});
+      }
+      if (!user) {
+        user = await StaffMember.findOne({_id: userToken.userId});
+      }
+      user.password = password;
+      await user.save();
+      res.status(HttpStatusCodes.OK).json({
+        message: "Password Reset Successful, Please Login",
+      });
     } catch (error) {
       throw new Error(error?.message);
     }

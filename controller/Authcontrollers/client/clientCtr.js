@@ -174,6 +174,13 @@ const clientCtr = {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Client not found.");
       } else {
+        await Notification({
+          SenderId: user?.user_id,
+          ReciverId: client?.Client_Id,
+          Name: user?.Role.concat(" ", user?.FirstName),
+          Description: `Dear ${client.Client_Name}, your account has been updated By Admin`,
+        }).save();
+
         await client.updateOne({$set: {...updateData}});
       }
 
@@ -216,12 +223,10 @@ const clientCtr = {
           );
         }
         await response.deleteOne();
-        res
-          .status(HttpStatusCodes.OK)
-          .json({
-            success: true,
-            message: "The client has been successfully removed.",
-          });
+        res.status(HttpStatusCodes.OK).json({
+          success: true,
+          message: "The client has been successfully removed.",
+        });
       }
     } catch (error) {
       throw new Error(error?.message);

@@ -380,6 +380,7 @@ const csvuploadCtr = {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result: insertdata,
+        message: "Client uploaded successfully.",
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -422,6 +423,7 @@ const csvuploadCtr = {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result: insertdata,
+        message: "Contractors uploaded successfully.",
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -464,6 +466,7 @@ const csvuploadCtr = {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result: insertdata,
+        message: "Employee uploaded successfully.",
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -548,7 +551,7 @@ const csvuploadCtr = {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result: insertdata,
-        message: "upload task successfully",
+        message: "task uploaded successfully.",
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -634,7 +637,7 @@ const csvuploadCtr = {
       }
       return res.status(HttpStatusCodes.OK).json({
         success: true,
-        message: "project upload successfully",
+        message: "Project uploaded successfully.",
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -702,6 +705,7 @@ const csvuploadCtr = {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result: insertdata,
+        message: "timesheet uploaded successfully.",
       });
     } catch (error) {
       throw new Error(error?.message);

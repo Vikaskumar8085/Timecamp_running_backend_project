@@ -466,6 +466,14 @@ const ContractorCtr = {
           {Client_Id: responseClientId}, // Ensure we update the correct client
           {$set: {Client_Status: "Active"}} // Set Client_Status to Active
         );
+
+        await Notification({
+          SenderId: user?.staff_Id,
+          ReciverId: responseClientId?.clientId,
+          Name: user?.FirstName,
+          Description: `You have been assigned to the ${Project_Name} project as a new client.`,
+          IsRead: false,
+        }).save();
       }
 
       let responseProjectmangerid = newProject.Project_ManagersId;
@@ -476,13 +484,19 @@ const ContractorCtr = {
           {staff_Id: responseProjectmangerid},
           {$set: {IsActive: "Active"}}
         );
+        await Notification({
+          SenderId: user?.staff_Id,
+          ReciverId: responseProjectmangerid,
+          Name: user?.FirstName,
+          Description: `You have been assigned to the ${Project_Name} project as a new project Manager.`,
+          IsRead: false,
+        }).save();
       }
 
       // Retrieve the generated ProjectId
       const projectId = newProject?.ProjectId;
       console.log(projectId, "...");
 
-      // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
       const roleResourceData = roleResources.map(({RRId, RId}) => ({
@@ -493,14 +507,34 @@ const ContractorCtr = {
 
       await RoleResource.insertMany(roleResourceData);
 
-      let updatestaffmember = await Promise.all(
-        roleResources?.map(({RRId, RId}) =>
-          StaffMember.updateOne({staff_Id: RRId}, {$set: {IsActive: "Active"}})
-        ) || []
-      );
-      if (!updatestaffmember) {
-        res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("staff Not found");
+      try {
+        let updatestaffmember = await Promise.all(
+          (roleResources || []).map(async ({RRId, RId}) => {
+            if (!RRId) return; // Skip invalid entries
+
+            // Update staff member status
+            await StaffMember.updateOne(
+              {staff_Id: RRId},
+              {$set: {IsActive: "Active"}}
+            );
+
+            // Send notification
+            await Notification.create({
+              SenderId: user?.user_id,
+              ReciverId: RRId, // Receiver is RRId
+              Name: user?.FirstName,
+              Description: "Your role has been updated to Active",
+              IsRead: false,
+            });
+          })
+        );
+
+        if (!updatestaffmember) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error("staff Not found");
+        }
+      } catch (error) {
+        console.error("Error updating staff members:", error);
       }
       res.status(201).json({
         message: "Project and Role Resources added successfully",

@@ -29,9 +29,7 @@ const milestoneCtr = {
           message: "Milestones data is required and should be an array.",
         });
       }
-
       let insertedMilestones = [];
-
       for (const item of milestones) {
         const milestone = new Milestone({
           Compnay_Id: checkcompany?.Compnay_Id,

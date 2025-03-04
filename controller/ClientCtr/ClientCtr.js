@@ -35,7 +35,6 @@ const ClientCtr = {
       throw new Error(error?.message);
     }
   }),
-
   //   Active Project
   fetchclientActiveProjects: asyncHandler(async (req, res) => {
     try {
@@ -289,9 +288,7 @@ const ClientCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // update client
-
   approvetimesheet: asyncHandler(async (req, res) => {
     try {
       console.log(req.body, req.params.id, "approv timesheet ???????");

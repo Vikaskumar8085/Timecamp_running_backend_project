@@ -7,9 +7,9 @@ const Project = require("../../models/Othermodels/Projectmodels/Project");
 const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
 const Milestone = require("../../models/Othermodels/Milestones/Milestones");
 const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
+const Notification = require("../../models/Othermodels/Notification/Notification");
 const TaskCtr = {
   // create tasks
-
   create_task: asynchandler(async (req, res) => {
     try {
       console.log(req.body, "/");
@@ -49,8 +49,17 @@ const TaskCtr = {
         Resource_Id: req.body.Resource_Id,
       });
 
+      if (newTask) {
+        await newTask.save();
+        await new Notification({
+          SenderId: user?.user_id,
+          ReciverId: newTask?.Resource_Id,
+          Name: user?.FirstName,
+          Description: "You have been allotted a new task by the admin",
+          IsRead: false,
+        }).save();
+      }
       // Save the task to the database
-      await newTask.save();
       res.status(201).json({
         message: "Task created successfully",
         success: true,
@@ -59,7 +68,6 @@ const TaskCtr = {
       throw new Error(error?.message);
     }
   }),
-
   addTask: asynchandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
