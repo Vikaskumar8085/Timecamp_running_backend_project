@@ -8,6 +8,7 @@ const userRouter = express.Router();
 userRouter.post("/create-company", verifyToken, companyCtr.create_company);
 userRouter.get("/fetch-company", verifyToken, companyCtr.fetch_company);
 userRouter.put("/update-company", verifyToken, companyCtr.editcompany);
+
 // company creation
 
 // user registeration
@@ -23,4 +24,6 @@ userRouter.get(
   verifyToken,
   userCtr.fetchusernotification
 );
+
+
 module.exports = userRouter;

@@ -46,4 +46,8 @@ contractorRouter.get(
   "/fetch-contractor-tasks",
   ContractorCtr.getcontractortasks
 );
+contractorRouter.get(
+  "/fetch-contractor-notification",
+  ContractorCtr?.fetchContractornotification
+);
 module.exports = contractorRouter;

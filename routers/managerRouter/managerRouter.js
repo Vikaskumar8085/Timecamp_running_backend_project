@@ -26,4 +26,8 @@ managerRouter.delete(
 );
 
 managerRouter.post("/send-for-approvel-manager-timesheet");
+managerRouter.get(
+  "/fetch-manager-notification",
+  managerCtr.fetchManagerNotification
+);
 module.exports = managerRouter;

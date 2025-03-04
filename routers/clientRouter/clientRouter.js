@@ -33,4 +33,5 @@ clientRouter.get("/client-project-task", ClientCtr.fetchClientTask);
 
 // timesheet
 clientRouter.get("/client-project-timesheet", ClientCtr.fetchClientTimesheet);
+clientRouter.get("/fetch-client-notification",ClientCtr.fetchClientNotification);
 module.exports = clientRouter;

@@ -31,15 +31,15 @@ const ContractorCtr = {
         throw new Error("Bad Request");
       }
 
-      const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
       const rrid = await responseResult.map((item) => item.ProjectId);
 
-      const contractorProjects = await Project.find({ProjectId: rrid});
+      const contractorProjects = await Project.find({ ProjectId: rrid });
 
-      const allProjects = {response, contractorProjects};
+      const allProjects = { response, contractorProjects };
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: allProjects});
+        .json({ success: true, result: allProjects });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -63,7 +63,7 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
-      const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
       const rrid = await responseResult.map((item) => item.ProjectId);
 
       const contractoractiveProjects = await Project.find({
@@ -71,11 +71,11 @@ const ContractorCtr = {
         Project_Status: true,
       });
 
-      const activeprojects = {response, contractoractiveProjects};
+      const activeprojects = { response, contractoractiveProjects };
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: activeprojects});
+        .json({ success: true, result: activeprojects });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -98,7 +98,7 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
-      const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
       const rrid = await responseResult.map((item) => item.ProjectId);
 
       const contractorinactiveProjects = await Project.find({
@@ -106,11 +106,11 @@ const ContractorCtr = {
         Project_Status: false,
       });
 
-      const inactiveprojects = {response, contractorinactiveProjects};
+      const inactiveprojects = { response, contractorinactiveProjects };
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: inactiveprojects});
+        .json({ success: true, result: inactiveprojects });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -186,7 +186,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: projectDetails});
+        .json({ success: true, result: projectDetails });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -227,7 +227,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: taskDetails});
+        .json({ success: true, result: taskDetails });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -267,7 +267,7 @@ const ContractorCtr = {
 
           // Find all team members based on rrids
           const findTeamName = await StaffMember.find({
-            staff_Id: {$in: rrids},
+            staff_Id: { $in: rrids },
           });
 
           return {
@@ -304,7 +304,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({result: fetchTimesheet, success: true});
+        .json({ result: fetchTimesheet, success: true });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -316,14 +316,14 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const gettaskresponse = await Task.find({Resource_Id: user.staff_Id});
+      const gettaskresponse = await Task.find({ Resource_Id: user.staff_Id });
       if (!gettaskresponse) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Task Not Found");
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({result: gettaskresponse, success: true});
+        .json({ result: gettaskresponse, success: true });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -337,14 +337,14 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
       }
 
       const fetchRoles = await Roles.find({
-        CompanyId: {$in: checkcompany?.Company_Id},
+        CompanyId: { $in: checkcompany?.Company_Id },
       });
 
       if (!fetchRoles) {
@@ -353,7 +353,7 @@ const ContractorCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: fetchRoles});
+        .json({ success: true, result: fetchRoles });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -367,7 +367,7 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -382,7 +382,7 @@ const ContractorCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -395,7 +395,7 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -409,7 +409,7 @@ const ContractorCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -438,7 +438,7 @@ const ContractorCtr = {
         throw new error("UnAuthorized User Please Singup ");
       }
 
-      const checkcompany = await Company?.findOne({UserId: user?.user_id});
+      const checkcompany = await Company?.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -463,8 +463,8 @@ const ContractorCtr = {
         return; // Exit if clientId is undefined or empty
       } else {
         await Client.updateOne(
-          {Client_Id: responseClientId}, // Ensure we update the correct client
-          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
+          { Client_Id: responseClientId }, // Ensure we update the correct client
+          { $set: { Client_Status: "Active" } } // Set Client_Status to Active
         );
 
         await Notification({
@@ -481,8 +481,8 @@ const ContractorCtr = {
         return;
       } else {
         await StaffMember.updateOne(
-          {staff_Id: responseProjectmangerid},
-          {$set: {IsActive: "Active"}}
+          { staff_Id: responseProjectmangerid },
+          { $set: { IsActive: "Active" } }
         );
         await Notification({
           SenderId: user?.staff_Id,
@@ -499,7 +499,7 @@ const ContractorCtr = {
 
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({RRId, RId}) => ({
+      const roleResourceData = roleResources.map(({ RRId, RId }) => ({
         RRId,
         RId,
         ProjectId: projectId,
@@ -509,13 +509,13 @@ const ContractorCtr = {
 
       try {
         let updatestaffmember = await Promise.all(
-          (roleResources || []).map(async ({RRId, RId}) => {
+          (roleResources || []).map(async ({ RRId, RId }) => {
             if (!RRId) return; // Skip invalid entries
 
             // Update staff member status
             await StaffMember.updateOne(
-              {staff_Id: RRId},
-              {$set: {IsActive: "Active"}}
+              { staff_Id: RRId },
+              { $set: { IsActive: "Active" } }
             );
 
             // Send notification
@@ -568,7 +568,7 @@ const ContractorCtr = {
         await Promise.all(
           approveIds.map(async (item) => {
             // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
+            const timesheet = await TimeSheet.findOne({ Timesheet_Id: item });
 
             // Check if the timesheet exists and if the status is "PENDING"
             if (!timesheet) {
@@ -578,13 +578,13 @@ const ContractorCtr = {
 
             // Proceed with the update if it's 'PENDING'
             const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              {Timesheet_Id: item},
+              { Timesheet_Id: item },
               {
                 $set: {
                   approval_status: "PENDING",
                 },
               },
-              {new: true, runValidators: true}
+              { new: true, runValidators: true }
             );
 
             if (!updatedTimesheet) {
@@ -616,7 +616,7 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const response = await TimeSheet.findOne({Timesheet_Id: req.params.id});
+      const response = await TimeSheet.findOne({ Timesheet_Id: req.params.id });
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("TimeSheet NOT FOUND");
@@ -625,7 +625,7 @@ const ContractorCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, message: "Timesheet Remove Successfully"});
+        .json({ success: true, message: "Timesheet Remove Successfully" });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -641,7 +641,8 @@ const ContractorCtr = {
 
       const response = await Notification.find({
         ReciverId: user?.staff_Id,
-      }).sort({createdAt: -1});
+        IsRead: false,
+      }).sort({ createdAt: -1 });
 
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -650,7 +651,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({result: response, success: true});
+        .json({ result: response, success: true });
     } catch (error) {
       throw new Error(error?.message);
     }
