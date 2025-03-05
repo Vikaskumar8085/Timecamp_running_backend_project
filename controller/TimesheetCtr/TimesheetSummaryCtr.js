@@ -15,7 +15,7 @@ const TimesheetSummaryCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -33,14 +33,17 @@ const TimesheetSummaryCtr = {
       let resultArray = [];
 
       for (const resource of findresourse) {
-        const response = await TimeSheet.find({ Staff_Id: resource.staff_Id });
+        const response = await TimeSheet.find({Staff_Id: resource.staff_Id});
 
         if (!response || response.length === 0) {
           continue; // Skip if no data found for this resource
         }
 
         resultArray.push({
-          totalHour: response.reduce((sum, entry) => sum + entry.hours, 0),
+          totalHour: response.reduce(
+            (sum, entry) => sum + Number(entry.hours),
+            0
+          ),
           billedhour: response.reduce(
             (sum, entry) => sum + entry.billed_hours,
             0
@@ -72,7 +75,7 @@ const TimesheetSummaryCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -92,7 +95,7 @@ const TimesheetSummaryCtr = {
 
       const response = await TimeSheet.find({
         CompanyId: checkcompany.Company_Id,
-        Project: { $in: projectIds }, // Match any of the found project IDs
+        Project: {$in: projectIds}, // Match any of the found project IDs
       });
 
       if (!response || response.length === 0) {
@@ -109,7 +112,7 @@ const TimesheetSummaryCtr = {
           acc.blankHours += entry.blank_hours || 0;
           return acc;
         },
-        { billedhour: 0, totalHour: 0, okhours: 0, blankHours: 0 }
+        {billedhour: 0, totalHour: 0, okhours: 0, blankHours: 0}
       );
 
       // Add project names
@@ -136,7 +139,7 @@ const TimesheetSummaryCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -161,7 +164,7 @@ const TimesheetSummaryCtr = {
           acc.blankHours += entry.blank_hours || 0;
           return acc;
         },
-        { billedhour: 0, totalHour: 0, okhours: 0, blankHours: 0 }
+        {billedhour: 0, totalHour: 0, okhours: 0, blankHours: 0}
       );
 
       return res.status(HttpStatusCodes.OK).json({

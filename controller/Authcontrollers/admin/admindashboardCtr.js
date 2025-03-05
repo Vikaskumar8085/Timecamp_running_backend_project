@@ -203,7 +203,7 @@ const admindashboardCtr = {
 
       // Calculate total billed hours
       const totalBilledHours = findtimesheets.reduce(
-        (sum, entry) => sum + (entry.billed_hours || 0),
+        (sum, entry) => sum + (Number(entry.billed_hours) || 0),
         0
       );
 
