@@ -468,13 +468,12 @@ const ClientCtr = {
     }
   }),
 
-  updateclientNotification:asyncHandler(async(req,res)=>{
+  updateclientNotification: asyncHandler(async (req, res) => {
     try {
-      
     } catch (error) {
-      throw new Error(error?.message)
+      throw new Error(error?.message);
     }
-  })
+  }),
 };
 
 module.exports = ClientCtr;

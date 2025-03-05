@@ -5,6 +5,7 @@ const Company = require("../../../models/Othermodels/Companymodels/Company");
 const Notification = require("../../../models/Othermodels/Notification/Notification");
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const sendEmail = require("../../../utils/SendMail/SendMail");
+const moment = require("moment");
 
 const adminCtr = {
   // create admin ctr
@@ -189,162 +190,98 @@ const adminCtr = {
 
   approvedbyadmintimesheet: asynchandler(async (req, res) => {
     try {
-      const approveIds = req.body;
+      const approveIds = req.body; // List of Timesheet_Id values
       const user = await User.findById(req.user);
       if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unauthorized User. Please sign up.");
+        res.status(HttpStatusCodes?.UNAUTHORIZED);
+        throw new Error("Unauthorized use please login");
       }
 
-      const checkCompany = await Company.findOne({UserId: user.user_id})
-        .lean()
-        .exec();
+      const checkCompany = await Company.findOne({UserId: user.user_id}).lean();
       if (!checkCompany) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request. Company not found.");
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Company not found");
       }
 
-      const findTimesheet = await TimeSheet?.findOne({
-        project: req.params.id,
-      });
-
+      const findTimesheet = await TimeSheet.findOne({project: req.params.id});
       if (!findTimesheet) {
-        res.status(HttpStatusCodes.NOT_FOUND).send({
-          message: "Timesheet Not Found",
-        });
-        throw new Error("Timesheet Not Found");
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Timesheet not found");
       }
 
-      // Using async/await with Promise.all to ensure all updates are completed
-      try {
-        await Promise.all(
-          approveIds.map(async (item) => {
-            // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
+      // if (findTimesheet?.approval_status === "APPROVED") {
+      //   res.status(HttpStatusCodes.FORBIDDEN);
+      //   throw new Error("Timesheet already Approved");
+      // }
+      // Update all timesheets in one query
+      const updatedTimesheets = await TimeSheet.updateMany(
+        {Timesheet_Id: {$in: approveIds}, approval_status: "PENDING"},
+        {
+          $set: {
+            approval_status: "APPROVED",
+            approved_by: user.user_id,
+            approved_date: moment().format("DD/MM/YYYY"),
+          },
+        }
+      );
 
-            // Check if the timesheet exists and if the status is "PENDING"
-            if (!timesheet) {
-              res.status(HttpStatusCodes.NOT_FOUND);
-              throw new Error(`Timesheet with Timesheet_Id ${item} not found.`);
-            }
-
-            if (timesheet.approval_status !== "PENDING") {
-              res.status(HttpStatusCodes.NOT_FOUND);
-              throw new Error(
-                `Timesheet cannot be approved because it's not in 'PENDING' status.`
-              );
-            }
-
-            // Proceed with the update if it's 'PENDING'
-            const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              {Timesheet_Id: item},
-              {
-                $set: {
-                  approval_status: "APPROVED",
-                  approved_by: user?.user_id,
-                  approved_date: moment().format("DD/MM/YYYY"),
-                },
-              },
-              {new: true, runValidators: true}
-            );
-
-            if (!updatedTimesheet) {
-              res.status(HttpStatusCodes.BAD_REQUEST);
-              throw new Error(
-                `Timesheet with Timesheet_Id ${item} was not updated successfully.`
-              );
-            }
-          })
-        );
-
-        res.status(HttpStatusCodes.OK).send({
-          message: "Timesheets approved successfully updated.",
-        });
-      } catch (error) {
-        res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
-        throw new Error("An error occurred while updating timesheets.");
+      if (updatedTimesheets.modifiedCount === 0) {
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("No timesheets were updated.");
       }
+
+      res
+        .status(200)
+        .json({success: true, message: "Timesheets approved successfully."});
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
   disapprovedbyadminTimesheet: asynchandler(async (req, res) => {
     try {
-      const approveIds = req.body;
+      const approveIds = req.body; // List of Timesheet_Id values
       const user = await User.findById(req.user);
       if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unauthorized User. Please sign up.");
+        res.status(HttpStatusCodes?.UNAUTHORIZED);
+        throw new Error("Unauthorized use please login");
       }
 
-      const checkCompany = await Company.findOne({UserId: user.user_id})
-        .lean()
-        .exec();
+      const checkCompany = await Company.findOne({UserId: user.user_id}).lean();
       if (!checkCompany) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request. Company not found.");
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Company not found");
       }
 
-      const findTimesheet = await TimeSheet?.findOne({
-        project: req.params.id,
-      });
-
+      const findTimesheet = await TimeSheet.findOne({project: req.params.id});
       if (!findTimesheet) {
-        res.status(HttpStatusCodes.NOT_FOUND).send({
-          message: "Timesheet Not Found",
-        });
-        throw new Error("Timesheet Not Found");
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Timesheet not found");
       }
 
-      // Using async/await with Promise.all to ensure all updates are completed
-      try {
-        await Promise.all(
-          approveIds.map(async (item) => {
-            // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
+      // if (findTimesheet?.approval_status === "DISAPPROVED") {
+      //   res.status(HttpStatusCodes.FORBIDDEN);
+      //   throw new Error("Timesheet already Approved");
+      // }
+      // Update all timesheets in one query
+      const updatedTimesheets = await TimeSheet.updateMany(
+        {Timesheet_Id: {$in: approveIds}, approval_status: "PENDING"},
+        {
+          $set: {
+            approval_status: "DISAPPROVED",
+            approved_by: user.user_id,
+            approved_date: moment().format("DD/MM/YYYY"),
+          },
+        }
+      );
 
-            // Check if the timesheet exists and if the status is "PENDING"
-            if (!timesheet) {
-              res.status(HttpStatusCodes.NOT_FOUND);
-              throw new Error(`Timesheet with Timesheet_Id ${item} not found.`);
-            }
-
-            if (timesheet.approval_status !== "PENDING") {
-              res.status(HttpStatusCodes.NOT_FOUND);
-              throw new Error(
-                `Timesheet cannot be approved because it's not in 'PENDING' status.`
-              );
-            }
-
-            // Proceed with the update if it's 'PENDING'
-            const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              {Timesheet_Id: item},
-              {
-                $set: {
-                  approval_status: "DISAPPROVED",
-                  approved_by: user?.user_id,
-                  approved_date: moment().format("DD/MM/YYYY"),
-                },
-              },
-              {new: true, runValidators: true}
-            );
-
-            if (!updatedTimesheet) {
-              res.status(HttpStatusCodes.BAD_REQUEST);
-              throw new Error(
-                `Timesheet with Timesheet_Id ${item} was not updated successfully.`
-              );
-            }
-          })
-        );
-
-        res.status(HttpStatusCodes.OK).send({
-          message: "Timesheets Disapproved successfully updated.",
-        });
-      } catch (error) {
-        res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
-        throw new Error("An error occurred while updating timesheets.");
+      if (updatedTimesheets.modifiedCount === 0) {
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("No timesheets were updated.");
       }
+
+      res
+        .status(200)
+        .json({success: true, message: "Timesheets disapproved successfully."});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -352,80 +289,43 @@ const adminCtr = {
 
   billedByadminTimesheet: asynchandler(async (req, res) => {
     try {
-      const approveIds = req.body;
+      const approveIds = req.body; // List of Timesheet_Id values
       const user = await User.findById(req.user);
       if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unauthorized User. Please sign up.");
+        res.status(HttpStatusCodes?.UNAUTHORIZED);
+        throw new Error("Unauthorized use please login");
       }
 
-      const checkCompany = await Company.findOne({UserId: user.user_id})
-        .lean()
-        .exec();
+      const checkCompany = await Company.findOne({UserId: user.user_id}).lean();
       if (!checkCompany) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request. Company not found.");
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Company not found");
       }
 
-      const findTimesheet = await TimeSheet?.findOne({
-        project: req.params.id,
-      });
-
+      const findTimesheet = await TimeSheet.findOne({project: req.params.id});
       if (!findTimesheet) {
-        res.status(HttpStatusCodes.NOT_FOUND).send({
-          message: "Timesheet Not Found",
-        });
-        throw new Error("Timesheet Not Found");
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Timesheet not found");
       }
 
-      // Using async/await with Promise.all to ensure all updates are completed
-      try {
-        await Promise.all(
-          approveIds.map(async (item) => {
-            // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
-
-            // Check if the timesheet exists and if the status is "PENDING"
-            if (!timesheet) {
-              res.status(HttpStatusCodes.NOT_FOUND);
-              throw new Error(`Timesheet with Timesheet_Id ${item} not found.`);
-            }
-
-            if (timesheet.approval_status !== "PENDING") {
-              res.status(HttpStatusCodes.NOT_FOUND);
-              throw new Error(
-                `Timesheet cannot be approved because it's not in 'PENDING' status.`
-              );
-            }
-
-            // Proceed with the update if it's 'PENDING'
-            const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              {Timesheet_Id: item},
-              {
-                $set: {
-                  billing_status: "BILLED",
-                  billed_By: user?.user_id,
-                },
-              },
-              {new: true, runValidators: true}
-            );
-
-            if (!updatedTimesheet) {
-              res.status(HttpStatusCodes.BAD_REQUEST);
-              throw new Error(
-                `Timesheet with Timesheet_Id ${item} was not updated successfully.`
-              );
-            }
-          })
-        );
-
-        res.status(HttpStatusCodes.OK).send({
-          message: "Timesheets Billed successfully.",
-        });
-      } catch (error) {
-        res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
-        throw new Error("An error occurred while updating timesheets.");
+      if (findTimesheet.approval_status !== "APPROVED") {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Timesheet is Not Approved");
       }
+      // Update all timesheets in one query
+      const updatedTimesheets = await TimeSheet.updateMany(
+        {Timesheet_Id: {$in: approveIds}, billing_status: "NOT_BILLED"},
+        {$set: {billing_status: "BILLED"}}
+      );
+
+      if (updatedTimesheets.modifiedCount === 0) {
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error(" timesheets were not updated.");
+      }
+
+      res
+        .status(200)
+        .json({success: true, message: "Timesheets Billed successfully."});
     } catch (error) {
       throw new Error(error?.message);
     }

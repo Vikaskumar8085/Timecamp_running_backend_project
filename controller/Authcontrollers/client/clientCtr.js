@@ -159,12 +159,12 @@ const clientCtr = {
         Client_Id: parseInt(req.params.id),
       });
 
-      if (["Active", "InActive", "Dead"].includes(client?.Client_Status)) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error(
-          `You cannot update the client because their status is ${client.Client_Status}.`
-        );
-      }
+      // if (["Active", "InActive", "Dead"].includes(client?.Client_Status)) {
+      //   res.status(HttpStatusCodes.BAD_REQUEST);
+      //   throw new Error(
+      //     `You cannot update the client because their status is ${client.Client_Status}.`
+      //   );
+      // }
       if (req.body.Password) {
         const salt = await bcrypt.genSalt(12);
         updateData.Password = await bcrypt.hash(req.body.Password, salt);

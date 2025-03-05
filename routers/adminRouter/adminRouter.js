@@ -190,4 +190,26 @@ adminRouter.get(
   verifyToken,
   TimesheetCtr.fetch_project_time
 );
+
+adminRouter.post(
+  "/approvetimesheet",
+  verifyToken,
+  adminCtr.approvedbyadmintimesheet
+);
+
+adminRouter.put(
+  "/approve-timesheet-by-admin/:id",
+  verifyToken,
+  adminCtr.approvedbyadmintimesheet
+);
+adminRouter.put(
+  "/disapprove-timesheet-by-admin/:id",
+  verifyToken,
+  adminCtr.disapprovedbyadminTimesheet
+);
+adminRouter.put(
+  "/billed-tiemsheet-by-admin/:id",
+  verifyToken,
+  adminCtr.billedByadminTimesheet
+);
 module.exports = adminRouter;

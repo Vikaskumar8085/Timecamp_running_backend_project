@@ -26,6 +26,7 @@ const staffMemberSchema = mongoose.Schema(
     Email: {
       type: String,
       required: true,
+      trim: true,
       match: /.+\@.+\..+/,
     },
     Phone: {

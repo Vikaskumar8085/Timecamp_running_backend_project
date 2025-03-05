@@ -15,10 +15,12 @@ const ClientRegistrationSchema = mongoose.Schema(
     },
     Client_Name: {
       type: String,
+
       required: false,
     },
     Client_Email: {
       type: String,
+      trim: true,
       required: false,
     },
     Client_Phone: {
