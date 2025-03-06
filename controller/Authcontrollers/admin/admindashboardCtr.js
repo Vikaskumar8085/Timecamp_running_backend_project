@@ -6,6 +6,8 @@ const User = require("../../../models/AuthModels/User/User");
 const Company = require("../../../models/Othermodels/Companymodels/Company");
 const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
+const moment = require("moment");
+const Task = require("../../../models/Othermodels/Task/Task");
 
 const admindashboardCtr = {
   fetchtotalCounter: asynchandler(async (req, res) => {
@@ -378,7 +380,6 @@ const admindashboardCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fetch approvel by billled hours and total hours
   fetchapprovelbybilledhours: asynchandler(async (req, res) => {
     try {
@@ -421,6 +422,250 @@ const admindashboardCtr = {
       });
     } catch (error) {
       throw new Error(error?.message);
+    }
+  }),
+
+  // dashboard
+  // fetch recent timesheet
+  fetchRecentTimesheet: asynchandler(async (req, res) => {
+    try {
+      // Check if user exists
+      const user = await User.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup",
+        });
+      }
+
+      // Check if the company exists
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: "Company does not exist. Please create a company first.",
+        });
+      }
+
+      // Fetch timesheets for the company
+      const timesheets = await TimeSheet.find({
+        CompanyId: checkcompany?.Company_Id,
+      })
+        .limit(5)
+        .sort({updatedAt: -1});
+      if (!timesheets.length) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "Timesheet not found.",
+        });
+      }
+
+      // Extract unique staff IDs from timesheets
+      const staffIds = [...new Set(timesheets.map((t) => t.Staff_Id))];
+
+      // Fetch staff details based on extracted staff IDs
+      const staffMembers = await StaffMember.find({staff_Id: {$in: staffIds}});
+
+      if (!staffMembers.length) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "Staff members not found.",
+        });
+      }
+
+      // Map staff details with their timesheet entries
+      const result = timesheets.map((timesheet) => {
+        const staff = staffMembers.find(
+          (staff) => staff.staff_Id === timesheet.Staff_Id
+        );
+        return {
+          staffName: staff ? `${staff.FirstName} ${staff.LastName}` : "Unknown",
+          hours: timesheet.hours,
+          timeAgo: moment(timesheet.createdAt).fromNow(), // Shows how long ago the timesheet was filled
+        };
+      });
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result,
+      });
+    } catch (error) {
+      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: error?.message || "Something went wrong",
+      });
+    }
+  }),
+  // fetch recent task
+  fetchRecentTask: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup",
+        });
+      }
+      // Check if the company exists
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: "Company does not exist. Please create a company first.",
+        });
+      }
+
+      const fetchtask = await Task.find({Company_Id: checkcompany?.Company_Id});
+
+      if (!fetchtask) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("task not found");
+      }
+
+      // const fetch
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // fetch productivity leader board
+  // fetchproductivityleaderboard: asynchandler(async (req, res) => {
+  //   try {
+  //     const user = await User.findById(req.user);
+  //     if (!user) {
+  //       return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+  //         success: false,
+  //         message: "Unauthorized User. Please Signup",
+  //       });
+  //     }
+  //     // Check if the company exists
+  //     const checkcompany = await Company.findOne({UserId: user?.user_id});
+  //     if (!checkcompany) {
+  //       return res.status(HttpStatusCodes.BAD_REQUEST).json({
+  //         success: false,
+  //         message: "Company does not exist. Please create a company first.",
+  //       });
+  //     }
+
+  //     const response = await StaffMember.find({
+  //       CompanyId: checkcompany?.Company_Id,
+  //     });
+
+  //     if (!response) {
+  //       res.status(HttpStatusCodes.NOT_FOUND);
+  //       throw new Error("staff member not found");
+  //     }
+
+  //     const fetchtimesheetdata = await TimeSheet.find({
+  //       Staff_Id: response?.staff_Id,
+  //     });
+  //     if (!fetchtimesheetdata) {
+  //       res.status(HttpStatusCodes.NOT_FOUND);
+  //       throw new Error("timesheet not found");
+  //     }
+
+  //     const totalhours = fetchtimesheetdata?.map((item) => {
+  //       return item?.hours;
+  //     });
+  //     const billedhours = fetchtimesheetdata?.map((item) => {
+  //       return item?.billed_hours;
+  //     });
+
+  //     const result = {
+  //       percentage: Math.ceil(billedhours / totalhours) * 100,
+  //       Name: response?.FirstName,
+  //     };
+
+  //     return res
+  //       .status(HttpStatusCodes.OK)
+  //       .json({success: rue, result: result});
+  //   } catch (error) {
+  //     throw new Error(error?.message);
+  //   }
+  // }),
+  fetchProductivityLeaderboard: asynchandler(async (req, res) => {
+    try {
+      // Check if user exists
+      const user = await User.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup",
+        });
+      }
+
+      // Check if the company exists
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: "Company does not exist. Please create a company first.",
+        });
+      }
+
+      // Fetch all staff members for the company
+      const staffMembers = await StaffMember.find({
+        CompanyId: checkcompany?.Company_Id,
+      });
+
+      if (!staffMembers.length) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "No staff members found.",
+        });
+      }
+
+      // Extract staff IDs
+      const staffIds = staffMembers.map((staff) => staff.staff_Id);
+
+      // Fetch timesheets for all staff members
+      const timesheets = await TimeSheet.find({Staff_Id: {$in: staffIds}});
+
+      if (!timesheets.length) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "No timesheet data found.",
+        });
+      }
+
+      // Calculate productivity percentages for each staff member
+      const leaderboard = staffMembers.map((staff) => {
+        const staffTimesheets = timesheets.filter(
+          (t) => t.Staff_Id === staff.staff_Id
+        );
+
+        const totalHours = staffTimesheets.reduce(
+          (sum, t) => sum + (t.hours || 0),
+          0
+        );
+        const billedHours = staffTimesheets.reduce(
+          (sum, t) => sum + (t.billed_hours || 0),
+          0
+        );
+
+        const percentage =
+          totalHours > 0 ? Math.ceil((billedHours / totalHours) * 100) : 0;
+
+        return {
+          Name: `${staff.FirstName} ${staff.LastName}`,
+          percentage,
+        };
+      });
+
+      // Sort leaderboard by percentage in descending order and get the top 5
+      const top5 = leaderboard
+        .sort((a, b) => b.percentage - a.percentage)
+        .slice(0, 5);
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: top5,
+      });
+    } catch (error) {
+      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: error?.message || "Something went wrong",
+      });
     }
   }),
 };

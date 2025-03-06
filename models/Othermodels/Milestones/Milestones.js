@@ -22,11 +22,13 @@ const MilestoneSchema = new mongoose.Schema({
   Name: {
     type: String,
     required: true,
+    trim: true,
   },
   Description: {
     type: String,
     maxlength: 1000,
     default: null,
+    trim: true,
   },
 
   Start_date: {

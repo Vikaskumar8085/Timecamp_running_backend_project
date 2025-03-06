@@ -176,12 +176,7 @@ const TimesheetSummaryCtr = {
     }
   }),
 
-  ProjectTimeUtilization: asyncHandler(async (req, res) => {
-    try {
-    } catch (error) {
-      throw new error(error?.message);
-    }
-  }),
+
 };
 
 module.exports = TimesheetSummaryCtr;

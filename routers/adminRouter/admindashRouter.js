@@ -49,4 +49,16 @@ admindashRouter.get(
   verifyToken,
   admindashboardCtr.fetchapprovelbybilledhours
 );
+
+admindashRouter.get(
+  "/fetch-dash-recent-timesheet",
+  verifyToken,
+  admindashboardCtr.fetchRecentTimesheet
+);
+
+admindashRouter.get(
+  "/fetch-dash-productivity-leadearboard",
+  verifyToken,
+  admindashboardCtr.fetchProductivityLeaderboard
+);
 module.exports = admindashRouter;

@@ -20,7 +20,6 @@ const RoleResourceSchema = mongoose.Schema(
     ProjectId: {
       type: Number,
       ref: "Project",
-      required: true,
     },
   },
   {timestamps: true}

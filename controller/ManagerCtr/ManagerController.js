@@ -35,14 +35,14 @@ const managerCtr = {
         ManagerId: user.staff_Id,
         ...(search && {
           $or: [
-            { FirstName: { $regex: search, $options: "i" } },
-            { Email: { $regex: search, $options: "i" } },
+            {FirstName: {$regex: search, $options: "i"}},
+            {Email: {$regex: search, $options: "i"}},
           ],
         }),
       };
 
       const fetchmanager = await StaffMember.find(query)
-        .sort({ [sortBy]: order })
+        .sort({[sortBy]: order})
         .skip((page - 1) * limit)
         .limit(limit);
 
@@ -66,7 +66,7 @@ const managerCtr = {
       if (!user) {
         return res
           .status(HttpStatusCodes.UNAUTHORIZED)
-          .json({ message: "Unauthorized User, please Signup" });
+          .json({message: "Unauthorized User, please Signup"});
       }
 
       // Pagination
@@ -76,9 +76,9 @@ const managerCtr = {
 
       // Searching
       const search = req.query.search || "";
-      let query = { ManagerId: user?.staff_Id };
+      let query = {ManagerId: user?.staff_Id};
       if (search) {
-        query["FirstName"] = { $regex: search, $options: "i" }; // Case-insensitive search
+        query["FirstName"] = {$regex: search, $options: "i"}; // Case-insensitive search
       }
 
       // Sorting
@@ -87,14 +87,14 @@ const managerCtr = {
 
       // Fetch staff with pagination, search, and sorting
       const fetchstaff = await StaffMember?.find(query)
-        .sort({ [sortBy]: order })
+        .sort({[sortBy]: order})
         .skip(skip)
         .limit(limit);
 
       if (!fetchstaff) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Staff Not Found" });
+          .json({message: "Staff Not Found"});
       }
 
       // Fetch projects for each staff member
@@ -111,7 +111,7 @@ const managerCtr = {
 
             // Fetch projects
             const fetchproject = projectids.length
-              ? await Project.find({ ProjectId: { $in: projectids } })
+              ? await Project.find({ProjectId: {$in: projectids}})
               : [];
 
             // Fetch projects where staff is a direct project manager
@@ -119,13 +119,13 @@ const managerCtr = {
               Project_ManagersId: item?.staff_Id,
             });
 
-            return { fetchproject, fetchteamproject };
+            return {fetchproject, fetchteamproject};
           } catch (error) {
             console.error(
               `Error fetching projects for staff ${item?.staff_Id}:`,
               error
             );
-            return { fetchproject: [], fetchteamproject: [] };
+            return {fetchproject: [], fetchteamproject: []};
           }
         })
       );
@@ -142,20 +142,185 @@ const managerCtr = {
     } catch (error) {
       res
         .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
-        .json({ message: error.message });
+        .json({message: error.message});
     }
   }),
+  // fetch manager active projects
+
   fetchmanagerActiveprojects: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
       if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unauthorized User, please Signup");
+        return res
+          .status(HttpStatusCodes.UNAUTHORIZED)
+          .json({message: "Unauthorized User, please Signup"});
       }
+
+      // Pagination
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      // Searching
+      const search = req.query.search || "";
+      let query = {ManagerId: user?.staff_Id};
+      if (search) {
+        query["FirstName"] = {$regex: search, $options: "i"}; // Case-insensitive search
+      }
+
+      // Sorting
+      const sortBy = req.query.sortBy || "FirstName";
+      const order = req.query.order === "desc" ? -1 : 1;
+
+      // Fetch staff with pagination, search, and sorting
+      const fetchstaff = await StaffMember?.find(query)
+        .sort({[sortBy]: order})
+        .skip(skip)
+        .limit(limit);
+
+      if (!fetchstaff) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Staff Not Found"});
+      }
+
+      // Fetch projects for each staff member
+      const fetchproject = await Promise.all(
+        fetchstaff.map(async (item) => {
+          try {
+            // Find RoleResources for the given staff_Id
+            const fetchprojectbyrrids = await RoleResource.find({
+              RRId: item?.staff_Id,
+            });
+
+            // Extract ProjectIds from RoleResources
+            const projectids = fetchprojectbyrrids.map((rr) => rr.ProjectId);
+
+            // Fetch projects
+            const fetchproject = projectids.length
+              ? await Project.find({ProjectId: {$in: projectids}})
+              : [];
+
+            // Fetch projects where staff is a direct project manager
+            const fetchteamproject = await Project.find({
+              Project_ManagersId: item?.staff_Id,
+              Project_Status: true,
+            });
+
+            return {fetchproject, fetchteamproject};
+          } catch (error) {
+            console.error(
+              `Error fetching projects for staff ${item?.staff_Id}:`,
+              error
+            );
+            return {fetchproject: [], fetchteamproject: []};
+          }
+        })
+      );
+
+      // Get total records count for pagination
+      const totalRecords = await StaffMember.countDocuments(query);
+
+      return res.status(HttpStatusCodes.OK).json({
+        result: fetchproject,
+        totalRecords,
+        currentPage: page,
+        totalPages: Math.ceil(totalRecords / limit),
+      });
     } catch (error) {
-      throw new Error(error?.message);
+      res
+        .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
+        .json({message: error.message});
     }
   }),
+
+  fetchmanagerInActiveprojects: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user?._id);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          message: "Unauthorized User, please Signup",
+        });
+      }
+
+      // Pagination
+      const page = parseInt(req.query.page, 10) || 1;
+      const limit = parseInt(req.query.limit, 10) || 10;
+      const skip = (page - 1) * limit;
+
+      // Searching
+      const search = req.query.search?.trim() || "";
+      let query = {ManagerId: user.staff_Id};
+      if (search) {
+        query["FirstName"] = {$regex: search, $options: "i"}; // Case-insensitive search
+      }
+
+      // Sorting
+      const sortBy = req.query.sortBy || "FirstName";
+      const order = req.query.order === "desc" ? -1 : 1;
+
+      // Fetch staff with pagination, search, and sorting
+      const fetchstaff = await StaffMember.find(query)
+        .sort({[sortBy]: order})
+        .skip(skip)
+        .limit(limit);
+
+      if (fetchstaff.length === 0) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          message: "Staff Not Found",
+        });
+      }
+
+      // Fetch projects for each staff member
+      const fetchproject = await Promise.all(
+        fetchstaff.map(async (item) => {
+          try {
+            // Find RoleResources for the given staff_Id
+            const fetchprojectbyrrids = await RoleResource.find({
+              RRId: item.staff_Id,
+            });
+
+            // Extract ProjectIds from RoleResources
+            const projectids = fetchprojectbyrrids.map((rr) => rr.ProjectId);
+
+            // Fetch projects linked to staff via RoleResource
+            const fetchproject = projectids.length
+              ? await Project.find({ProjectId: {$in: projectids}})
+              : [];
+
+            // Fetch projects where staff is a direct project manager and inactive
+            const fetchteamproject = await Project.find({
+              Project_ManagersId: item.staff_Id,
+              Project_Status: false,
+            });
+
+            return {fetchproject, fetchteamproject};
+          } catch (error) {
+            console.error(
+              `Error fetching projects for staff ${item.staff_Id}:`,
+              error
+            );
+            return {fetchproject: [], fetchteamproject: []};
+          }
+        })
+      );
+
+      // Get total records count for pagination
+      const totalRecords = await StaffMember.countDocuments(query);
+
+      return res.status(HttpStatusCodes.OK).json({
+        result: fetchproject,
+        totalRecords,
+        currentPage: page,
+        totalPages: Math.ceil(totalRecords / limit),
+      });
+    } catch (error) {
+      res
+        .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
+        .json({message: error.message});
+    }
+  }),
+  // fetch manager team task
   fetchmanagerteamtasks: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -183,7 +348,7 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({ Company_Id: user?.CompanyId });
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -212,8 +377,8 @@ const managerCtr = {
         return; // Exit if clientId is undefined or empty
       } else {
         await Client.updateOne(
-          { Client_Id: responseClientId }, // Ensure we update the correct client
-          { $set: { Client_Status: "Active" } } // Set Client_Status to Active
+          {Client_Id: responseClientId}, // Ensure we update the correct client
+          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
         );
 
         await Notification({
@@ -230,8 +395,8 @@ const managerCtr = {
         return;
       } else {
         await StaffMember.updateOne(
-          { staff_Id: responseProjectmangerid },
-          { $set: { IsActive: "Active" } }
+          {staff_Id: responseProjectmangerid},
+          {$set: {IsActive: "Active"}}
         );
 
         await Notification({
@@ -246,7 +411,7 @@ const managerCtr = {
       console.log(projectId, "...");
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({ RRId, RId }) => ({
+      const roleResourceData = roleResources.map(({RRId, RId}) => ({
         RRId,
         RId,
         ProjectId: projectId,
@@ -256,13 +421,13 @@ const managerCtr = {
 
       try {
         let updatestaffmember = await Promise.all(
-          (roleResources || []).map(async ({ RRId, RId }) => {
+          (roleResources || []).map(async ({RRId, RId}) => {
             if (!RRId) return; // Skip invalid entries
 
             // Update staff member status
             await StaffMember.updateOne(
-              { staff_Id: RRId },
-              { $set: { IsActive: "Active" } }
+              {staff_Id: RRId},
+              {$set: {IsActive: "Active"}}
             );
 
             // Send notification
@@ -299,7 +464,7 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({ Company_Id: user?.CompanyId });
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -315,7 +480,7 @@ const managerCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ result: response, success: true });
+        .json({result: response, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -327,7 +492,7 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({ Company_Id: user?.CompanyId });
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -342,7 +507,7 @@ const managerCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ result: response, success: true });
+        .json({result: response, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -354,7 +519,7 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({ Company_Id: user?.CompanyId });
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -368,7 +533,7 @@ const managerCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -387,7 +552,7 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({ Company_Id: user?.CompanyId });
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -404,8 +569,8 @@ const managerCtr = {
           try {
             // Fetch Milestone and RoleResource in parallel
             const [fetchmilestone, fetchrrid] = await Promise.all([
-              Milestone.find({ ProjectId: item.ProjectId }).lean(),
-              RoleResource.find({ ProjectId: item.ProjectId }).lean(),
+              Milestone.find({ProjectId: item.ProjectId}).lean(),
+              RoleResource.find({ProjectId: item.ProjectId}).lean(),
             ]);
 
             // Process milestones
@@ -423,7 +588,7 @@ const managerCtr = {
             const fetchresourcesstaff =
               fetchresourcesId.length > 0
                 ? await StaffMember.find({
-                    staff_Id: { $in: fetchresourcesId },
+                    staff_Id: {$in: fetchresourcesId},
                   }).lean()
                 : [];
 
@@ -457,7 +622,7 @@ const managerCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: fetchprojectresponse });
+        .json({success: true, result: fetchprojectresponse});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -481,7 +646,7 @@ const managerCtr = {
         throw new error("UnAuthorized User Please Singup ");
       }
 
-      const checkcompany = await Company?.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -506,8 +671,8 @@ const managerCtr = {
         return; // Exit if clientId is undefined or empty
       } else {
         await Client.updateOne(
-          { Client_Id: responseClientId }, // Ensure we update the correct client
-          { $set: { Client_Status: "Active" } } // Set Client_Status to Active
+          {Client_Id: responseClientId}, // Ensure we update the correct client
+          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
         );
       }
 
@@ -516,8 +681,8 @@ const managerCtr = {
         return;
       } else {
         await StaffMember.updateOne(
-          { staff_Id: responseProjectmangerid },
-          { $set: { IsActive: "Active" } }
+          {staff_Id: responseProjectmangerid},
+          {$set: {IsActive: "Active"}}
         );
       }
 
@@ -528,7 +693,7 @@ const managerCtr = {
       // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({ RRId, RId }) => ({
+      const roleResourceData = roleResources.map(({RRId, RId}) => ({
         RRId,
         RId,
         ProjectId: projectId,
@@ -537,11 +702,8 @@ const managerCtr = {
       await RoleResource.insertMany(roleResourceData);
 
       let updatestaffmember = await Promise.all(
-        roleResources?.map(({ RRId, RId }) =>
-          StaffMember.updateOne(
-            { staff_Id: RRId },
-            { $set: { IsActive: "Active" } }
-          )
+        roleResources?.map(({RRId, RId}) =>
+          StaffMember.updateOne({staff_Id: RRId}, {$set: {IsActive: "Active"}})
         ) || []
       );
       if (!updatestaffmember) {
@@ -567,7 +729,7 @@ const managerCtr = {
       const response = await Notification.find({
         ReciverId: user?.staff_Id,
         IsRead: false,
-      }).sort({ createdAt: -1 });
+      }).sort({createdAt: -1});
 
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -575,7 +737,7 @@ const managerCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ result: response, success: true });
+        .json({result: response, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -583,7 +745,7 @@ const managerCtr = {
 
   FillManagerTimesheet: asyncHandler(async (req, res) => {
     try {
-      let { entries } = req.body;
+      let {entries} = req.body;
 
       // Ensure entries exist and are an array
       if (!entries || !Array.isArray(entries)) {
@@ -637,7 +799,7 @@ const managerCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const response = await TimeSheet.findOne({ Timesheet_Id: req.params.id });
+      const response = await TimeSheet.findOne({Timesheet_Id: req.params.id});
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("TimeSheet NOT FOUND");
@@ -646,7 +808,7 @@ const managerCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, message: "Timesheet Remove Successfully" });
+        .json({success: true, message: "Timesheet Remove Successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -675,7 +837,7 @@ const managerCtr = {
         await Promise.all(
           approveIds.map(async (item) => {
             // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({ Timesheet_Id: item });
+            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
 
             // Check if the timesheet exists and if the status is "PENDING"
             if (!timesheet) {
@@ -685,13 +847,13 @@ const managerCtr = {
 
             // Proceed with the update if it's 'PENDING'
             const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              { Timesheet_Id: item },
+              {Timesheet_Id: item},
               {
                 $set: {
                   approval_status: "PENDING",
                 },
               },
-              { new: true, runValidators: true }
+              {new: true, runValidators: true}
             );
 
             if (!updatedTimesheet) {
@@ -718,15 +880,9 @@ const managerCtr = {
 
   EditTimesheet: asyncHandler(async (req, res) => {
     try {
-      const { id } = req.params;
-      const {
-        Staff_Id,
-        ProjectId,
-        hours,
-        date,
-        Task_description,
-        Description,
-      } = req.body;
+      const {id} = req.params;
+      const {Staff_Id, ProjectId, hours, date, Task_description, Description} =
+        req.body;
 
       // Find the existing timesheet entry
       const timesheetEntry = await TimeSheet.findById(id);
@@ -792,7 +948,7 @@ const managerCtr = {
         await Promise.all(
           approveIds.map(async (item) => {
             // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({ Timesheet_Id: item });
+            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
 
             // Check if the timesheet exists and if the status is "PENDING"
             if (!timesheet) {
@@ -809,7 +965,7 @@ const managerCtr = {
 
             // Proceed with the update if it's 'PENDING'
             const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              { Timesheet_Id: item },
+              {Timesheet_Id: item},
               {
                 $set: {
                   approval_status: "APPROVED",
@@ -817,7 +973,7 @@ const managerCtr = {
                   approved_date: moment().format("DD/MM/YYYY"),
                 },
               },
-              { new: true, runValidators: true }
+              {new: true, runValidators: true}
             );
 
             if (!updatedTimesheet) {
@@ -873,7 +1029,7 @@ const managerCtr = {
         await Promise.all(
           approveIds.map(async (item) => {
             // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({ Timesheet_Id: item });
+            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
 
             // Check if the timesheet exists and if the status is "PENDING"
             if (!timesheet) {
@@ -890,7 +1046,7 @@ const managerCtr = {
 
             // Proceed with the update if it's 'PENDING'
             const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              { Timesheet_Id: item },
+              {Timesheet_Id: item},
               {
                 $set: {
                   approval_status: "DISAPPROVED",
@@ -898,7 +1054,7 @@ const managerCtr = {
                   approved_date: moment().format("DD/MM/YYYY"),
                 },
               },
-              { new: true, runValidators: true }
+              {new: true, runValidators: true}
             );
 
             if (!updatedTimesheet) {
@@ -932,7 +1088,7 @@ const managerCtr = {
       }
 
       // Check company
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.BAD_REQUEST).json({
           message: "Company not exists. Please create a company first.",
@@ -973,6 +1129,46 @@ const managerCtr = {
       });
     } catch (error) {
       throw new Error(error?.message);
+    }
+  }),
+
+  // fetch manager project
+
+  fetchmanagertasks: asyncHandler(async (req, res) => {
+    try {
+      // Find the user
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          error: "Unauthorized User, please Signup",
+        });
+      }
+
+      // Query to fetch manager
+      const query = {
+        ManagerId: user?.staff_Id,
+      };
+      const fetchmanager = await StaffMember.find(query);
+      if (fetchmanager.length === 0) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          error: "Staff not found",
+        });
+      }
+
+      // Fetch tasks for each manager
+      const fetchtask = await Task.find({
+        Resource_Id: {$in: fetchmanager.map((manager) => manager.staff_Id)}, // In case multiple managers, map their staff IDs
+      });
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: fetchtask});
+    } catch (error) {
+      // Handle error
+      console.error(error);
+      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        error: error.message || "An error occurred while fetching tasks.",
+      });
     }
   }),
 };

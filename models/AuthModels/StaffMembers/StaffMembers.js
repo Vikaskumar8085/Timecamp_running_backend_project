@@ -22,6 +22,7 @@ const staffMemberSchema = mongoose.Schema(
     },
     UserName: {
       type: String,
+      trim: true,
     },
     Email: {
       type: String,
