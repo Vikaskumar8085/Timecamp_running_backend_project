@@ -10,6 +10,7 @@ const Milestone = require("../../models/Othermodels/Milestones/Milestones");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Task = require("../../models/Othermodels/Task/Task");
 const Notification = require("../../models/Othermodels/Notification/Notification");
+const Role = require("../../models/MasterModels/Roles/Roles");
 const managerCtr = {
   // fetch manager team
   fetchmanagerTeam: asyncHandler(async (req, res) => {
@@ -1077,6 +1078,7 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
+  // create manager task
   createtaskbymanager: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -1131,9 +1133,7 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-
-  // fetch manager project
-
+  // fetch manager task
   fetchmanagertasks: asyncHandler(async (req, res) => {
     try {
       // Find the user
@@ -1169,6 +1169,536 @@ const managerCtr = {
       return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
         error: error.message || "An error occurred while fetching tasks.",
       });
+    }
+  }),
+  // fetch manager timesheet
+  fetchmanagertimesheet: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          error: "Unauthorized User, please Signup",
+        });
+      }
+
+      const response = await StaffMember.find({ManagerId: user?.staff_Id});
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("staff not found");
+      }
+      const staffMemberIds = response.map((item) => item.staff_Id);
+      staffMemberIds.push(user.staff_Id); // Include manager's own ID
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 5;
+      const skip = (page - 1) * limit;
+
+      // Fetch timesheets with pagination
+      const timesheets = await TimeSheet.find({
+        Staff_Id: {$in: staffMemberIds},
+      })
+        .skip(skip)
+        .limit(limit);
+
+      if (!timesheets) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("timesheet not found");
+      }
+      const timesheetData = await Promise.all(
+        timesheets.map(async (item) => {
+          const fetchProject = await Project.findOne({ProjectId: item.project});
+          const projectName = fetchProject
+            ? fetchProject.Project_Name
+            : "Unknown Project";
+          return {...item.toObject(), projectName};
+        })
+      );
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        page,
+        limit,
+        total: timesheetData.length,
+        result: timesheetData,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchprojectinfo: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please singup");
+      }
+
+      const company = await Company?.findOne({Company_Id: user?.CompanyId});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {
+        CompanyId: company.Company_Id,
+        ProjectId: req.params.id,
+      };
+
+      const response = await Project.find(queryObj).lean().exec();
+      if (!response) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
+      const projectsWithDetails = await Promise.all(
+        response.map(async (projectitem) => {
+          const roleResources = await RoleResource.find({
+            ProjectId: projectitem.ProjectId,
+          });
+
+          // Extract RRId values
+          const rIds = roleResources.map((rr) => rr.RId);
+          const roles = await Role.find({RoleId: {$in: rIds}});
+          const rrid = roleResources.map((rr) => rr.RRId);
+
+          const staffMember = await StaffMember.find({
+            staff_Id: {$in: rrid},
+          });
+
+          const responseclient = await Client.find({
+            Client_Id: projectitem.clientId,
+          });
+          const ProjectManager = await StaffMember.find({
+            staff_Id: {$in: projectitem.Project_ManagersId},
+          });
+          const ProjectManagerName = await ProjectManager.map(
+            (item) => item.FirstName
+          );
+          const ClientName = await responseclient.map(
+            (item) => item.Client_Name
+          );
+          const RoleName = await roles.map((item) => item.RoleName);
+          const StaffName = await staffMember.map((item) => item.FirstName);
+
+          const projectResult = {
+            ...projectitem,
+            RoleName,
+            StaffName,
+            ClientName,
+            ProjectManagerName,
+          };
+          return projectResult;
+        })
+      );
+
+      return res.status(HttpStatusCodes.OK).json({
+        message: "fetch project info successfully",
+        result: projectsWithDetails,
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  fetchmanagerprojecttimesheet: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please singup");
+      }
+
+      let queryObj = {};
+      queryObj = {
+        ProjectId: req.params.id,
+      };
+
+      const response = await Project.find(queryObj);
+      if (!response && response.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("project Not Found");
+      }
+
+      const projectDetails = await Promise.all(
+        response.map(async (item) => {
+          const findtimesheet = await TimeSheet.find({
+            project: item.ProjectId,
+          });
+
+          const result = {
+            findtimesheet,
+          };
+
+          return result;
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: projectDetails});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  fetchmanagerprojecttasks: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please singup");
+      }
+      let queryObj = {};
+      queryObj = {
+        ProjectId: req.params.id,
+      };
+      const response = await Project.find(queryObj);
+      if (!response && response.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("project Not Found");
+      }
+
+      const taskDetails = await Promise.all(
+        response.map(async (item) => {
+          const findTasks = await Task.find({
+            ProjectId: item.ProjectId,
+          });
+          const result = {
+            findTasks,
+          };
+          return result;
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: taskDetails});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  createmilestone: asyncHandler(async (req, res) => {
+    const {projectId} = req.params;
+    const milestones = req.body;
+    console.log(req.body.milestones);
+
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      // Validate milestones data
+      if (!Array.isArray(milestones)) {
+        return res.status(400).json({
+          message: "Milestones data is required and should be an array.",
+        });
+      }
+
+      let insertedMilestones = [];
+
+      // Iterate through each milestone and save it
+      for (const item of milestones) {
+        const milestone = new Milestone({
+          ProjectId: projectId,
+          Name: item.MilestoneName,
+          Description: item.Description,
+          Start_date: new Date(item.StartDate),
+          End_date: new Date(item.EndDate),
+        });
+
+        const savedMilestone = await milestone.save();
+        insertedMilestones.push(savedMilestone);
+      }
+
+      return res.status(HttpStatusCodes.OK).json({
+        message: "Milestone(s) created successfully",
+        success: true,
+        result: insertedMilestones,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  fetchmanagermilestonestask: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      const checkcompany = await Company.findOne({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST).json({
+          message: "Company not exists. Please create a company first.",
+        });
+        return;
+      }
+
+      let queryObj = {
+        ProjectId: parseInt(req.params.id),
+      };
+
+      const response = await Milestone.find(queryObj);
+
+      if (response.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Milestone not found");
+      }
+
+      const resourceNamewithid = await Promise.all(
+        response.map(async (item) => {
+          const findprojectResources = await RoleResource.find({
+            ProjectId: item.ProjectId,
+          });
+
+          const findresourcesRRid = await findprojectResources.map(
+            (rrid) => rrid.RRId
+          );
+
+          const getresources = await StaffMember.find({
+            staff_Id: findresourcesRRid,
+          });
+
+          const responseResult = {
+            ...item.toObject(),
+            Resourcedata: getresources.map((resource) => ({
+              staff_id: resource.staff_Id, // Fetching staff_id
+              FirstName: resource.FirstName, // Fetching FirstName
+            })),
+          };
+
+          return responseResult;
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: resourceNamewithid});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // fill manager timesheet
+
+  FillManagerProjectTimesheet: asyncHandler(async (req, res) => {
+    try {
+      const {newdata} = req.body;
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      let attachmentPath = req.file ? req.file.filename : Attachment;
+      const response = new TimeSheet({
+        attachement: attachmentPath,
+        ...req.body,
+      });
+
+      await response.save();
+      // for (let item of newdata) {
+      //   const Timesheetdata = new Timesheet({
+      //     Staff_Id: user.staff_Id,
+      //     hours: item.hours,
+      //     project: item.Projectid,
+      //     day: item.day,
+      //     Description: item.Description,
+      //     task_description: item.task_description,
+      //     attachement: attachmentPath,
+      //   });
+      //   const saveTimesheetdata = await Timesheetdata.save();
+      //   inputdata.push(saveTimesheetdata);
+      // }
+
+      return res.status(HttpStatusCodes.CREATED).json({
+        message: "Timesheet Filled Successfully",
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // create manager project task
+
+  addProjectTask: asyncHandler(async (req, res) => {
+    try {
+      console.log(req.body, "/");
+      const {id} = req.params;
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          message: "Unauthorized User. Please Signup.",
+        });
+        return; // Ensure no further code runs after sending the response
+      }
+
+      // Check company
+      const checkcompany = await Company.findOne({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST).json({
+          message: "Company not exists. Please create a company first.",
+        });
+        return; // Ensure no further code runs after sending the response
+      }
+      console.log(checkcompany);
+      let attachmentPath = req.file ? req.file.filename : Attachment;
+      // Create a new task instance
+      const newTask = new Task({
+        Company_Id: checkcompany?.Company_Id,
+        Task_Name: req.body.Task_Name,
+        ProjectId: Number(id),
+        MilestoneId: req.body.MilestoneId,
+        Priority: req.body.Priority,
+        StartDate: req.body.StartDate,
+        EndDate: req.body.EndDate,
+        Estimated_Time: req.body.Estimated_Time,
+        Task_description: req.body.Task_Description,
+        Attachment: attachmentPath,
+        Resource_Id: req.body.Resource_Id,
+      });
+
+      if (newTask) {
+        await newTask.save();
+        // await new Notification({
+        //   SenderId: user?.user_id,
+        //   ReciverId: newTask?.Resource_Id,
+        //   Name: user?.FirstName,
+        //   Description: "You have been allotted a new task by the admin",
+        //   IsRead: false,
+        // }).save();
+      }
+      // Save the task to the database
+      res.status(201).json({
+        message: "Task created successfully",
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchmanagerprojectmilestones: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          message: "Unauthorized User. Please Signup.",
+        });
+        return; // Ensure no further code runs after sending the response
+      }
+
+      // Check company
+      const checkcompany = await Company.findOne({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST).json({
+          message: "Company not exists. Please create a company first.",
+        });
+        return; // Ensure no further code runs after sending the response
+      }
+
+      let queryObj = {};
+
+      queryObj = {
+        ProjectId: parseInt(req.params.id),
+      };
+
+      const response = await Milestone.find(queryObj);
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // manager project Time
+  fetch_manager_project_time: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          message: "Unauthorized User. Please Signup.",
+        });
+        return; // Ensure no further code runs after sending the response
+      }
+
+      // Check company
+      const checkcompany = await Company.findOne({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST).json({
+          message: "Company not exists. Please create a company first.",
+        });
+        return; // Ensure no further code runs after sending the response
+      }
+
+      let queryObj = {};
+
+      queryObj = {
+        CompanyId: checkcompany.Company_Id,
+      };
+      // Step 1: Find all projects for the given CompanyId
+      const projects = await Project.find(queryObj);
+
+      if (!projects || projects.length === 0) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "No projects found"});
+      }
+
+      // Extract project IDs
+      const projectIds = await projects.map((project) => project.ProjectId);
+
+      // Step 2: Aggregate TimeSheet data for these projects
+      const timesheetData = await TimeSheet.aggregate([
+        {
+          $match: {
+            CompanyId: checkcompany.Company_Id,
+            project: {$in: projectIds},
+          },
+        },
+        {
+          $group: {
+            _id: "$project",
+            totalHours: {$sum: {$toDouble: "$hours"}},
+            okHours: {$sum: {$toDouble: "$ok_hours"}},
+            billedHours: {$sum: {$toDouble: "$billed_hours"}},
+            totalEntries: {$sum: 1}, // Count total entries for this project
+          },
+        },
+      ]);
+
+      // Step 3: Map the results back to the projects
+      const result = projects.map((project) => {
+        const projectTimesheet = timesheetData.find(
+          (ts) => ts._id === project.ProjectId
+        ) || {
+          totalHours: 0,
+          okHours: 0,
+          billedHours: 0,
+          totalEntries: 0,
+        };
+
+        return {
+          ProjectId: project.ProjectId,
+          ProjectName: project.Project_Name,
+          ProjectCode: project.Project_Code,
+          StartDate: project.Start_Date,
+          EndDate: project.End_Date,
+          TotalHours: projectTimesheet.totalHours,
+          OkHours: projectTimesheet.okHours,
+          BilledHours: projectTimesheet.billedHours,
+          TotalEntries: projectTimesheet.totalEntries,
+        };
+      });
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
     }
   }),
 };

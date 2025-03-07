@@ -44,4 +44,40 @@ managerRouter.get(
 
 // fetch manger task
 managerRouter.get("/fetch-manager-task", managerCtr.fetchmanagertasks);
+managerRouter.get("/timesheet", managerCtr.fetchmanagertimesheet);
+
+managerRouter.get(
+  "/fetch-manager-projectinfo/:id",
+  managerCtr.fetchprojectinfo
+);
+managerRouter.get(
+  "/fetch-manager-prject-timesheets/:id",
+  managerCtr.fetchmanagerprojecttimesheet
+);
+
+managerRouter.get(
+  "/fetch-manager-project-task/:id",
+  managerCtr?.fetchmanagerprojecttasks
+);
+
+// create milestone
+
+managerRouter.post(
+  "/create-manager-project-milestone/:projectId",
+  managerCtr.createmilestone
+);
+
+managerRouter.post(
+  "/create-manager-project-task/:id",
+  upload.single("file"),
+  managerCtr.addProjectTask
+);
+managerRouter.get(
+  "/fetch-manager-project-milestone",
+  managerCtr.fetchmanagerprojectmilestones
+);
+managerRouter.get(
+  "/fetch-manager-project-task",
+  managerCtr.fetch_manager_project_time
+);
 module.exports = managerRouter;
