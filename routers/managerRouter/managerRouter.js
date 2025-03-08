@@ -30,7 +30,7 @@ managerRouter.post("/create-manager-project", managerCtr.createManagerProject);
 managerRouter.post(
   "/fill-manager-timesheet",
   upload.array("file"),
-  managerCtr.FillManagerTimesheet
+  managerCtr.FillManagerProjectTimesheet
 );
 managerRouter.delete(
   "/remove-manager-timesheet",
@@ -64,7 +64,7 @@ managerRouter.get(
 
 managerRouter.post(
   "/create-manager-project-milestone/:projectId",
-  managerCtr.createmilestone
+  managerCtr.createmanagermilestone
 );
 
 managerRouter.post(
@@ -73,11 +73,11 @@ managerRouter.post(
   managerCtr.addProjectTask
 );
 managerRouter.get(
-  "/fetch-manager-project-milestone",
+  "/fetch-manager-project-milestone/:id",
   managerCtr.fetchmanagerprojectmilestones
 );
 managerRouter.get(
-  "/fetch-manager-project-task",
+  "/fetch-manager-project-time",
   managerCtr.fetch_manager_project_time
 );
 module.exports = managerRouter;

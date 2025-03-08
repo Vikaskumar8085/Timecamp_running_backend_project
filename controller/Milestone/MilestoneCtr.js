@@ -8,7 +8,7 @@ const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers")
 
 const milestoneCtr = {
   createmilestone: asyncHandler(async (req, res) => {
-    const {projectid} = req.params;
+    const { projectid } = req.params;
     const milestones = req.body;
     try {
       const user = await User.findById(req.user);
@@ -17,7 +17,7 @@ const milestoneCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -71,7 +71,7 @@ const milestoneCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -86,7 +86,7 @@ const milestoneCtr = {
       const response = await Milestone.find(queryObj);
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -94,7 +94,8 @@ const milestoneCtr = {
 
   fetchmilestoneprojects: asyncHandler(async (req, res) => {
     try {
-      const user = await User.findById(req.user);
+      const user =
+        (await User.findById(req.user)) || StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
@@ -102,7 +103,9 @@ const milestoneCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany =
+        (await Company.findOne({ UserId: user?.user_id })) ||
+        Company.findOne({ Compnay_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -147,7 +150,7 @@ const milestoneCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: resourceNamewithid});
+        .json({ success: true, result: resourceNamewithid });
     } catch (error) {
       throw new Error(error?.message);
     }

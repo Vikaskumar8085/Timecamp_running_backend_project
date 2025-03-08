@@ -1341,6 +1341,7 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
+
   fetchmanagerprojecttasks: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -1377,11 +1378,9 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-  createmilestone: asyncHandler(async (req, res) => {
+  createmanagermilestone: asyncHandler(async (req, res) => {
     const { projectId } = req.params;
-    const milestones = req.body;
-    console.log(req.body.milestones);
-
+    const { milestones } = req.body;
     try {
       const user = await StaffMember.findById(req.user);
       if (!user) {
@@ -1389,18 +1388,23 @@ const managerCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      // Validate milestones data
-      if (!Array.isArray(milestones)) {
+      const checkcompany = await Company.findOne({
+        Company_Id: user?.CompanyId,
+      });
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      if (!Array.isArray(milestones) || milestones.length === 0) {
         return res.status(400).json({
           message: "Milestones data is required and should be an array.",
         });
       }
-
       let insertedMilestones = [];
-
-      // Iterate through each milestone and save it
       for (const item of milestones) {
         const milestone = new Milestone({
+          Compnay_Id: checkcompany?.Compnay_Id,
           ProjectId: projectId,
           Name: item.MilestoneName,
           Description: item.Description,
@@ -1412,8 +1416,15 @@ const managerCtr = {
         insertedMilestones.push(savedMilestone);
       }
 
+      // res.json({
+      //   message: "Bulk upload successful!",
+      //   insertedCount: insertedMilestones.length,
+      // });
+
+      // console.log(insertedMilestones, "dasldkfskd");
+
       return res.status(HttpStatusCodes.OK).json({
-        message: "Milestone(s) created successfully",
+        message: " milestone created successfully",
         success: true,
         result: insertedMilestones,
       });
