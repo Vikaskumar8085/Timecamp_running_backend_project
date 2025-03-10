@@ -2,6 +2,7 @@ const express = require("express");
 const managerCtr = require("../../controller/ManagerCtr/ManagerController");
 const verifyToken = require("../../Auth/verifyAuth");
 const upload = require("../../utils/FileUpload/fileUpload");
+const managerdashctr = require("../../controller/ManagerCtr/managerdashController");
 const managerRouter = express.Router();
 managerRouter.use(verifyToken);
 managerRouter.get("/fetch-manager-team", managerCtr.fetchmanagerTeam);
@@ -96,4 +97,16 @@ managerRouter.put(
   "/disapprove-timesheet-by-manager/:id",
   managerCtr.disapprovetimesheetbymanager
 );
+
+// mamanger dashboard  rest api end points
+
+managerRouter.get(
+  "/manager-dashboard-counter",
+  managerdashctr.dashboardcounter
+);
+managerRouter.get(
+  "/manager-productivity-leaderboard",
+  managerdashctr.managerdashproductivityleaderboard
+);
+
 module.exports = managerRouter;
