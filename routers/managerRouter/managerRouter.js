@@ -33,7 +33,7 @@ managerRouter.post(
   managerCtr.FillManagerProjectTimesheet
 );
 managerRouter.delete(
-  "/remove-manager-timesheet",
+  "/remove-manager-timesheet/:id",
   managerCtr.RemovemanagerTimesheet
 );
 managerRouter.post("/send-for-approvel-manager-timesheet");
@@ -79,5 +79,21 @@ managerRouter.get(
 managerRouter.get(
   "/fetch-manager-project-time",
   managerCtr.fetch_manager_project_time
+);
+
+// send for approvel timesheet
+
+managerRouter.put(
+  "/send-for-approvel-timesheet-by-manager/:id",
+  managerCtr.sendForapprovelManagerTimesheet
+);
+
+managerRouter.put(
+  "/approve-timesheet-by-manager/:id",
+  managerCtr.approvetimesheetbymanager
+);
+managerRouter.put(
+  "/disapprove-timesheet-by-manager/:id",
+  managerCtr.disapprovetimesheetbymanager
 );
 module.exports = managerRouter;
