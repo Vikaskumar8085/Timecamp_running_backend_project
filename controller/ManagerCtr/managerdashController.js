@@ -2,6 +2,10 @@ const asyncHandler = require("express-async-handler");
 const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
 const HttpStatusCodes = require("../../utils/StatusCodes/statusCodes");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
+const Project = require("../../models/Othermodels/Projectmodels/Project");
+const Company = require("../../models/Othermodels/Companymodels/Company");
+const moment = require("moment");
+const Task = require("../../models/Othermodels/Task/Task");
 const managerdashctr = {
   dashboardcounter: asyncHandler(async (req, res) => {
     try {
@@ -15,6 +19,10 @@ const managerdashctr = {
       const staffcount = await StaffMember.find({
         ManagerId: user.staff_Id,
       });
+      // project count
+      const countproject = await Project.find({
+        createdBy: user?.staff_Id,
+      });
 
       //   //   client count
       //   const clientcount = await Client.find({
@@ -23,23 +31,26 @@ const managerdashctr = {
       //   const projectcount = await Project.find({
       //     createdBy: user?.staff_Id,
       //   });
-      //   const approvedTimesheets = await TimeSheet.find({
-      //     CompanyId: checkcompany.Company_Id,
-      //     approval_status: "APPROVED",
-      //   });
+      let projectids = await countproject.map((proj) => proj.ProjectId);
+      const approvedTimesheets = await TimeSheet.find({
+        project: {$in: projectids},
+        approval_status: "APPROVED",
+      });
 
-      //   const totalHours = approvedTimesheets.reduce(
-      //     (sum, entry) => sum + (parseInt(entry.hours) || 0),
-      //     0
-      //   );
+      const totalHours = approvedTimesheets.reduce(
+        (sum, entry) => sum + (parseInt(entry.hours) || 0),
+        0
+      );
 
+      const totalTask = await TimeSheet.find({project: {$in: projectids}});
       //   console.log("Total Approved Work Hours:", totalHours);
 
+      // const
       const resp = {
-        // projectNo: projectcount.length,
-        // clientNo: clientcount.length,
+        projectNo: countproject.length,
+        totalTask: totalTask.length,
         staffNo: staffcount.length,
-        // totalHours: totalHours,
+        totalHours: totalHours,
       };
 
       return res.status(HttpStatusCodes.OK).json({success: true, result: resp});
@@ -125,13 +136,37 @@ const managerdashctr = {
   }),
 
   //   manager dash total hour by project
-  managerdashtotalhourbyproject: asyncHandler(async (req, res) => {
+  managerdashtotalhourbyresources: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
+
+      const fetchstaff = await StaffMember.find({ManagerId: user?.staff_Id});
+      if (!fetchstaff || fetchstaff.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Manager Team Not Found");
+      }
+      const staffIds = fetchstaff?.map((staff) => {
+        return staff.staff_Id;
+      });
+
+      const staffTimesheets = await TimeSheet.find({Staff_Id: staffIds});
+      console.log(staffTimesheets);
+      if (!staffTimesheets || staffTimesheets.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("staff Not founds");
+      }
+
+      const result = {
+        StaffName: fetchstaff.map((staff) => staff.FirstName),
+        totalBilledHours: staffTimesheets.map((sheet) => sheet.billed_hours),
+        totalHours: staffTimesheets.map((sheet) => sheet.hours),
+      };
+
+      return res.status(HttpStatusCodes.OK).json({success: true, result});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -144,6 +179,40 @@ const managerdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
+      const checkprojects = await Project.find({
+        createdBy: user?.staff_Id,
+      });
+
+      if (!checkprojects.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Project Not Found"});
+      }
+      console.log(checkprojects, "proejcts");
+      // Extract all project IDs
+      const projectIds = checkprojects.map((proj) => proj.ProjectId);
+
+      // Find all timesheets for the projects
+      const findtimesheets = await TimeSheet.find({project: {$in: projectIds}});
+
+      if (!findtimesheets.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Timesheet not found"});
+      }
+
+      // Calculate total billed hours
+      const totalBilledHours = findtimesheets.reduce(
+        (sum, entry) => sum + (Number(entry.billed_hours) || 0),
+        0
+      );
+
+      return res.status(HttpStatusCodes.OK).json({
+        Projects: checkprojects.map((proj) => ({
+          ProjectName: proj.Project_Name,
+          totalBilledHours,
+        })),
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -156,6 +225,46 @@ const managerdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
+      const checkprojects = await Project.find({
+        createdBy: user?.staff_Id,
+      });
+
+      if (!checkprojects.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Project Not Found"});
+      }
+      console.log(checkprojects, "proejcts");
+      // Extract all project IDs
+      const projectIds = checkprojects.map((proj) => proj.ProjectId);
+
+      // Find all timesheets for the projects
+      const findtimesheet = await TimeSheet.find({project: {$in: projectIds}});
+
+      const totalOkHours = findtimesheet.reduce(
+        (sum, entry) => sum + (entry.ok_hours || 0),
+        0
+      );
+      const totalBilledHours = findtimesheet.reduce(
+        (sum, entry) => sum + (entry.billed_hours || 0),
+        0
+      );
+      const totalBlankHours = findtimesheet.reduce(
+        (sum, entry) => sum + (entry.blank_hours || 0),
+        0
+      );
+      const totalhours = findtimesheet.reduce(
+        (sum, entry) => sum + (Number(entry.hours) || 0),
+        0
+      );
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        totalOkHours,
+        totalBilledHours,
+        totalBlankHours,
+        totalhours,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -168,6 +277,71 @@ const managerdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
+      const checkprojects = await Project.find({
+        createdBy: user?.staff_Id,
+      });
+
+      if (!checkprojects.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Project Not Found"});
+      }
+      // Extract all project IDs
+      let projectids = await checkprojects.map((proj) => proj.ProjectId);
+      console.log(projectids, "<L>projectids");
+      // Fetch all billed and not billed timesheets for the company
+      const billedTimesheets = await TimeSheet.find({
+        project: {$in: projectids},
+        billing_status: "BILLED",
+      });
+
+      const notBilledTimesheets = await TimeSheet.find({
+        project: {$in: projectids},
+        billing_status: "NOT_BILLED",
+      });
+
+      if (!billedTimesheets.length && !notBilledTimesheets.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "No timesheets found."});
+      }
+      console.log(billedTimesheets.length, notBilledTimesheets.length);
+      // const projectIds = [
+      //   ...new Set(
+      //     [...billedTimesheets, ...notBilledTimesheets].map((ts) => ts.project)
+      //   ),
+      // ];
+      // console.log(projectIds, "projectdata");
+      // const projects = await Project.find({ProjectId: {$in: projectIds}});
+
+      // if (!projects.length) {
+      //   return res
+      //     .status(HttpStatusCodes.NOT_FOUND)
+      //     .json({message: "Projects not found."});
+      // }
+
+      // Construct response
+      // const result = projects.map((project) => {
+      //   const billedCount = billedTimesheets.filter(
+      //     (ts) => ts.project.toString() === project.ProjectId.toString()
+      //   ).length;
+      //   const notBilledCount = notBilledTimesheets.filter(
+      //     (ts) => ts.project.toString() === project.ProjectId.toString()
+      //   ).length;
+
+      //   return {
+      //     Project_Name: project?.Project_Name,
+      //     BILLED: billedCount,
+      //     NOT_BILLED: notBilledCount,
+      //   };
+      // });
+
+      const result = {
+        BILLED: billedTimesheets.length,
+        NOT_BILLED: notBilledTimesheets.length,
+      };
+
+      res.status(200).json({success: true, data: result});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -180,6 +354,40 @@ const managerdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
+      const checkprojects = await Project.find({
+        createdBy: user?.staff_Id,
+      });
+
+      if (!checkprojects.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Project Not Found"});
+      }
+      // Extract all project IDs
+      let projectids = await checkprojects.map((proj) => proj.ProjectId);
+      const findtimesheet = await TimeSheet.find({
+        project: {$in: projectids},
+      });
+      if (!findtimesheet) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("timesheet not found");
+      }
+      if (!findtimesheet.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Timesheet not found"});
+      }
+
+      const dayWiseHours = findtimesheet.reduce((acc, entry) => {
+        const day = entry.day; // Assuming `date` field stores day-wise data
+        acc[day] = (acc[day] || 0) + (Number(entry.hours) || 0);
+        return acc;
+      }, {});
+
+      return res.status(HttpStatusCodes.OK).json({
+        totalhours: Object.values(dayWiseHours),
+        days: Object.keys(dayWiseHours),
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -192,6 +400,41 @@ const managerdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
+      const checkprojects = await Project.find({
+        createdBy: user?.staff_Id,
+      });
+
+      if (!checkprojects.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Project Not Found"});
+      }
+      // Extract all project IDs
+      let projectids = await checkprojects.map((proj) => proj.ProjectId);
+
+      const findtimesheet = await TimeSheet.find({
+        project: {$in: projectids},
+      });
+      if (!findtimesheet || !findtimesheet.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Timesheet not found"});
+      }
+
+      // Calculate total hours and billed hours per day
+      const dayWiseData = findtimesheet.reduce((acc, entry) => {
+        const day = entry.day; // Assuming `date` field stores day-wise data
+        acc[day] = acc[day] || {total_hours: 0, billed_hours: 0};
+        acc[day].total_hours += Number(entry.hours) || 0;
+        acc[day].billed_hours += Number(entry.billed_hours) || 0; // Assuming `billed_hours` field exists
+        return acc;
+      }, {});
+
+      return res.status(HttpStatusCodes.OK).json({
+        total_hours: Object.values(dayWiseData).map((d) => d.total_hours),
+        billed_hours: Object.values(dayWiseData).map((d) => d.billed_hours),
+        days: Object.keys(dayWiseData),
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -204,6 +447,49 @@ const managerdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
+      const checkprojects = await Project.find({
+        createdBy: user?.staff_Id,
+      });
+
+      if (!checkprojects.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Project Not Found"});
+      }
+      // Extract all project IDs
+      let projectids = await checkprojects.map((proj) => proj.ProjectId);
+
+      // Find all timesheets for the projects
+      const findtimesheets = await TimeSheet.find({project: {$in: projectids}});
+
+      if (!findtimesheets.length) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Timesheet not found"});
+      }
+
+      // Calculate total billed hours
+      const totalBilledHours = findtimesheets.reduce(
+        (sum, entry) => sum + (entry.billed_hours || 0),
+        0
+      );
+      const totalOkhours = findtimesheets.reduce(
+        (sum, entry) => sum + (entry.ok_hours || 0),
+        0
+      );
+
+      const totalblankhours = findtimesheets.reduce(
+        (sum, entry) => sum + (entry.blank_hours || 0),
+        0
+      );
+      return res.status(HttpStatusCodes.OK).json({
+        Projects: checkprojects.map((proj) => ({
+          ProjectName: proj.Project_Name,
+          totalBilledHours,
+          totalOkhours,
+          totalblankhours,
+        })),
+      });
     } catch (error) {
       throw new Error(error?.message);
     }

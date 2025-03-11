@@ -108,5 +108,32 @@ managerRouter.get(
   "/manager-productivity-leaderboard",
   managerdashctr.managerdashproductivityleaderboard
 );
+// manager dashboard
+managerRouter.get(
+  "/manager-dash-total-hour-by-resources",
+  managerdashctr.managerdashtotalhourbyresources
+);
+managerRouter.get(
+  "/manager-dash-total-hour-by-project",
+  managerdashctr.managerdashtotalhoursbyproject
+);
+managerRouter.get(
+  "/manager-dash-hours-by-company",
+  managerdashctr.managerdashhoursbycompany
+);
+managerRouter.get(
+  "/manager-billed-notbilled",
+  managerdashctr.managerdashbillingstatusdistribution
+);
+
+managerRouter.get(
+  "/manager-project-time-utilization",
+  managerdashctr.managerdashprojecttimeutilization
+);
+managerRouter.get(
+  "/manager-project-approvel-billing-overtime",
+  managerdashctr.managerdashapprovelandbillingovertime
+);
+managerRouter.get("/manager-daily-hour", managerdashctr.managerdashdailyhours);
 
 module.exports = managerRouter;

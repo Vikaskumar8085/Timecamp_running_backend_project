@@ -304,5 +304,36 @@ const TaskCtr = {
       throw new Error(error?.message);
     }
   }),
+  // fetch task info
+  fetchTaskInfo: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      const fetchtask = await Task.findOne({task_Id: Number(req.params.id)});
+      if (!fetchtask) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("task not found");
+      }
+      const fetchmilestone = await Milestone.findOne({
+        Milestone_id: fetchtask.MilestoneId,
+      });
+      const fetchprojects = await Project.findOne({
+        ProjectId: fetchtask?.ProjectId,
+      });
+      const result = {
+        MilestoneName: fetchmilestone[0]?.Name,
+        ProjectName: fetchprojects[0]?.Project_Name,
+        ...fetchtask,
+      };
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: result});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 module.exports = TaskCtr;

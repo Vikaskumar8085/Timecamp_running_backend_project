@@ -158,7 +158,6 @@ const admindashboardCtr = {
         };
       });
 
-      console.log(result, "Result result");
       res.status(200).json({success: true, data: result});
     } catch (error) {
       throw new Error(error?.message);
@@ -190,7 +189,7 @@ const admindashboardCtr = {
           .status(HttpStatusCodes.NOT_FOUND)
           .json({message: "Project Not Found"});
       }
-
+      console.log(checkprojects, "proejcts");
       // Extract all project IDs
       const projectIds = checkprojects.map((proj) => proj.ProjectId);
 
@@ -313,9 +312,7 @@ const admindashboardCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fetch
-
   fetchprojectecttimeutilize: asynchandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);

@@ -1133,14 +1133,13 @@ const managerCtr = {
           error: "Unauthorized User, please Signup",
         });
       }
-
       const response = await StaffMember.find({ManagerId: user?.staff_Id});
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("staff not found");
       }
       const staffMemberIds = response.map((item) => item.staff_Id);
-      staffMemberIds.push(user.staff_Id); // Include manager's own ID
+      staffMemberIds.push(user.staff_Id);
       // Pagination parameters
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 5;
@@ -1180,7 +1179,6 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchprojectinfo: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -1295,7 +1293,6 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchmanagerprojecttasks: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -1448,9 +1445,7 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fill manager timesheet
-
   FillManagerProjectTimesheet: asyncHandler(async (req, res) => {
     try {
       const {newdata} = req.body;
