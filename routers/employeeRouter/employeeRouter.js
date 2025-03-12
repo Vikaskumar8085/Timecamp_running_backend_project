@@ -2,6 +2,7 @@ const express = require("express");
 const EmployeeCtr = require("../../controller/EmployeeController/EmployeeCtr");
 const verifyToken = require("../../Auth/verifyAuth");
 const upload = require("../../utils/FileUpload/fileUpload");
+const employeedashctr = require("../../controller/EmployeeController/Employeedashctr");
 
 const employeeRouter = express.Router();
 employeeRouter.use(verifyToken);
@@ -55,4 +56,43 @@ employeeRouter.get(
   "/fetch-employee-notification",
   EmployeeCtr.fetchEmployeeNotificationMessage
 );
+
+// employee dashboard
+employeeRouter.get(
+  "/fetch-employee-dash-counter",
+  employeedashctr.fetchemployeedashboardCounter
+);
+
+// employee dashboard
+
+employeeRouter.get(
+  "/fetch-employee-total-hours-by-resources",
+  employeedashctr.fetchemployeeTotalhoursbyResources
+);
+employeeRouter.get(
+  "/fetch-employee-total-hours-by-project",
+  employeedashctr.fetchemployeeTotalhoursbyprojects
+);
+
+employeeRouter.get(
+  "/fetch-employee-total-hour-by-company",
+  employeedashctr.fetchemployeeTotalHoursByCompany
+);
+employeeRouter.get(
+  "/fetch-employee-billing-status-distribution",
+  employeedashctr.fetchemployeebillingstatusdistribution
+);
+employeeRouter.get(
+  "/fetch-employee-daily-hours",
+  employeedashctr.fetchemployeedailyhours
+);
+employeeRouter.get(
+  "/fetch-employee-approvel-billed-hour-over-time",
+  employeedashctr.fetchemployeeapprovelbilledhourovertime
+);
+employeeRouter.get(
+  "/fetch-employee-project-time-utilization",
+  employeedashctr.fetchemployeeprojecttimeutilization
+);
+// employee
 module.exports = employeeRouter;
