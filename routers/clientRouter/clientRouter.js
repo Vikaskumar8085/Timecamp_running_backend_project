@@ -1,6 +1,7 @@
 const express = require("express");
 const ClientCtr = require("../../controller/ClientCtr/ClientCtr");
 const verifyToken = require("../../Auth/verifyAuth");
+const clientdashctr = require("../../controller/ClientCtr/clientdashboardCtr");
 
 const clientRouter = express.Router();
 
@@ -33,5 +34,16 @@ clientRouter.get("/client-project-task", ClientCtr.fetchClientTask);
 
 // timesheet
 clientRouter.get("/client-project-timesheet", ClientCtr.fetchClientTimesheet);
-clientRouter.get("/fetch-client-notification",ClientCtr.fetchClientNotification);
+clientRouter.get(
+  "/fetch-client-notification",
+  ClientCtr.fetchClientNotification
+);
+
+// dashboard
+
+clientRouter.get("/client-dash-counter", clientdashctr.clientdashcounter);
+clientRouter.get(
+  "/fetch-client-recent-project",
+  clientdashctr.clientdashboardRecentProject
+);
 module.exports = clientRouter;

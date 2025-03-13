@@ -8,6 +8,7 @@ const HttpStatusCodes = require("../../../utils/StatusCodes/statusCodes");
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const moment = require("moment");
 const Task = require("../../../models/Othermodels/Task/Task");
+const RoleResource = require("../../../models/Othermodels/Projectmodels/RoleResources");
 
 const admindashboardCtr = {
   fetchtotalCounter: asynchandler(async (req, res) => {
@@ -665,6 +666,115 @@ const admindashboardCtr = {
       });
     }
   }),
+
+  //  fetch project roi
+  fetchProjectroi: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized User. Please Signup");
+      }
+      // Check if the company exists
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const staffWithTasksAndProjects = await StaffMember.aggregate([
+        {
+          $match: {CompanyId: checkcompany?.Company_Id},
+        },
+        {
+          $lookup: {
+            from: "tasks", // Collection name in MongoDB
+            localField: "staff_Id",
+            foreignField: "Resource_Id",
+            as: "tasks",
+          },
+        },
+        {
+          $lookup: {
+            from: "projects", // Collection name in MongoDB
+            localField: "tasks.ProjectId",
+            foreignField: "ProjectId",
+            as: "projects",
+          },
+        },
+        {
+          $addFields: {
+            TotalEstimatedTime: {$sum: "$tasks.Estimated_Time"},
+            TotalCompletedTime: {$sum: "$tasks.Completed_time"},
+            Percentage: {
+              $cond: {
+                if: {$ifNull: ["$TotalEstimatedTime", false]},
+                then: {
+                  $subtract: [
+                    100,
+                    {
+                      $multiply: [
+                        {
+                          $divide: [
+                            "$TotalEstimatedTime",
+                            "$TotalCompletedTime",
+                          ],
+                        },
+                        100,
+                      ],
+                    },
+                  ],
+                },
+                else: 0,
+              },
+            },
+          },
+        },
+        {
+          $project: {
+            FirstName: 1,
+            LastName: 1,
+            Email: 1,
+            StaffId: "$staff_Id",
+            Tasks: "$tasks",
+            Projects: "$projects",
+            TotalEstimatedTime: 1,
+            TotalCompletedTime: 1,
+            Percentage: 1,
+          },
+        },
+      ]);
+
+      if (!staffWithTasksAndProjects.length) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "No staff members with tasks or projects found.",
+        });
+      }
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: staffWithTasksAndProjects});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = admindashboardCtr;
+// find staff members
+// const staffIds = await staffMembers.map((staff) => staff.staff_Id);
+// const findprojects = await Project.find({
+//   Project_ManagersId: {$in: staffIds},
+// });
+// const roleresourcesids = await RoleResource.find({RRId: {$in: staffIds}});
+
+// const findprojectids = findprojects.map((item) => {
+//   return item?.ProjectId;
+// });
+// const findroleprojectids = roleresourcesids?.map((item) => {
+//   return item?.ProjectId;
+// });
+
+// const findprojectsdata = await Project.find({
+//   $or: [
+//     {ProjectId: {$in: findprojectids}},
+//     {ProjectId: {$in: findroleprojectids}},
+//   ],
+// });
+// const ids = await findprojectsdata?.map((item) => item.ProjectId);

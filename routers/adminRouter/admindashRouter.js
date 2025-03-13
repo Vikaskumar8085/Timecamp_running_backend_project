@@ -61,4 +61,10 @@ admindashRouter.get(
   verifyToken,
   admindashboardCtr.fetchProductivityLeaderboard
 );
+
+admindashRouter.get(
+  "/fetch-dash-project-roi",
+  verifyToken,
+  admindashboardCtr.fetchProjectroi
+);
 module.exports = admindashRouter;
