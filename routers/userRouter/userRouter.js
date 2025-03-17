@@ -25,5 +25,4 @@ userRouter.get(
   userCtr.fetchusernotification
 );
 
-
 module.exports = userRouter;

@@ -176,6 +176,7 @@ adminRouter.post(
   upload.single("file"),
   TaskCtr?.create_task
 );
+adminRouter.get("/view-task/:id", verifyToken, TaskCtr.fetchTaskInfo);
 adminRouter.get("/fetch-tasks", verifyToken, TaskCtr.fetchTasks);
 adminRouter.get(
   "/fetch-projectwithmilestone",
