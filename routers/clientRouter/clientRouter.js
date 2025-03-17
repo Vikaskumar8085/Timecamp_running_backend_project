@@ -46,4 +46,48 @@ clientRouter.get(
   "/fetch-client-recent-project",
   clientdashctr.clientdashboardRecentProject
 );
+clientRouter.get(
+  "/fetch-client-project-time",
+  ClientCtr.fetchclientprojectTime
+);
+
+// client total hour by resources
+clientRouter.get(
+  "/fetch-client-total-hours-by-resources",
+  clientdashctr.clienttotalhoursbyresources
+);
+
+// client total hour by project
+clientRouter.get(
+  "/fetch-client-total-hour-by-project",
+  clientdashctr.clientTotalHourByProjects
+);
+
+// client total hour by company
+clientRouter.get(
+  "/fetch-client-total-hour-by-company",
+  clientdashctr.clienttotalhoursbycompany
+);
+
+clientRouter.get(
+  "/fetch-client-billing-status-distribution",
+  clientdashctr.clientbillingstatusdistribution
+);
+
+clientRouter.get(
+  "/fetch-client-project-time-utilization",
+  clientdashctr.clientprojecttimeutilization
+);
+
+// client router daily hours
+clientRouter.get(
+  "/fetch-client-daily-hours",
+  clientdashctr.clientprojectdailyHours
+);
+
+// client router billing
+clientRouter.get(
+  "/fetch-client-approvel-billing-status-distribution",
+  clientdashctr.clientapprovelandbillingovertime
+);
 module.exports = clientRouter;

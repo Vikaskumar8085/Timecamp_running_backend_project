@@ -474,6 +474,84 @@ const ClientCtr = {
       throw new Error(error?.message);
     }
   }),
+
+  // fetch client project Time
+
+  fetchclientprojectTime: asyncHandler(async (req, res) => {
+    try {
+      const user = await Client.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please Singup");
+      }
+
+      let queryObj = {};
+
+      queryObj = {
+        clientId: user.Client_Id,
+      };
+      // Step 1: Find all projects for the given CompanyId
+      const projects = await Project.find(queryObj);
+
+      if (!projects || projects.length === 0) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "No projects found"});
+      }
+
+      // Extract project IDs
+      const projectIds = await projects.map((project) => project.ProjectId);
+
+      // Step 2: Aggregate TimeSheet data for these projects
+      const timesheetData = await TimeSheet.aggregate([
+        {
+          $match: {
+            project: {$in: projectIds},
+          },
+        },
+        {
+          $group: {
+            _id: "$project",
+            totalHours: {$sum: {$toDouble: "$hours"}},
+            okHours: {$sum: {$toDouble: "$ok_hours"}},
+            billedHours: {$sum: {$toDouble: "$billed_hours"}},
+            totalEntries: {$sum: 1}, // Count total entries for this project
+          },
+        },
+      ]);
+
+      // Step 3: Map the results back to the projects
+      const result = projects.map((project) => {
+        const projectTimesheet = timesheetData.find(
+          (ts) => ts._id === project.ProjectId
+        ) || {
+          totalHours: 0,
+          okHours: 0,
+          billedHours: 0,
+          totalEntries: 0,
+        };
+
+        return {
+          ProjectId: project.ProjectId,
+          ProjectName: project.Project_Name,
+          ProjectCode: project.Project_Code,
+          StartDate: project.Start_Date,
+          EndDate: project.End_Date,
+          TotalHours: projectTimesheet.totalHours,
+          OkHours: projectTimesheet.okHours,
+          BilledHours: projectTimesheet.billedHours,
+          TotalEntries: projectTimesheet.totalEntries,
+        };
+      });
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = ClientCtr;

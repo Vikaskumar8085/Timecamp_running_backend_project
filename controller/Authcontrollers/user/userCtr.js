@@ -273,7 +273,6 @@ const userCtr = {
   verifyUser: asynchandler(async (req, res) => {
     try {
       const {token} = req.params;
-
       if (!token) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
@@ -365,6 +364,7 @@ const userCtr = {
   ForgetPasswordCtr: asynchandler(async (req, res) => {
     try {
       let user = null;
+      let hashedToken = null;
       user = await User.findOne({Email: req.body.Email});
       // check client
       if (!user) {
@@ -374,36 +374,35 @@ const userCtr = {
       if (!user) {
         user = await StaffMember.findOne({Email: req.body.Emal});
       }
-
       if (!user) {
         res.status(404);
         throw new Error("User does not exist");
       }
-
-      let token = await Token.findOne({userId: user._id});
-
-      if (token) {
-        await token.deleteOne();
-        await new Token({
-          userId: user._id,
-          token: hashedToken,
-          createdAt: Date.now(),
-          expireAt: Date.now() + 30 * (60 * 1000), // Thirty minutes
-        }).save();
-      }
-
-      let resetToken = crypto.randomBytes(32).toString("hex") + user._id;
-      console.log(resetToken);
-
-      // Hash token before saving to DB
-      const hashedToken = crypto
+      let resetToken =
+        (await crypto.randomBytes(32).toString("hex")) + user._id;
+      console.log(resetToken, "reset Token this is the token");
+      hashedToken = await crypto
         .createHash("sha256")
         .update(resetToken)
         .digest("hex");
+      console.log(hashedToken, "hashedToken");
+      let token = await Token.findOne({userId: user._id});
+      if (token) {
+        console.log(token, "this is the token");
+        await token.deleteOne();
+      }
+      await new Token({
+        userId: user._id,
+        token: hashedToken,
+        createdAt: Date.now(),
+        expireAt: Date.now() + 30 * (60 * 1000), // Thirty minutes
+      }).save();
+
+      // Hash token before saving to DB
 
       // Save Token to DB
       // Construct Reset Url
-      const resetUrl = `${credentials.FRONTEND_URL}/resetpassword/${resetToken}`;
+      const resetUrl = `${credentials.FRONTEND_URL}/reset-password/${resetToken}`;
       // Construct Reset URL
       let userName = user?.Firstname || user?.Client_Name;
       // Email content
@@ -431,44 +430,99 @@ const userCtr = {
       throw new Error(error?.message);
     }
   }),
+  // ResetPasswordCtr: asynchandler(async (req, res) => {
+  //   try {
+  //     const {password} = req.body;
+  //     const {resetToken} = req.params;
+  //     const hashedToken = crypto
+  //       .createHash("sha256")
+  //       .update(resetToken)
+  //       .digest("hex");
+
+  //     // fIND tOKEN in DB
+  //     const userToken = await Token.findOne({
+  //       token: hashedToken,
+  //       expiresAt: {$gt: Date.now()},
+  //     });
+  //     if (!userToken) {
+  //       res.status(404);
+  //       throw new Error("Invalid or Expired Token");
+  //     }
+  //     const user = null;
+  //     if (!user) {
+  //       user = await User.findOne({_id: userToken.userId});
+  //     }
+  //     if (!user) {
+  //       user = await Client?.findOne({_id: userToken.userId});
+  //     }
+  //     if (!user) {
+  //       user = await StaffMember.findOne({_id: userToken.userId});
+  //     }
+  //     user.Password = password;
+  //     await user.save();
+  //     res.status(HttpStatusCodes.OK).json({
+  //       message: "Password Reset Successful, Please Login",
+  //     });
+  //   } catch (error) {
+  //     throw new Error(error?.message);
+  //   }
+  // }),
+
   ResetPasswordCtr: asynchandler(async (req, res) => {
     try {
       const {password} = req.body;
       const {resetToken} = req.params;
+
+      if (!password) {
+        return res
+          .status(HttpStatusCodes.BAD_REQUEST)
+          .json({message: "Password is required"});
+      }
+
+      // Hash the token for comparison
       const hashedToken = crypto
         .createHash("sha256")
         .update(resetToken)
         .digest("hex");
 
-      // fIND tOKEN in DB
+      // Find the token in DB
       const userToken = await Token.findOne({
         token: hashedToken,
         expiresAt: {$gt: Date.now()},
       });
       if (!userToken) {
-        res.status(404);
-        throw new Error("Invalid or Expired Token");
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "Invalid or expired token"});
       }
-      const user = null;
+
+      // Find the user across multiple schemas
+      let user =
+        (await User.findById(userToken.userId)) ||
+        (await Client.findById(userToken.userId)) ||
+        (await StaffMember.findById(userToken.userId));
       if (!user) {
-        user = await User.findOne({_id: userToken.userId});
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({message: "User not found"});
       }
-      if (!user) {
-        user = await Client?.findOne({_id: userToken.userId});
-      }
-      if (!user) {
-        user = await StaffMember.findOne({_id: userToken.userId});
-      }
-      user.password = password;
+      // Hash the new password before saving
+      const salt = await bcrypt.genSalt(10);
+      user.Password = await bcrypt.hash(password, salt);
+
       await user.save();
-      res.status(HttpStatusCodes.OK).json({
-        message: "Password Reset Successful, Please Login",
+      // Remove the token after successful reset
+      await userToken.deleteOne();
+      return res.status(HttpStatusCodes.OK).json({
+        message: "Password reset successful, please login",
       });
     } catch (error) {
-      throw new Error(error?.message);
+      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        message:
+          error.message || "An error occurred while resetting the password",
+      });
     }
   }),
-
   Googleauth: asynchandler(async (req, res) => {
     try {
       // console.log(req.body.access_token, "access_token");
