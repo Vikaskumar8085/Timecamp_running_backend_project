@@ -312,21 +312,24 @@ const TaskCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const fetchtask = await Task.findOne({task_Id: Number(req.params.id)});
+      const fetchtask = await Task.findOne({task_Id: req.params.id});
+
       if (!fetchtask) {
-        res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("task not found");
+        res.status(HttpStatusCodes.NOT_FOUND).json({error: "Task not found"});
+        return;
       }
+
       const fetchmilestone = await Milestone.findOne({
         Milestone_id: fetchtask.MilestoneId,
       });
       const fetchprojects = await Project.findOne({
         ProjectId: fetchtask?.ProjectId,
       });
+
       const result = {
-        MilestoneName: fetchmilestone[0]?.Name,
-        ProjectName: fetchprojects[0]?.Project_Name,
-        ...fetchtask,
+        MilestoneName: fetchmilestone?.Name || "",
+        ProjectName: fetchprojects?.Project_Name || "",
+        data: fetchtask,
       };
       return res
         .status(HttpStatusCodes.OK)

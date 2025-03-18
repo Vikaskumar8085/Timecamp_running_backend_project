@@ -600,6 +600,28 @@ const userCtr = {
       }
       const response = await Notification.find({
         ReciverId: user?.staff_Id,
+        IsRead: false,
+      }).sort({createdAt: -1});
+      if (!response) {
+        res.status(HttpStatusCodes?.NOT_FOUND);
+        throw new Error("Client Not Found");
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  fetchadminnotification: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please Singup");
+      }
+      const response = await Notification.find({
+        ReciverId: user?.staff_Id,
       }).sort({createdAt: -1});
       if (!response) {
         res.status(HttpStatusCodes?.NOT_FOUND);

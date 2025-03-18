@@ -45,7 +45,7 @@ const adminCtr = {
           IsRead: false,
         }).save();
 
-        const send_to = addItem?.Client_Email;
+        const send_to = user?.Email;
         const subject = "Welcome! Your Timecamp Account Credentials";
         const message = `<!DOCTYPE html>
         <html lang="en">

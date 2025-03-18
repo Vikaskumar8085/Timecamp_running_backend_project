@@ -81,7 +81,7 @@ const admindashboardCtr = {
       const response = await Project.find(queryObj)
         .sort({createdAt: -1})
         .limit(5)
-        ?.select("Project_Name Start_Date End_Date");
+        ?.select("Project_Name Start_Date End_Date createdAt");
 
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -479,7 +479,9 @@ const admindashboardCtr = {
         return {
           staffName: staff ? `${staff.FirstName} ${staff.LastName}` : "Unknown",
           hours: timesheet.hours,
-          timeAgo: moment(timesheet.createdAt).fromNow(), // Shows how long ago the timesheet was filled
+          timeAgo: timesheet.createdAt
+            ? moment(timesheet.createdAt).fromNow()
+            : "Unknown time",
         };
       });
 

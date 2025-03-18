@@ -24,5 +24,10 @@ userRouter.get(
   verifyToken,
   userCtr.fetchusernotification
 );
+userRouter.get(
+  "/fetch-admin-notification",
+  verifyToken,
+  userCtr.fetchadminnotification
+);
 
 module.exports = userRouter;
