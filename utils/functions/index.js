@@ -4,11 +4,8 @@ const Client = require("../../models/AuthModels/Client/Client");
 
 const clientstatuschange = async () => {
   try {
-    console.log("Running scheduled task to update client status...");
     const today = new Date();
-
     const expiredProjects = await Project.find({End_Date: {$lt: today}});
-
     for (const project of expiredProjects) {
       await Client.findOneAndUpdate(
         {Client_Id: project.clientId},

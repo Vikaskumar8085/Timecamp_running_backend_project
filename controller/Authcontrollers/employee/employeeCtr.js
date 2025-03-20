@@ -291,31 +291,65 @@ const employeeCtr = {
         throw new Error("company not exists please create first company");
       }
 
-      let queryObj = {};
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
 
-      queryObj = {
-        CompanyId: company?.Company_Id,
-        Role: ["Employee", "Manager"],
-      };
-      const staffresponse = await StaffMember.find(queryObj).lean().exec();
-      if (!staffresponse) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad request");
+      // Search filter
+      let searchQuery = {};
+      if (req.query.search) {
+        searchQuery = {
+          $or: [
+            {FirstName: {$regex: req.query.search, $options: "i"}},
+            {LastName: {$regex: req.query.search, $options: "i"}},
+            {Email: {$regex: req.query.search, $options: "i"}},
+          ],
+        };
       }
-      const response = await Promise.all(
-        staffresponse.map(async (item) => {
-          const staffManager = await StaffMember.findOne({
-            staff_Id: item.ManagerId,
-          });
-          return {
-            ...item,
-            Manager: staffManager?.FirstName || null, // More concise null handling
-          };
-        })
-      );
+
+      // Main query
+      const queryObj = {
+        CompanyId: company.Company_Id,
+        Role: {$in: ["Employee", "Manager"]},
+        ...searchQuery, // Merge search filters
+      };
+
+      // Fetch employees with pagination
+      const staffresponse = await StaffMember.find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt: -1}) // Sort by newest first
+        .lean()
+        .exec();
+
+      // Count total employees for pagination
+      const totalCount = await StaffMember.countDocuments(queryObj);
+
+      // Fetch manager details in bulk
+      const managerIds = staffresponse
+        .map((item) => item.ManagerId)
+        .filter(Boolean);
+      const managers = await StaffMember.find({staff_Id: {$in: managerIds}})
+        .select("staff_Id FirstName")
+        .lean()
+        .exec();
+      const managerMap = managers.reduce((acc, mgr) => {
+        acc[mgr.staff_Id] = mgr.FirstName;
+        return acc;
+      }, {});
+
+      // Append manager names efficiently
+      const response = staffresponse.map((item) => ({
+        ...item,
+        Manager: managerMap[item.ManagerId] || null,
+      }));
 
       return res.status(HttpStatusCodes.OK).json({
         result: response,
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
         success: true,
       });
     } catch (error) {
@@ -326,74 +360,174 @@ const employeeCtr = {
   //   fetch active employee
   fetch_active_employee: asyncHandler(async (req, res) => {
     try {
-      // check user
+      // Check user
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please Signup.");
       }
-      // chcek companys
+
+      // Check company
       const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
-      }
-
-      let queryObj = {};
-
-      queryObj = {
-        CompanyId: company?.Company_Id,
-        Role: ["Employee", "Manager"],
-        IsActive: "Active",
-      };
-      const response = await StaffMember.find(queryObj).lean().exec();
-      if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad request");
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
+
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      // Search filter
+      let searchQuery = {};
+      if (req.query.search) {
+        searchQuery = {
+          $or: [
+            {FirstName: {$regex: req.query.search, $options: "i"}},
+            {LastName: {$regex: req.query.search, $options: "i"}},
+            {Email: {$regex: req.query.search, $options: "i"}},
+          ],
+        };
+      }
+
+      // Main query
+      const queryObj = {
+        CompanyId: company.Company_Id,
+        Role: {$in: ["Employee", "Manager"]},
+        IsActive: "Active",
+        ...searchQuery, // Merge search filters
+      };
+
+      // Fetch employees with pagination
+      const staffresponse = await StaffMember.find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt: -1}) // Sort by newest first
+        .lean()
+        .exec();
+
+      // Count total employees for pagination
+      const totalCount = await StaffMember.countDocuments(queryObj);
+
+      // Fetch manager details in bulk
+      const managerIds = staffresponse
+        .map((item) => item.ManagerId)
+        .filter(Boolean);
+      const managers = await StaffMember.find({staff_Id: {$in: managerIds}})
+        .select("staff_Id FirstName")
+        .lean()
+        .exec();
+      const managerMap = managers.reduce((acc, mgr) => {
+        acc[mgr.staff_Id] = mgr.FirstName;
+        return acc;
+      }, {});
+
+      // Append manager names efficiently
+      const response = staffresponse.map((item) => ({
+        ...item,
+        Manager: managerMap[item.ManagerId] || null,
+      }));
+
       return res.status(HttpStatusCodes.OK).json({
         result: response,
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
         success: true,
       });
     } catch (error) {
-      throw new Error(error?.message);
+      throw new Error(error.message);
     }
   }),
 
   //   fetch inactive emplloyee
   fetch_inactive_employee: asyncHandler(async (req, res) => {
     try {
-      // check user
+      // Check user
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please Signup.");
       }
-      // chcek companys
+
+      // Check company
       const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
-      }
-
-      let queryObj = {};
-
-      queryObj = {
-        CompanyId: company?.Company_Id,
-        Role: ["Employee", "Manager"],
-        IsActive: "InActive",
-      };
-      const response = await StaffMember.find(queryObj).lean().exec();
-      if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad request");
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
+
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      // Search filter
+      let searchQuery = {};
+      if (req.query.search) {
+        searchQuery = {
+          $or: [
+            {FirstName: {$regex: req.query.search, $options: "i"}},
+            {LastName: {$regex: req.query.search, $options: "i"}},
+            {Email: {$regex: req.query.search, $options: "i"}},
+          ],
+        };
+      }
+
+      // Main query
+      const queryObj = {
+        CompanyId: company.Company_Id,
+        Role: {$in: ["Employee", "Manager"]},
+        IsActive: "InActive",
+        ...searchQuery, // Merge search filters
+      };
+
+      // Fetch employees with pagination
+      const staffresponse = await StaffMember.find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt: -1}) // Sort by newest first
+        .lean()
+        .exec();
+
+      // Count total employees for pagination
+      const totalCount = await StaffMember.countDocuments(queryObj);
+
+      // Fetch manager details in bulk
+      const managerIds = staffresponse
+        .map((item) => item.ManagerId)
+        .filter(Boolean);
+      const managers = await StaffMember.find({staff_Id: {$in: managerIds}})
+        .select("staff_Id FirstName")
+        .lean()
+        .exec();
+      const managerMap = managers.reduce((acc, mgr) => {
+        acc[mgr.staff_Id] = mgr.FirstName;
+        return acc;
+      }, {});
+
+      // Append manager names efficiently
+      const response = staffresponse.map((item) => ({
+        ...item,
+        Manager: managerMap[item.ManagerId] || null,
+      }));
+
       return res.status(HttpStatusCodes.OK).json({
         result: response,
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
         success: true,
       });
     } catch (error) {
-      throw new Error(error?.message);
+      throw new Error(error.message);
     }
   }),
 

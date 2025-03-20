@@ -17,7 +17,7 @@ const DesignationCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -47,47 +47,56 @@ const DesignationCtr = {
   // fetch designation
   fetch_designation: asynchandler(async (req, res) => {
     try {
-      const { search, filter, page = 0, limit = 10 } = req.query; // Default skip=0, limit=10
+      const {search, page = 1, limit = 10} = req.query; // Default page=1, limit=10
 
-      // pagination
-      const parsedSkip = parseInt(page - 1);
-      const parsedLimit = parseInt(limit);
+      // Convert pagination parameters to integers
+      const parsedPage = Math.max(1, parseInt(page));
+      const parsedLimit = Math.max(1, parseInt(limit));
+      const skip = (parsedPage - 1) * parsedLimit;
 
-      // pagination
-
-      let query = {};
-
-      // Search functionality - case-insensitive regex for department name and description
-      if (search) {
-        query.$or = [
-          { Department_Name: { $regex: search, $options: "i" } }, // Case-insensitive search in departmentName
-        ];
-      }
-
-      // check user
+      // Check user authentication
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please Sign up.");
       }
 
-      // check company
-
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      // Check if the company exists
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
-      }
-      query = { CompanyId: checkcompany.Company_Id }; // Ensure the CompanyId is correct
-
-      const response = await Designation.find(query);
-      if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("bad request");
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+
+      // Query object for MongoDB
+      let query = {CompanyId: checkcompany.Company_Id};
+
+      // Search filter: Case-insensitive search by `DesignationName` or `Department_Name`
+      if (search) {
+        query.$or = [{Designation_Name: {$regex: search, $options: "i"}}];
+      }
+
+      // Fetch designations with pagination and sorting
+      const response = await Designation.find(query)
+        .skip(skip)
+        .limit(parsedLimit)
+        .sort({createdAt: -1}) // Sort by newest first
+        .lean()
+        .exec();
+
+      // Count total designations for pagination
+      const totalCount = await Designation.countDocuments(query);
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: response,
+        page: parsedPage,
+        limit: parsedLimit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / parsedLimit),
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -102,7 +111,7 @@ const DesignationCtr = {
         throw new Error("Un authorized user Please Signup");
       }
       // check company
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("company does not exists please create your company");
@@ -137,7 +146,7 @@ const DesignationCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -152,13 +161,13 @@ const DesignationCtr = {
         throw new Error("desingation Not Found for updation");
       } else {
         await desingationedit.updateOne({
-          $set: { Designation_Name: req.body.Designation_Name },
+          $set: {Designation_Name: req.body.Designation_Name},
         });
       }
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, message: "desingation successfully updated" });
+        .json({success: true, message: "desingation successfully updated"});
     } catch (error) {
       throw new Error(error?.message);
     }

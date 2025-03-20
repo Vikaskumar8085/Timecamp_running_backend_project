@@ -17,7 +17,7 @@ const DepartmentCtr = {
 
       // check company
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -51,37 +51,60 @@ const DepartmentCtr = {
 
   fetch_department: asyncHandler(async (req, res) => {
     try {
-      // check user
-
+      // Check user
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please Signup.");
       }
 
-      // check company
-
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      // Check company
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
 
-      let QueryObj = {};
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
 
-      QueryObj = {
+      // Search filter
+      let searchQuery = {};
+      if (req.query.search) {
+        searchQuery = {
+          $or: [{Department_Name: {$regex: req.query.search, $options: "i"}}],
+        };
+      }
+
+      // Main query
+      const queryObj = {
         CompanyId: checkcompany.Company_Id,
+        ...searchQuery, // Merge search filters
       };
 
-      const response = await Department.find(QueryObj).lean().exec();
+      // Fetch departments with pagination
+      const response = await Department.find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt: -1}) // Sort by newest first
+        .lean()
+        .exec();
 
-      if (!response) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("bad request");
-      }
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+      // Count total departments for pagination
+      const totalCount = await Department.countDocuments(queryObj);
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: response,
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -97,7 +120,7 @@ const DepartmentCtr = {
         throw new Error("Un authorized user Please Signup");
       }
       // check company
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(StatusCodes.NOT_FOUND);
         throw new Error("company does not exists please create your company");
@@ -116,7 +139,7 @@ const DepartmentCtr = {
         await removedepartment.deleteOne();
         return res
           .status(HttpStatusCodes.OK)
-          .json({ message: "department deleted successfully", success: true });
+          .json({message: "department deleted successfully", success: true});
       }
     } catch (error) {
       throw new Error(error?.message);
@@ -132,7 +155,7 @@ const DepartmentCtr = {
         throw new Error("Un authorized user Please Signup");
       }
       // check company
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("company does not exists please create your company");
@@ -147,13 +170,13 @@ const DepartmentCtr = {
         throw new Error("Department Not Found for updation");
       } else {
         await editdepartment.updateOne({
-          $set: { Department_Name: req.body.Department_Name },
+          $set: {Department_Name: req.body.Department_Name},
         });
       }
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ message: "department updated successfully", success: true });
+        .json({message: "department updated successfully", success: true});
     } catch (error) {
       throw new Error(error?.message);
     }

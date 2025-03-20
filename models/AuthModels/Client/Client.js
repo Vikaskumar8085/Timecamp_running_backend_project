@@ -42,6 +42,10 @@ const ClientRegistrationSchema = mongoose.Schema(
     GstNumber: {
       type: String,
       required: false,
+      match: [
+        /^[0-3][0-9][A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/,
+        "Please enter a valid GST Number",
+      ],
     },
     Role: {
       type: String,
@@ -60,7 +64,7 @@ const ClientRegistrationSchema = mongoose.Schema(
     Client_Status: {
       type: String,
       enum: ["Active", "InActive", "Dead"],
-      default: null,
+      default: "InActive",
     },
   },
   {
@@ -96,3 +100,5 @@ module.exports = Client;
 //   "GstNumber": "GST123456",
 //   "Common_Id": 1
 // }
+
+// 27ABCDE1234F1Z5

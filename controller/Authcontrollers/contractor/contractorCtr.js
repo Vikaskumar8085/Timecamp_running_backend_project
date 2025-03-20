@@ -10,7 +10,6 @@ const RoleResource = require("../../../models/Othermodels/Projectmodels/RoleReso
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const sendEmail = require("../../../utils/SendMail/SendMail");
 const Notification = require("../../../models/Othermodels/Notification/Notification");
-
 const contractorCtr = {
   // create contractor
   create_contractor: asynchandler(async (req, res) => {
@@ -231,19 +230,47 @@ const contractorCtr = {
         throw new Error("company not exists please create first company");
       }
 
-      let queryObj = {};
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
 
-      queryObj = {
-        CompanyId: company?.Company_Id,
-        Role: ["Contractor", "Manager"],
-      };
-      const response = await StaffMember.find(queryObj).lean().exec();
-      if (!response) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad request");
+      // Search query
+      let searchQuery = {};
+      if (req.query.search) {
+        searchQuery = {
+          $or: [
+            {name: {$regex: req.query.search, $options: "i"}},
+            {email: {$regex: req.query.search, $options: "i"}},
+          ],
+        };
       }
+
+      // Main query
+      const queryObj = {
+        CompanyId: company.Company_Id,
+        Role: {$in: ["Contractor", "Manager"]},
+        ...searchQuery,
+      };
+
+      // Fetch results with pagination
+      const response = await StaffMember.find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt: -1}) // Sort by newest first
+        .lean()
+        .exec();
+
+      // Count total records (for frontend pagination)
+      const totalCount = await StaffMember.countDocuments(queryObj);
+
+      // Response
       return res.status(HttpStatusCodes.OK).json({
         result: response,
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
         success: true,
       });
     } catch (error) {
@@ -254,33 +281,65 @@ const contractorCtr = {
   //   active contractor
   fetch_active_contractor: asynchandler(async (req, res) => {
     try {
-      // check user
+      // Check user
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please Signup.");
       }
-      // chcek companys
+
+      // Check company
       const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
-      }
-
-      let queryObj = {};
-
-      queryObj = {
-        CompanyId: company?.Company_Id,
-        Role: ["Contractor", "Manager"],
-        IsActive: "Active",
-      };
-      const response = await StaffMember.find(queryObj).lean().exec();
-      if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad request");
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
+
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      // Search filter
+      let searchQuery = {};
+      if (req.query.search) {
+        searchQuery = {
+          $or: [
+            {FirstName: {$regex: req.query.search, $options: "i"}},
+            {LastName: {$regex: req.query.search, $options: "i"}},
+            {Email: {$regex: req.query.search, $options: "i"}},
+          ],
+        };
+      }
+
+      // Main query
+      const queryObj = {
+        CompanyId: company.Company_Id,
+        Role: {$in: ["Contractor", "Manager"]},
+        IsActive: "Active",
+        ...searchQuery, // Merge search filters
+      };
+
+      // Fetch results with pagination
+      const response = await StaffMember.find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt: -1}) // Sort by newest first
+        .lean()
+        .exec();
+
+      // Count total records (for frontend pagination)
+      const totalCount = await StaffMember.countDocuments(queryObj);
+
+      // Response
       return res.status(HttpStatusCodes.OK).json({
         result: response,
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
         success: true,
       });
     } catch (error) {
@@ -291,37 +350,69 @@ const contractorCtr = {
   //   in active contractor
   fetch_inactive_contractor: asynchandler(async (req, res) => {
     try {
-      // check user
+      // Check user
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please Signup.");
       }
-      // chcek companys
+
+      // Check company
       const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
-      }
-
-      let queryObj = {};
-
-      queryObj = {
-        CompanyId: company?.Company_Id,
-        Role: ["Contractor", "Manager"],
-        IsActive: "InActive",
-      };
-      const response = await StaffMember.find(queryObj).lean().exec();
-      if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad request");
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
+
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      // Search filter
+      let searchQuery = {};
+      if (req.query.search) {
+        searchQuery = {
+          $or: [
+            {FirstName: {$regex: req.query.search, $options: "i"}},
+            {LastName: {$regex: req.query.search, $options: "i"}},
+            {Email: {$regex: req.query.search, $options: "i"}},
+          ],
+        };
+      }
+
+      // Main query
+      const queryObj = {
+        CompanyId: company.Company_Id,
+        Role: {$in: ["Contractor", "Manager"]},
+        IsActive: "InActive",
+        ...searchQuery, // Merge search filters
+      };
+
+      // Fetch results with pagination
+      const response = await StaffMember.find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt: -1}) // Sort by newest first
+        .lean()
+        .exec();
+
+      // Count total records (for frontend pagination)
+      const totalCount = await StaffMember.countDocuments(queryObj);
+
+      // Response
       return res.status(HttpStatusCodes.OK).json({
         result: response,
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
         success: true,
       });
     } catch (error) {
-      throw new Error(error?.message);
+      throw new Error(error.message);
     }
   }),
 

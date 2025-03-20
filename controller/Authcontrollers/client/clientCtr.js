@@ -31,8 +31,6 @@ const clientCtr = {
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(req.body.Password, genhash);
 
-      console.log(company, "comapny data");
-
       const addItem = await Client({
         Company_Name: req.body.Company_Name,
         Client_Name: req.body.Client_Name,
@@ -56,7 +54,7 @@ const clientCtr = {
         }).save();
 
         const send_to = addItem?.Client_Email;
-        const subject = "Welcome! Your Timecamp Account Credentials";
+        const subject = `Welcome! Your ${company?.Company_Name} Account Credentials`;
         const message = `<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -252,38 +250,37 @@ const clientCtr = {
         );
       }
 
-      // Filtering and searching
-      let {search, page = 1, limit = 10} = req.query;
-      page = parseInt(page);
-      limit = parseInt(limit);
+      // Extract and validate pagination & search parameters
+      let {search = "", page = 1, limit = 10} = req.query;
+      page = Math.max(parseInt(page, 10) || 1, 1);
+      limit = Math.max(parseInt(limit, 10) || 10, 1);
 
       let queryObj = {
         Common_Id: company?.Company_Id,
         Role: "Client",
       };
 
-      if (search) {
+      // Apply search filter
+      if (search.trim()) {
         queryObj.$or = [
-          {Client_Name: {$regex: search, $options: "i"}}, // Case-insensitive search
+          {Client_Name: {$regex: search, $options: "i"}},
           {Client_Email: {$regex: search, $options: "i"}},
         ];
       }
 
-      // Pagination
+      // Fetch total client count for pagination
       const totalClients = await Client.countDocuments(queryObj);
+
+      // Fetch paginated client data
       const clients = await Client.find(queryObj)
         .skip((page - 1) * limit)
         .limit(limit)
         .lean()
         .exec();
 
-      if (!clients) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request");
-      }
-
       return res.status(HttpStatusCodes.OK).json({
         result: clients,
+        totalClients,
         totalPages: Math.ceil(totalClients / limit),
         currentPage: page,
         success: true,
@@ -312,20 +309,42 @@ const clientCtr = {
         throw new Error("company not exists please create first company");
       }
 
-      let queryObj = {};
-      queryObj = {
-        Common_Id: company?.Company_Id,
+      // Extract query parameters
+      let {search = "", page = 1, limit = 10} = req.query;
+
+      page = Math.max(parseInt(page, 10), 1); // Ensure page is at least 1
+      limit = Math.max(parseInt(limit, 10), 1); // Ensure limit is at least 1
+
+      // Build search query
+      let queryObj = {
+        Common_Id: company.Company_Id,
         Client_Status: "Active",
         Role: "Client",
       };
-      const response = await Client.find(queryObj).lean().exec();
-      if (!response) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request");
+
+      if (search.trim()) {
+        queryObj.$or = [
+          {Client_Name: {$regex: search, $options: "i"}},
+          {Client_Email: {$regex: search, $options: "i"}},
+        ];
       }
+
+      // Count total matching clients (for pagination)
+      const totalClients = await Client.countDocuments(queryObj);
+
+      // Fetch paginated clients
+      const clients = await Client.find(queryObj)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec();
+
       return res.status(HttpStatusCodes.OK).json({
-        result: response,
         success: true,
+        result: clients,
+        totalClients,
+        currentPage: page,
+        totalPages: Math.ceil(totalClients / limit),
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -350,20 +369,41 @@ const clientCtr = {
         throw new Error("company not exists please create first company");
       }
 
-      let queryObj = {};
-      queryObj = {
-        Common_Id: company?.Company_Id,
+      let {page = 1, limit = 10, search = ""} = req.query;
+      page = parseInt(page, 10) || 1;
+      limit = parseInt(limit, 10) || 10;
+
+      // Construct query object
+      const queryObj = {
+        Common_Id: company.Company_Id,
         Client_Status: "InActive",
         Role: "Client",
       };
-      const response = await Client.find(queryObj).lean().exec();
-      if (!response) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request");
+
+      // Apply search filter for both name and email
+      if (search.trim()) {
+        queryObj.$or = [
+          {Client_Name: {$regex: search, $options: "i"}},
+          {Client_Email: {$regex: search, $options: "i"}},
+        ];
       }
+
+      // Fetch total record count
+      const totalRecords = await Client.countDocuments(queryObj);
+
+      // Fetch paginated client records
+      const clients = await Client.find(queryObj)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec();
+
       return res.status(HttpStatusCodes.OK).json({
-        result: response,
         success: true,
+        result: clients,
+        totalRecords,
+        currentPage: page,
+        totalPages: Math.ceil(totalRecords / limit),
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -373,37 +413,67 @@ const clientCtr = {
   // dead client
   fetch_dead_client: asyncHandler(async (req, res) => {
     try {
-      // check user
-      const user = await User?.findById(req.user);
+      // Check user
+      const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please sign up.");
       }
 
-      // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      // Check company
+      const company = await Company.findOne({UserId: user.user_id});
       if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
 
-      let queryObj = {};
-      queryObj = {
-        Common_Id: company?.Company_Id,
+      // Pagination parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      // Search filter
+      let searchQuery = {};
+      if (req.query.search) {
+        searchQuery = {
+          $or: [
+            {Client_Name: {$regex: req.query.search, $options: "i"}},
+            {Client_Email: {$regex: req.query.search, $options: "i"}},
+          ],
+        };
+      }
+
+      // Query object
+      const queryObj = {
+        Common_Id: company.Company_Id,
         Client_Status: "Dead",
         Role: "Client",
+        ...searchQuery,
       };
-      const response = await Client.find(queryObj).lean().exec();
-      if (!response) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request");
-      }
+
+      // Fetch clients with pagination
+      const clients = await Client.find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec();
+      const total = await Client.countDocuments(queryObj);
+
       return res.status(HttpStatusCodes.OK).json({
-        result: response,
+        result: clients,
         success: true,
+        pagination: {
+          total,
+          page,
+          totalPages: Math.ceil(total / limit),
+          limit,
+        },
       });
     } catch (error) {
-      throw new Error(error?.message);
+      res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
+      throw new Error(error.message);
     }
   }),
 
