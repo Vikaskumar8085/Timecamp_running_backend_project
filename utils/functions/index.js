@@ -13,7 +13,6 @@ const clientstatuschange = async () => {
       );
       console.log(`Updated Client ${project.clientId} status to Dead.`);
     }
-
     console.log("Client status update completed.");
   } catch (error) {
     console.error("Error updating client statuses:", error);

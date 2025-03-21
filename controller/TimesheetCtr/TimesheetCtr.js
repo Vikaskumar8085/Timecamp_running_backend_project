@@ -90,22 +90,38 @@ const TimesheetCtr = {
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please Sign Up.");
       }
 
       const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
 
-      let queryObj = {};
+      // Extract query params
+      let {search = "", page = 1, limit = 10} = req.query;
+      page = parseInt(page);
+      limit = parseInt(limit);
 
-      queryObj = {
-        CompanyId: checkcompany.Company_Id,
+      let queryObj = {CompanyId: checkcompany.Company_Id};
+
+      // Step 1: Find all projects with optional search filter
+      let projectQuery = {
+        ...queryObj,
+        $or: [
+          {Project_Name: {$regex: search, $options: "i"}}, // Case-insensitive search by name
+          {Project_Code: {$regex: search, $options: "i"}}, // Case-insensitive search by code
+        ],
       };
-      // Step 1: Find all projects for the given CompanyId
-      const projects = await Project.find(queryObj);
+
+      const totalCount = await Project.countDocuments(projectQuery); // Get total count for pagination
+
+      const projects = await Project.find(projectQuery)
+        .skip((page - 1) * limit)
+        .limit(limit);
 
       if (!projects || projects.length === 0) {
         return res
@@ -114,7 +130,7 @@ const TimesheetCtr = {
       }
 
       // Extract project IDs
-      const projectIds = await projects.map((project) => project.ProjectId);
+      const projectIds = projects.map((project) => project.ProjectId);
 
       // Step 2: Aggregate TimeSheet data for these projects
       const timesheetData = await TimeSheet.aggregate([
@@ -161,6 +177,9 @@ const TimesheetCtr = {
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,
+        totalCount, // Total projects matching search filter
+        currentPage: page,
+        totalPages: Math.ceil(totalCount / limit),
         result,
       });
     } catch (error) {
@@ -182,8 +201,6 @@ const TimesheetCtr = {
         throw new Error("company not exists please create first company");
       }
       // approved timesheet
-
-      
     } catch (error) {
       throw new Error(error?.message);
     }

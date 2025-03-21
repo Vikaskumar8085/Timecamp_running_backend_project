@@ -1,1 +1,1 @@
-Company_Name,Client_Name,Client_Email,Client_Phone,Client_Address,Client_Postal_Code,GstNumber,System_Access
+billed_By,hours,task_description,Description,start_time,end_time,day,approved,remarks,approval_status,billing_status,billed_hours,ok_hours,blank_hours,attachement,Resource_Email,Project_Code

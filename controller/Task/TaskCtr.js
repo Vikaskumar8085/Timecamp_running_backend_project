@@ -172,54 +172,70 @@ const TaskCtr = {
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
-      }
-      // check company
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
-      if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        throw new Error("Unauthorized User. Please Sign Up.");
       }
 
-      let queryObj = {};
-      queryObj = {
-        Company_Id: checkcompany.Company_Id,
-      };
+      // Check if the company exists
+      const checkCompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkCompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
+      }
 
-      const response = await Task.find(queryObj).lean().exec();
+      // Extract query parameters for search and pagination
+      const {search = "", page = 1, limit = 10} = req.query;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
 
-      const projectsdata = await Promise.all(
-        response.map(async (item) => {
-          const fetchproject = await Project.find({ProjectId: item?.ProjectId});
+      // Construct search query
+      let queryObj = {Company_Id: checkCompany.Company_Id};
 
-          const fetchResourcesName = await StaffMember.find({
-            staff_Id: item.Resource_Id,
-          });
+      if (search) {
+        queryObj["Task_Name"] = {$regex: search, $options: "i"}; // Case-insensitive search
+      }
 
-          const fetchMilestone = await Milestone.find({
-            Milestone_id: item.MilestoneId,
-          });
+      // Fetch total count for pagination metadata
+      const totalCount = await Task.countDocuments(queryObj);
 
-          const ProjectName = fetchproject.map((proj) => proj.Project_Name);
-          const ResourceName = fetchResourcesName.map((res) => res.FirstName);
-          const MilestoneName = fetchMilestone.map((mile) => mile.Name);
+      // Fetch paginated tasks
+      const tasks = await Task.find(queryObj)
+        .skip(skip)
+        .limit(parseInt(limit))
+        .lean();
+
+      // Fetch related data in parallel to improve performance
+      const projectsData = await Promise.all(
+        tasks.map(async (task) => {
+          const [fetchProject, fetchResources, fetchMilestone] =
+            await Promise.all([
+              Project.findOne({ProjectId: task?.ProjectId}),
+              StaffMember.findOne({staff_Id: task?.Resource_Id}),
+              Milestone.findOne({Milestone_id: task?.MilestoneId}),
+            ]);
 
           return {
-            ...item,
-            ProjectName,
-            ResourceName,
-            MilestoneName,
+            ...task,
+            ProjectName: fetchProject?.Project_Name || "N/A",
+            ResourceName: fetchResources?.FirstName || "N/A",
+            MilestoneName: fetchMilestone?.Name || "N/A",
           };
         })
       );
 
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, result: projectsdata});
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: projectsData,
+        totalCount,
+        currentPage: parseInt(page),
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+      });
     } catch (error) {
+      res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
       throw new Error(error?.message);
     }
   }),
+
   fetchProjectwithmilestones: asynchandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
