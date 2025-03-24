@@ -2,6 +2,7 @@ const asynchandler = require("express-async-handler");
 const Company = require("../../models/Othermodels/Companymodels/Company");
 const HttpStatusCodes = require("../../utils/StatusCodes/statusCodes");
 const User = require("../../models/AuthModels/User/User");
+const path = require("path");
 
 const companyCtr = {
   // create company
@@ -14,13 +15,37 @@ const companyCtr = {
         throw new Error("Un Authorized User please login first");
       }
 
+      let attachmentPath = req.file ? req.file.filename : Company_Logo;
+      let uploadPath = "uploads/";
+
+      // Get file extension
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      console.log(fileExt, "reqogsdfisdfl");
+
+      // Define subfolders based on file type
+      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+        uploadPath += "documents/";
+      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
+        uploadPath += "images/";
+      } else if (file.mimetype === "text/csv") {
+        uploadPath += "csv/";
+      } else {
+        uploadPath += "others/"; // Fallback folder
+      }
+
+      console.log(uploadPath, "upload path");
+
+      const companylogo = attachmentPath
+        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
+        : null;
+
       const response = await Company({
         Company_Name: req.body.Company_Name,
         Company_Email: req.body.Company_Email,
         Address: req.body.Address,
         Postal_Code: req.body.Postal_Code,
         Phone: req.body.Phone,
-        Company_Logo: req.body.Company_Logo,
+        Company_Logo: companylogo,
         Employee_No: req.body.Employee_No,
         Established_date: req.body.Established_date,
         CompanyWesite: req.body.CompanyWesite,
@@ -55,6 +80,12 @@ const companyCtr = {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("bad requests");
       }
+
+      const companylogo = response.Company_Logo
+        ? `${req.protocol}://${req.get("host")}/${response.Company_Logo}`
+        : null;
+      // console.log(`${req.protocol}://${req.get("host")}/${company.Company_Logo)
+      console.log(response._doc, "//////////////");
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, result: response});

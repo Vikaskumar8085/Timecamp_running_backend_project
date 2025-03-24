@@ -2,10 +2,16 @@ const express = require("express");
 const userCtr = require("../../controller/Authcontrollers/user/userCtr");
 const companyCtr = require("../../controller/company/CompanyCtr");
 const verifyToken = require("../../Auth/verifyAuth");
+const upload = require("../../utils/FileUpload/fileUpload");
 const userRouter = express.Router();
 
 // company creation
-userRouter.post("/create-company", verifyToken, companyCtr.create_company);
+userRouter.post(
+  "/create-company",
+  upload.single("Company_Logo"),
+  verifyToken,
+  companyCtr.create_company
+);
 userRouter.get("/fetch-company", verifyToken, companyCtr.fetch_company);
 userRouter.put("/update-company/:id", verifyToken, companyCtr.editcompany);
 

@@ -20,6 +20,7 @@ app.use(
     origin: "*",
   })
 );
+app.use("/uploads", express.static("uploads"));
 app.use(morgan("dev"));
 app.use(helmet());
 app.use(bodyParser.json({limit: "50mb"}));

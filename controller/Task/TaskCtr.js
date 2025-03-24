@@ -30,9 +30,30 @@ const TaskCtr = {
         });
         return; // Ensure no further code runs after sending the response
       }
-      console.log(checkcompany);
 
       let attachmentPath = req.file ? req.file.filename : Attachment;
+      let uploadPath = "uploads/";
+
+      // Get file extension
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      console.log(fileExt, "reqogsdfisdfl");
+
+      // Define subfolders based on file type
+      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+        uploadPath += "documents/";
+      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
+        uploadPath += "images/";
+      } else if (file.mimetype === "text/csv") {
+        uploadPath += "csv/";
+      } else {
+        uploadPath += "others/"; // Fallback folder
+      }
+
+      console.log(uploadPath, "upload path");
+
+      const taskattachment = attachmentPath
+        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
+        : null;
 
       // Create a new task instance
       const newTask = new Task({
@@ -45,7 +66,7 @@ const TaskCtr = {
         EndDate: req.body.EndDate,
         Estimated_Time: req.body.Estimated_Time,
         Task_description: req.body.Task_Description,
-        Attachment: attachmentPath,
+        Attachment: taskattachment,
         Resource_Id: req.body.Resource_Id,
       });
 
@@ -87,6 +108,28 @@ const TaskCtr = {
         return; // Ensure no further code runs after sending the response
       }
       let attachmentPath = req.file ? req.file.filename : Attachment;
+      let uploadPath = "uploads/";
+
+      // Get file extension
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      console.log(fileExt, "reqogsdfisdfl");
+
+      // Define subfolders based on file type
+      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+        uploadPath += "documents/";
+      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
+        uploadPath += "images/";
+      } else if (file.mimetype === "text/csv") {
+        uploadPath += "csv/";
+      } else {
+        uploadPath += "others/";
+      }
+
+      console.log(uploadPath, "upload path");
+
+      const taskattachmentfile = attachmentPath
+        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
+        : null;
 
       const newTask = new Task({
         Company_Id: checkcompany?.Company_Id,
@@ -98,7 +141,7 @@ const TaskCtr = {
         EndDate: req.body.EndDate,
         Estimated_Time: req.body.Estimated_Time,
         Task_description: req.body.Task_Description,
-        Attachment: attachmentPath,
+        Attachment: taskattachmentfile,
         Resource_Id: req.body.Resource_Id,
       });
 
