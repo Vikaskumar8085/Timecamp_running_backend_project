@@ -11,7 +11,10 @@ const {
   NotFoundHandler,
 } = require("../middleware/ErrorHandler");
 const indexRouter = require("../routers");
-const {clientstatuschange} = require("../utils/functions");
+const {
+  clientstatuschange,
+  projectstatuschanger,
+} = require("../utils/functions");
 require("../config/dbconfig");
 
 const app = express();
@@ -33,6 +36,7 @@ app.use(NotFoundHandler);
 // Runs every day at midnight
 cron.schedule("0 0 * * *", async () => {
   clientstatuschange();
+  projectstatuschanger();
 });
 
 module.exports = app;

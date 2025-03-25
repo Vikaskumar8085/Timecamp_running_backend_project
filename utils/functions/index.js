@@ -19,6 +19,22 @@ const clientstatuschange = async () => {
   }
 };
 
+const projectstatuschanger = async () => {
+  try {
+    const today = new Date();
+    const expiredProjects = await Project.find({End_Date: {$lte: today}});
+    for (const project of expiredProjects) {
+      await Project.findOneAndUpdate(
+        {ProjectId: project.ProjectId},
+        {Project_Status: false}
+      );
+      console.log(`Updated Project ${project.Project_Status} status .`);
+    }
+  } catch (error) {
+    console.log(error?.message);
+  }
+};
 module.exports = {
+  projectstatuschanger,
   clientstatuschange,
 };

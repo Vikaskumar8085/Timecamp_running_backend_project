@@ -10,13 +10,11 @@ const MilestoneSchema = new mongoose.Schema({
   },
   Compnay_Id: {
     type: Number,
-    ref: "Company",
     trim: true,
     unique: true,
   },
   ProjectId: {
     type: Number,
-    ref: "Project",
     required: true,
   },
   Name: {

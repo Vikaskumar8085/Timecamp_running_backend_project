@@ -8,6 +8,7 @@ const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers")
 const Milestone = require("../../models/Othermodels/Milestones/Milestones");
 const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
 const Notification = require("../../models/Othermodels/Notification/Notification");
+const path = require("path");
 const TaskCtr = {
   // create tasks
   create_task: asynchandler(async (req, res) => {
@@ -107,7 +108,7 @@ const TaskCtr = {
         });
         return; // Ensure no further code runs after sending the response
       }
-      let attachmentPath = req.file ? req.file.filename : Attachment;
+      let attachmentPath = req.file ? req.file.filename : "Attachment";
       let uploadPath = "uploads/";
 
       // Get file extension

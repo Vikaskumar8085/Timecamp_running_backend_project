@@ -10,11 +10,13 @@ const RoleResource = require("../../../models/Othermodels/Projectmodels/RoleReso
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const sendEmail = require("../../../utils/SendMail/SendMail");
 const Notification = require("../../../models/Othermodels/Notification/Notification");
+const path = require("path");
 const contractorCtr = {
   // create contractor
   create_contractor: asynchandler(async (req, res) => {
     try {
       // check user
+      console.log(req.body, "data ?>>>>>>>>>>>>>>>");
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
@@ -32,6 +34,31 @@ const contractorCtr = {
       const hashpassword = await bcrypt.hash(req.body.Password, genhash);
       // const formattedDate = moment(req.body.Joining_Date).format("YYYY-MM-DD");
       // create contractor
+
+      let attachmentPath = req.file ? req.file.filename : Photos;
+      let uploadPath = "uploads/";
+
+      // Get file extension
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      // console.log(fileExt, "reqogsdfisdfl");
+
+      // Define subfolders based on file type
+      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+        uploadPath += "documents/";
+      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
+        uploadPath += "images/";
+      } else if (file.mimetype === "text/csv") {
+        uploadPath += "csv/";
+      } else {
+        uploadPath += "others/"; // Fallback folder
+      }
+
+      console.log(uploadPath, "upload path");
+
+      const contractorattachment = attachmentPath
+        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
+        : null;
+
       const response = await StaffMember({
         FirstName: req.body.FirstName,
         LastName: req.body.LastName,
@@ -39,7 +66,7 @@ const contractorCtr = {
         Phone: req.body.Phone,
         Address: req.body.Address,
         Password: hashpassword,
-        Joining_Date: moment(req.body.Joining_Date).format("YYYY-MM-DD"),
+        Joining_Date: moment(req.body.Joining_Date).format("DD/MMM/YYYY"),
         DesignationId: req.body.DesignationId,
         ManagerId: req.body.ManagerId,
         Permission: req.body.Permission,
@@ -49,6 +76,7 @@ const contractorCtr = {
         Hourly_Rate: req.body.Hourly_Rate,
         Supervisor: req.body.Supervisor,
         Role: "Contractor",
+        Photos: contractorattachment,
         CompanyId: company.Company_Id,
       });
 
@@ -59,7 +87,7 @@ const contractorCtr = {
         throw new Error("bad request");
       }
 
-      const send_to = Email;
+      const send_to = req.body.Email;
       const subject = "Account Credential ";
       const message = `<!DOCTYPE html>
       <html lang="en">
@@ -240,8 +268,9 @@ const contractorCtr = {
       if (req.query.search) {
         searchQuery = {
           $or: [
-            {name: {$regex: req.query.search, $options: "i"}},
-            {email: {$regex: req.query.search, $options: "i"}},
+            {FirstName: {$regex: req.query.search, $options: "i"}},
+            {LastName: {$regex: req.query.search, $options: "i"}},
+            {Email: {$regex: req.query.search, $options: "i"}},
           ],
         };
       }

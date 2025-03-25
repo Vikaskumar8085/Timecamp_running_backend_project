@@ -11,6 +11,7 @@ const RoleResource = require("../../../models/Othermodels/Projectmodels/RoleReso
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const sendEmail = require("../../../utils/SendMail/SendMail");
 const Notification = require("../../../models/Othermodels/Notification/Notification");
+const path = require("path");
 
 const employeeCtr = {
   // create employee
@@ -34,6 +35,30 @@ const employeeCtr = {
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(req.body.Password, genhash);
 
+      let attachmentPath = req.file ? req.file.filename : Profile;
+      let uploadPath = "uploads/";
+
+      // Get file extension
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      // console.log(fileExt, "reqogsdfisdfl");
+
+      // Define subfolders based on file type
+      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+        uploadPath += "documents/";
+      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
+        uploadPath += "images/";
+      } else if (file.mimetype === "text/csv") {
+        uploadPath += "csv/";
+      } else {
+        uploadPath += "others/"; // Fallback folder
+      }
+
+      console.log(uploadPath, "upload path");
+
+      const employeeattachment = attachmentPath
+        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
+        : null;
+
       // create Employee
       const response = await StaffMember({
         FirstName: req.body.FirstName,
@@ -42,12 +67,13 @@ const employeeCtr = {
         Phone: req.body.Phone,
         Address: req.body.Address,
         Password: hashpassword,
-        Joining_Date: moment(req.body.Joining_Date).format("YYYY-MM-DD"),
+        Joining_Date: moment(req.body.Joining_Date).format("DD/MM/YYYY"),
         DesignationId: req.body.DesignationId,
         Backlog_Entries: req.body.Backlog_Entries,
         Socail_Links: req.body.Socail_Links,
         Permission: req.body.Permission,
         ManagerId: req.body.ManagerId,
+        Photos: employeeattachment,
         Role: "Employee",
         CompanyId: company.Company_Id,
       });
@@ -57,10 +83,7 @@ const employeeCtr = {
         staff_Id: managerids,
       });
       if (checkmanagerids) {
-        await StaffMember.updateOne(
-          {staff_Id: managerids},
-          {SubRole: "Manager"}
-        );
+        await StaffMember.updateOne({staff_Id: managerids}, {Role: "Manager"});
       }
       await response.save();
       if (!response) {
@@ -185,6 +208,29 @@ const employeeCtr = {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Employee not found.");
       }
+      let attachmentPath = req.file ? req.file.filename : employee.Photos;
+      let uploadPath = "uploads/";
+
+      // Get file extension
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      console.log(fileExt, "reqogsdfisdfl");
+
+      // Define subfolders based on file type
+      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+        uploadPath += "documents/";
+      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
+        uploadPath += "images/";
+      } else if (file.mimetype === "text/csv") {
+        uploadPath += "csv/";
+      } else {
+        uploadPath += "others/"; // Fallback folder
+      }
+
+      // console.log(uploadPath, "upload path");
+
+      const employeeattachment = attachmentPath
+        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
+        : null;
 
       // Update fields
       employee.FirstName = req.body.FirstName || employee.FirstName;
@@ -199,6 +245,7 @@ const employeeCtr = {
       employee.Backlog_Entries =
         req.body.Backlog_Entries || employee.Backlog_Entries;
       employee.Socail_Links = req.body.Socail_Links || employee.Socail_Links;
+      employee.Photos = employeeattachment || employee.Photos;
       employee.Permission = req.body.Permission || employee.Permission;
       employee.ManagerId = req.body.ManagerId || employee.ManagerId;
 
@@ -219,6 +266,16 @@ const employeeCtr = {
             {Role: "Manager"}
           );
         }
+      }
+      const findManagers = await StaffMember.find({
+        ManagerId: {$in: employee.ManagerId},
+      });
+
+      if (findManagers.length > 0) {
+        await StaffMember.updateMany(
+          {staff_Id: {$in: findManagers.map((manager) => manager.staff_Id)}},
+          {Role: "Employee"}
+        );
       }
 
       await employee.save();

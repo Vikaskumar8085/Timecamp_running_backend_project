@@ -82,8 +82,18 @@ adminRouter.get(
 // project
 
 // employee
-adminRouter.post("/create-employee", verifyToken, employeeCtr.create_employee);
-adminRouter.put("/edit-employee/:id", verifyToken, employeeCtr.update_employee);
+adminRouter.post(
+  "/create-employee",
+  upload.single("Profile"),
+  verifyToken,
+  employeeCtr.create_employee
+);
+adminRouter.put(
+  "/edit-employee/:id",
+  verifyToken,
+  upload.single("Profile"),
+  employeeCtr.update_employee
+);
 adminRouter.get("/fetch-employee", verifyToken, employeeCtr.fetch_employee);
 adminRouter.get(
   "/fetch-active-employee",
@@ -116,6 +126,7 @@ adminRouter.get(
 // contractor
 adminRouter.post(
   "/create-contractor",
+  upload.single("Profile"),
   verifyToken,
   contractorCtr.create_contractor
 );
