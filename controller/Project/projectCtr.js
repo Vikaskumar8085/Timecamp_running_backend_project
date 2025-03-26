@@ -9,6 +9,7 @@ const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResourc
 const Client = require("../../models/AuthModels/Client/Client");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Notification = require("../../models/Othermodels/Notification/Notification");
+const moment = require("moment");
 const generateProjectCode = async () => {
   const lastProject = await Project.findOne().sort({ProjectId: -1});
   const lastId = lastProject ? lastProject.ProjectId : 0;
@@ -152,50 +153,71 @@ const projectCtr = {
         throw new Error("Un Authorized User");
       }
 
-      // check company
+      // Check company
       const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        throw new Error(
+          "Company does not exist, please create a company first"
+        );
       }
+
+      let {page = 1, limit = 10, search = ""} = req.query;
+      page = parseInt(page, 10);
+      limit = parseInt(limit, 10);
 
       let queryObj = {
         CompanyId: company.Company_Id,
       };
 
-      const response = await Project.find(queryObj).lean().exec();
-      if (!response) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request");
+      // Add search filter (case-insensitive)
+      if (search.trim()) {
+        queryObj.$or = [{Project_Name: {$regex: search, $options: "i"}}];
       }
+      // Fetch total count for pagination
+      const totalProjects = await Project.countDocuments(queryObj);
+
+      // Fetch paginated projects
+      const projects = await Project.find(queryObj)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec();
+
+      if (!projects.length) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("No projects found");
+      }
+
+      // Fetch roles and staff details for each project
       const projectsWithDetails = await Promise.all(
-        response.map(async (project) => {
+        projects.map(async (project) => {
           const roleResources = await RoleResource.find({
             ProjectId: project.ProjectId,
           });
-
-          // Extract RRId values
           const rIds = roleResources.map((rr) => rr.RId);
-          const roles = await Role.find({RoleId: {$in: rIds}});
           const rrid = roleResources.map((rr) => rr.RRId);
 
-          const staffMember = await StaffMember.find({
-            staff_Id: {$in: rrid},
-          });
+          const roles = await Role.find({RoleId: {$in: rIds}});
+          const staffMember = await StaffMember.find({staff_Id: {$in: rrid}});
 
           return {...project, roles, staffMember};
         })
       );
 
       return res.status(HttpStatusCodes.OK).json({
-        message: "fetch projects successfully",
+        message: "Projects fetched successfully",
         result: projectsWithDetails,
+        totalPages: Math.ceil(totalProjects / limit),
+        currentPage: page,
+        totalProjects,
         success: true,
       });
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
+
   fetch_active_projects: asyncHandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
@@ -204,27 +226,79 @@ const projectCtr = {
         throw new Error("Un Authorized User");
       }
 
-      // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      // Check company
+      const company = await Company.findOne({UserId: user?.user_id});
       if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
-      }
-
-      let queryObj = {};
-      queryObj = {
-        CompanyId: company?.Company_Id,
-        Project_Status: true,
-      };
-      const response = await Project.find(queryObj).lean().exec();
-
-      if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request");
+        throw new Error(
+          "Company does not exist, please create a company first"
+        );
       }
+
+      // Extract query parameters
+      let {
+        page = 1,
+        limit = 10,
+        search = "",
+        status,
+        start_date,
+        end_date,
+      } = req.query;
+      page = parseInt(page, 10);
+      limit = parseInt(limit, 10);
+
+      // Query object for filtering active projects
+      let queryObj = {
+        CompanyId: company?.Company_Id,
+        Project_Status: true, // Only fetch active projects
+      };
+
+      // Apply search filter (case-insensitive search for ProjectName)
+      if (search) {
+        queryObj.Project_Name = {$regex: search, $options: "i"};
+      }
+
+      // Apply additional status filter if provided
+      if (status) {
+        queryObj.Project_Status = status;
+      }
+
+      // Apply Start Date & End Date filter with Moment.js
+      if (start_date || end_date) {
+        queryObj.Start_Date = {};
+        if (start_date)
+          queryObj.Start_Date.$gte = moment(start_date, "DD/MM/YYYY")
+            .startOf("day")
+            .toDate();
+        if (end_date)
+          queryObj.Start_Date.$lte = moment(end_date, "DD/MM/YYYY")
+            .endOf("day")
+            .toDate();
+      }
+
+      // Fetch total count for pagination
+      const totalProjects = await Project.countDocuments(queryObj);
+
+      // Fetch paginated projects
+      const projects = await Project.find(queryObj)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec();
+
+      // Format project start and end dates in response
+      const formattedProjects = projects.map((project) => ({
+        ...project,
+        Start_Date: moment(project.StartDate).format("DD/MM/YYYY"),
+        End_Date: moment(project.EndDate).format("DD/MM/YYYY"),
+      }));
+
       return res.status(HttpStatusCodes.OK).json({
-        message: "fetch project successfully",
-        result: response,
+        message: "Projects fetched successfully",
+        result: formattedProjects,
+        totalPages: Math.ceil(totalProjects / limit),
+        currentPage: page,
+        totalProjects,
         success: true,
       });
     } catch (error) {
@@ -245,21 +319,45 @@ const projectCtr = {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
+      // Extract query parameters
+      let {page = 1, limit = 10, search = ""} = req.query;
+      page = parseInt(page, 10);
+      limit = parseInt(limit, 10);
 
-      let queryObj = {};
-      queryObj = {
+      // Query object for filtering inactive projects
+      let queryObj = {
         CompanyId: company?.Company_Id,
-        Project_Status: false,
+        Project_Status: false, // Only fetch inactive projects
       };
-      const response = await Project.find(queryObj).lean().exec();
 
-      if (!response) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request");
+      // Apply search filter (case-insensitive search for ProjectName)
+      if (search) {
+        queryObj.Project_Name = {$regex: search, $options: "i"};
       }
+
+      // Fetch total count for pagination
+      const totalProjects = await Project.countDocuments(queryObj);
+
+      // Fetch paginated projects
+      const projects = await Project.find(queryObj)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec();
+
+      // Format project start and end dates in response
+      const formattedProjects = projects.map((project) => ({
+        ...project,
+        StartDate: moment(project.StartDate).format("DD/MM/YYYY"),
+        EndDate: moment(project.EndDate).format("DD/MM/YYYY"),
+      }));
+
       return res.status(HttpStatusCodes.OK).json({
-        message: "fetch project successfully",
-        result: response,
+        message: "Inactive projects fetched successfully",
+        result: formattedProjects,
+        totalPages: Math.ceil(totalProjects / limit),
+        currentPage: page,
+        totalProjects,
         success: true,
       });
     } catch (error) {

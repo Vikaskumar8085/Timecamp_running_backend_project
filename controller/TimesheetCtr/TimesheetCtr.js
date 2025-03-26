@@ -5,7 +5,7 @@ const User = require("../../models/AuthModels/User/User");
 const Company = require("../../models/Othermodels/Companymodels/Company");
 const Project = require("../../models/Othermodels/Projectmodels/Project");
 const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
-
+const moment = require("moment");
 const TimesheetCtr = {
   // create timesheet
   create_timesheet: asyncHandler(async (req, res) => {
@@ -22,63 +22,92 @@ const TimesheetCtr = {
     }
   }),
   //   fetch timesheet
+
   fetch_timesheet: asyncHandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please Sign Up");
       }
 
       const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
 
-      console.log(checkcompany);
-      let queryObj = {};
+      let {
+        page = 1,
+        limit = 10,
+        search = "",
+        start_date,
+        end_date,
+        status,
+      } = req.query;
+      page = parseInt(page, 10);
+      limit = parseInt(limit, 10);
 
-      queryObj = {
-        CompanyId: checkcompany.Company_Id,
-      };
-      const response = await TimeSheet.find(queryObj);
+      let queryObj = {CompanyId: checkcompany.Company_Id};
+
+      // Date Range Filter
+      if (start_date || end_date) {
+        queryObj.CreatedAt = {};
+        if (start_date)
+          queryObj.CreatedAt.$gte = moment(start_date, "DD/MM/YYYY")
+            .startOf("day")
+            .toDate();
+        if (end_date)
+          queryObj.CreatedAt.$lte = moment(end_date, "DD/MM/YYYY")
+            .endOf("day")
+            .toDate();
+      }
+
+      // Status Filter
+      if (status) {
+        queryObj.approval_status = status;
+      }
+
+      const totalTimesheets = await TimeSheet.countDocuments(queryObj);
+
+      // Fetch paginated timesheets
+      const response = await TimeSheet.find(queryObj)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec();
+
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("Not Found Timesheet");
+        throw new Error("No Timesheet Found");
       }
 
       const timesheetfetchdata = await Promise.all(
         response.map(async (item) => {
-          const getprojectName = await Project.find({
+          const project = await Project.findOne({
             ProjectId: item.project,
-          });
-
-          let ProjectName = await getprojectName.map((projectitem) => {
-            return projectitem.Project_Name;
-          });
-
-          const fetchStaff = await StaffMember.find({
+          }).lean();
+          const staff = await StaffMember.findOne({
             staff_Id: item.Staff_Id,
-          });
+          }).lean();
 
-          let StaffName = await fetchStaff.map((staffItem) => {
-            return staffItem.FirstName;
-          });
-
-          const timesheetresponse = {
-            ProjectName: ProjectName,
-            StaffName: StaffName,
-            ...item.toObject(),
+          return {
+            ProjectName: project ? project.Project_Name : "Unknown Project",
+            StaffName: staff ? staff.FirstName : "Unknown Staff",
+            ...item,
           };
-
-          return timesheetresponse;
         })
       );
 
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, result: timesheetfetchdata});
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: timesheetfetchdata,
+        totalPages: Math.ceil(totalTimesheets / limit),
+        currentPage: page,
+        totalTimesheets,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
