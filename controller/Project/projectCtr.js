@@ -528,6 +528,26 @@ const projectCtr = {
       throw new Error(error?.message);
     }
   }),
+  fetchprojectinfochart: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findOne(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User");
+      }
+
+      // check company
+      const company = await Company?.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      let queryObj = {};
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = projectCtr;
