@@ -28,9 +28,7 @@ const ProjectSchema = mongoose.Schema({
   },
   End_Date: {
     type: String,
-    default: function () {
-      return moment().format("DD/MM/YYYY");
-    },
+    default: moment().format("DD/MM/YYYY"),
   },
   clientId: {
     type: Number,

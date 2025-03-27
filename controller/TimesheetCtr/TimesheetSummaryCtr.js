@@ -175,8 +175,6 @@ const TimesheetSummaryCtr = {
       throw new Error(error?.message);
     }
   }),
-
-
 };
 
 module.exports = TimesheetSummaryCtr;

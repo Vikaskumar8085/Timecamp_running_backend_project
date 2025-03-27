@@ -2,7 +2,6 @@ const mongoose = require("mongoose");
 const {Schema} = mongoose;
 const AutoIncrement = require("mongoose-sequence")(mongoose);
 const moment = require("moment");
-// Define the Billing Status constants
 const BILLING_STATUS = ["NOT_BILLED", "BILLED", "PARTIALLY_BILLED"]; // Adjust as needed
 const TimesheetSchema = new Schema(
   {
@@ -53,21 +52,15 @@ const TimesheetSchema = new Schema(
     },
     start_time: {
       type: String,
-      default: function () {
-        return moment().format("DD/MM/YYYY");
-      },
+      default: moment().format("DD/MM/YYYY"),
     },
     end_time: {
       type: String,
-      default: function () {
-        return moment().format("DD/MM/YYYY");
-      },
+      default: moment().format("DD/MM/YYYY"),
     },
     day: {
       type: String,
-      default: function () {
-        return moment().format("DD/MM/YYYY");
-      },
+      default: moment().format("DD/MM/YYYY"),
     },
     approved: {
       type: Boolean,
@@ -75,9 +68,7 @@ const TimesheetSchema = new Schema(
     },
     created_at: {
       type: String,
-      default: function () {
-        return moment().format("DD/MM/YYYY");
-      },
+      default: moment().format("DD/MM/YYYY"),
     },
     remarks: {
       type: String,
@@ -146,7 +137,6 @@ TimesheetSchema.pre("save", async function (next) {
     // Combine prefix and sequence number
     this.ts_code = `${prefix}${formattedNumber}`;
   }
-
   next();
 });
 

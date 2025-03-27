@@ -79,6 +79,10 @@ adminRouter.get(
   projectCtr.fetchProjectTimesheet
 );
 
+adminRouter.get(
+  "/fetch-project-staff-chart/:id",
+  projectCtr.fetchprojectinfochart
+);
 // project
 
 // employee

@@ -21,7 +21,7 @@ const contractordashctr = {
         ],
       });
 
-      const projectIds = countproject.map((proj) => proj.ProjectId); // No need for `await` here
+      const projectids = countproject.map((proj) => proj.ProjectId); // No need for `await` here
 
       const approvedTimesheets = await TimeSheet.find({
         project: {$in: projectids},

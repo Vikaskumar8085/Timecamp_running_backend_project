@@ -150,13 +150,13 @@ const projectCtr = {
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Un Authorized User");
+        throw new Error("Unauthorized User");
       }
 
       // Check company
       const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
+        res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error(
           "Company does not exist, please create a company first"
         );
@@ -166,21 +166,29 @@ const projectCtr = {
       page = parseInt(page, 10);
       limit = parseInt(limit, 10);
 
+      // Default to page 1 if invalid page or limit values
+      if (isNaN(page) || page < 1) page = 1;
+      if (isNaN(limit) || limit < 1) limit = 10;
+
+      // Query object to filter by company
       let queryObj = {
         CompanyId: company.Company_Id,
       };
 
       // Add search filter (case-insensitive)
       if (search.trim()) {
-        queryObj.$or = [{Project_Name: {$regex: search, $options: "i"}}];
+        queryObj.$or = [
+          {Project_Name: {$regex: search, $options: "i"}}, // Case-insensitive search
+        ];
       }
+
       // Fetch total count for pagination
       const totalProjects = await Project.countDocuments(queryObj);
 
       // Fetch paginated projects
       const projects = await Project.find(queryObj)
-        .skip((page - 1) * limit)
-        .limit(limit)
+        .skip((page - 1) * limit) // Skipping projects for the current page
+        .limit(limit) // Limiting the number of projects per page
         .lean()
         .exec();
 
@@ -205,16 +213,21 @@ const projectCtr = {
         })
       );
 
+      // Send response with pagination info
       return res.status(HttpStatusCodes.OK).json({
         message: "Projects fetched successfully",
         result: projectsWithDetails,
-        totalPages: Math.ceil(totalProjects / limit),
-        currentPage: page,
-        totalProjects,
+        totalPages: Math.ceil(totalProjects / limit), // Total number of pages
+        currentPage: page, // Current page number
+        totalProjects, // Total number of projects
         success: true,
       });
     } catch (error) {
-      throw new Error(error?.message);
+      // Handle errors
+      res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
+      throw new Error(
+        error?.message || "An error occurred while fetching projects."
+      );
     }
   }),
 
@@ -223,7 +236,7 @@ const projectCtr = {
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Un Authorized User");
+        throw new Error("Unauthorized User");
       }
 
       // Check company
@@ -244,8 +257,14 @@ const projectCtr = {
         start_date,
         end_date,
       } = req.query;
+
+      // Parse the page and limit values
       page = parseInt(page, 10);
       limit = parseInt(limit, 10);
+
+      // Validation for page and limit, ensuring they are positive integers
+      if (isNaN(page) || page < 1) page = 1;
+      if (isNaN(limit) || limit < 1) limit = 10;
 
       // Query object for filtering active projects
       let queryObj = {
@@ -253,27 +272,29 @@ const projectCtr = {
         Project_Status: true, // Only fetch active projects
       };
 
-      // Apply search filter (case-insensitive search for ProjectName)
-      if (search) {
-        queryObj.Project_Name = {$regex: search, $options: "i"};
+      // Apply search filter (case-insensitive search for Project_Name)
+      if (search.trim()) {
+        queryObj.Project_Name = {$regex: search, $options: "i"}; // Case-insensitive search
       }
 
       // Apply additional status filter if provided
       if (status) {
-        queryObj.Project_Status = status;
+        queryObj.Project_Status = status === "true"; // Handle boolean value for status
       }
 
-      // Apply Start Date & End Date filter with Moment.js
+      // Apply Start Date & End Date filter using Moment.js
       if (start_date || end_date) {
         queryObj.Start_Date = {};
-        if (start_date)
+        if (start_date) {
           queryObj.Start_Date.$gte = moment(start_date, "DD/MM/YYYY")
             .startOf("day")
             .toDate();
-        if (end_date)
+        }
+        if (end_date) {
           queryObj.Start_Date.$lte = moment(end_date, "DD/MM/YYYY")
             .endOf("day")
             .toDate();
+        }
       }
 
       // Fetch total count for pagination
@@ -281,10 +302,15 @@ const projectCtr = {
 
       // Fetch paginated projects
       const projects = await Project.find(queryObj)
-        .skip((page - 1) * limit)
-        .limit(limit)
+        .skip((page - 1) * limit) // Skipping the previous records
+        .limit(limit) // Limiting the number of projects per page
         .lean()
         .exec();
+
+      if (!projects.length) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("No active projects found");
+      }
 
       // Format project start and end dates in response
       const formattedProjects = projects.map((project) => ({
@@ -293,36 +319,51 @@ const projectCtr = {
         End_Date: moment(project.EndDate).format("DD/MM/YYYY"),
       }));
 
+      // Send response with pagination info
       return res.status(HttpStatusCodes.OK).json({
-        message: "Projects fetched successfully",
+        message: "Active projects fetched successfully",
         result: formattedProjects,
-        totalPages: Math.ceil(totalProjects / limit),
-        currentPage: page,
-        totalProjects,
+        totalPages: Math.ceil(totalProjects / limit), // Total number of pages
+        currentPage: page, // Current page number
+        totalProjects, // Total number of projects
         success: true,
       });
     } catch (error) {
-      throw new Error(error?.message);
+      // Catching and returning errors
+      res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
+      throw new Error(
+        error?.message || "An error occurred while fetching active projects."
+      );
     }
   }),
+
   fetch_inactive_projects: asyncHandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Un Authorized User");
+        throw new Error("Unauthorized User");
       }
 
-      // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      // Check company
+      const company = await Company.findOne({UserId: user?.user_id});
       if (!company) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
+
       // Extract query parameters
       let {page = 1, limit = 10, search = ""} = req.query;
+
+      // Ensure page and limit are integers and valid
       page = parseInt(page, 10);
       limit = parseInt(limit, 10);
+
+      // Default to 1 for page and 10 for limit if invalid
+      if (isNaN(page) || page < 1) page = 1;
+      if (isNaN(limit) || limit < 1) limit = 10;
 
       // Query object for filtering inactive projects
       let queryObj = {
@@ -330,9 +371,9 @@ const projectCtr = {
         Project_Status: false, // Only fetch inactive projects
       };
 
-      // Apply search filter (case-insensitive search for ProjectName)
-      if (search) {
-        queryObj.Project_Name = {$regex: search, $options: "i"};
+      // Apply search filter (case-insensitive search for Project_Name)
+      if (search.trim()) {
+        queryObj.Project_Name = {$regex: search, $options: "i"}; // Case-insensitive search
       }
 
       // Fetch total count for pagination
@@ -340,10 +381,15 @@ const projectCtr = {
 
       // Fetch paginated projects
       const projects = await Project.find(queryObj)
-        .skip((page - 1) * limit)
-        .limit(limit)
+        .skip((page - 1) * limit) // Skip previous pages
+        .limit(limit) // Limit the number of projects per page
         .lean()
         .exec();
+
+      if (!projects.length) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("No inactive projects found");
+      }
 
       // Format project start and end dates in response
       const formattedProjects = projects.map((project) => ({
@@ -352,18 +398,24 @@ const projectCtr = {
         EndDate: moment(project.EndDate).format("DD/MM/YYYY"),
       }));
 
+      // Send the response with pagination info
       return res.status(HttpStatusCodes.OK).json({
         message: "Inactive projects fetched successfully",
         result: formattedProjects,
-        totalPages: Math.ceil(totalProjects / limit),
-        currentPage: page,
-        totalProjects,
+        totalPages: Math.ceil(totalProjects / limit), // Total pages available
+        currentPage: page, // Current page number
+        totalProjects, // Total number of inactive projects
         success: true,
       });
     } catch (error) {
-      throw new Error(error?.message);
+      // Return error message for unexpected errors
+      res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR);
+      throw new Error(
+        error?.message || "An error occurred while fetching inactive projects."
+      );
     }
   }),
+
   //
   fetchstaffmembers: asyncHandler(async (req, res) => {
     try {
@@ -542,8 +594,52 @@ const projectCtr = {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
+      const project = await Project.findOne({ProjectId: req.params.id});
+      if (!project) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({error: "Project Not Found"});
+      }
 
-      let queryObj = {};
+      const projectData = await TimeSheet.aggregate([
+        {
+          $match: {project: project.ProjectId},
+        },
+        {
+          $lookup: {
+            from: "staffmembers",
+            localField: "Staff_Id",
+            foreignField: "staff_Id",
+            as: "staff",
+          },
+        },
+        {$unwind: "$staff"}, // Convert staff array to object
+        {
+          $addFields: {
+            hours: {$toDouble: "$hours"}, // Convert hours to Number
+            billedHours: {$toDouble: "$billed_hours"}, // Convert billedHours to Number
+          },
+        },
+        {
+          $group: {
+            _id: "$staff.FirstName",
+            totalHours: {$sum: "$hours"},
+            totalBilledHours: {$sum: "$billed_hours"},
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            FirstName: "$_id",
+            hours: "$totalHours",
+            billedHours: "$totalBilledHours",
+          },
+        },
+      ]);
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, message: "success", result: projectData});
     } catch (error) {
       throw new Error(error?.message);
     }
