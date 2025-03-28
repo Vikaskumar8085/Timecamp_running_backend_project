@@ -75,24 +75,24 @@ const managerCtr = {
       const limit = parseInt(req.query.limit) || 10;
       const skip = (page - 1) * limit;
 
-      // Searching
-      const search = req.query.search || "";
-      let query = {ManagerId: user?.staff_Id};
+      // Searching (trim input and use OR operator)
+      const search = req.query.search?.trim() || "";
+      let matchStage = {ManagerId: user?.staff_Id};
+
       if (search) {
-        query["FirstName"] = {$regex: search, $options: "i"}; // Case-insensitive search
+        matchStage["$or"] = [
+          {Project_Name: {$regex: search, $options: "i"}}, // Case-insensitive search in Project_Name
+        ];
       }
 
-      // Sorting
-      const sortBy = req.query.sortBy || "FirstName";
-      const order = req.query.order === "desc" ? -1 : 1;
+      // Aggregation pipeline
+      const fetchstaff = await StaffMember.aggregate([
+        {$match: matchStage},
+        {$skip: skip},
+        {$limit: limit},
+      ]);
 
-      // Fetch staff with pagination, search, and sorting
-      const fetchstaff = await StaffMember?.find(query)
-        .sort({[sortBy]: order})
-        .skip(skip)
-        .limit(limit);
-
-      if (!fetchstaff) {
+      if (!fetchstaff.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
           .json({message: "Staff Not Found"});
@@ -110,9 +110,12 @@ const managerCtr = {
             // Extract ProjectIds from RoleResources
             const projectids = fetchprojectbyrrids.map((rr) => rr.ProjectId);
 
-            // Fetch projects
+            // Fetch projects using aggregation
             const fetchproject = projectids.length
-              ? await Project.find({ProjectId: {$in: projectids}})
+              ? await Project.aggregate([
+                  {$match: {ProjectId: {$in: projectids}}},
+                  {$match: {Project_Name: {$regex: search, $options: "i"}}}, // Apply search within projects
+                ])
               : [];
 
             // Fetch projects where staff is a direct project manager
@@ -132,7 +135,7 @@ const managerCtr = {
       );
 
       // Get total records count for pagination
-      const totalRecords = await StaffMember.countDocuments(query);
+      const totalRecords = await StaffMember.countDocuments(matchStage);
 
       return res.status(HttpStatusCodes.OK).json({
         result: fetchproject,
@@ -146,6 +149,7 @@ const managerCtr = {
         .json({message: error.message});
     }
   }),
+
   // fetch manager active projects
 
   fetchmanagerActiveprojects: asyncHandler(async (req, res) => {
@@ -1107,21 +1111,37 @@ const managerCtr = {
           error: "Staff not found",
         });
       }
+      // Extract pagination and search parameters
+      let {page = 1, limit = 10, search = ""} = req.query;
+      page = parseInt(page, 10);
+      limit = parseInt(limit, 10);
 
-      // Fetch tasks for each manager
-      const fetchtask = await Task.find({
-        Resource_Id: {$in: fetchmanager.map((manager) => manager.staff_Id)}, // In case multiple managers, map their staff IDs
+      // Query to fetch tasks
+      const taskQuery = {
+        Resource_Id: {$in: fetchmanager.map((manager) => manager.staff_Id)},
+      };
+      if (search) {
+        taskQuery.Task_Name = {$regex: search, $options: "i"}; // Case-insensitive search
+      }
+
+      const totalTasks = await Task.countDocuments(taskQuery);
+      const fetchtask = await Task.find(taskQuery)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .sort({CreatedAt: -1}); // Sort by latest created
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: fetchtask,
+        pagination: {
+          totalRecords: totalTasks,
+          totalPages: Math.ceil(totalTasks / limit),
+          currentPage: page,
+          limit,
+        },
       });
-
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, result: fetchtask});
     } catch (error) {
       // Handle error
-      console.error(error);
-      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
-        error: error.message || "An error occurred while fetching tasks.",
-      });
+      throw new Error(error?.message);
     }
   }),
   // fetch manager timesheet
@@ -1261,34 +1281,43 @@ const managerCtr = {
         throw new Error("Un Authorized User please singup");
       }
 
-      let queryObj = {};
-      queryObj = {
-        ProjectId: req.params.id,
-      };
+      let {search, page = 1, limit = 10} = req.query;
+      page = parseInt(page);
+      limit = parseInt(limit);
+      const skip = (page - 1) * limit;
 
-      const response = await Project.find(queryObj);
-      if (!response && response.length === 0) {
+      let queryObj = {ProjectId: req.params.id};
+
+      // Adding search functionality
+      if (search.trim()) {
+        queryObj.$or = [{Project_Name: {$regex: search, $options: "i"}}];
+      }
+
+      const totalProjects = await Project.countDocuments(queryObj);
+      const response = await Project.find(queryObj).skip(skip).limit(limit);
+
+      if (!response.length) {
         res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("project Not Found");
+        throw new Error("Project Not Found");
       }
 
       const projectDetails = await Promise.all(
         response.map(async (item) => {
-          const findtimesheet = await TimeSheet.find({
-            project: item.ProjectId,
-          });
-
-          const result = {
-            findtimesheet,
-          };
-
-          return result;
+          const findtimesheet = await TimeSheet.find({project: item.ProjectId});
+          return {findtimesheet};
         })
       );
 
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, result: projectDetails});
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: projectDetails,
+        pagination: {
+          total: totalProjects,
+          page,
+          limit,
+          totalPages: Math.ceil(totalProjects / limit),
+        },
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1587,39 +1616,46 @@ const managerCtr = {
     try {
       const user = await StaffMember.findById(req.user);
       if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED).json({
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
           message: "Unauthorized User. Please Signup.",
         });
-        return; // Ensure no further code runs after sending the response
       }
 
-      // Check company
-      const checkcompany = await Company.findOne({
-        Company_Id: user?.CompanyId,
-      });
+      // Check if company exists
+      const checkcompany = await Company.findOne({Company_Id: user?.CompanyId});
       if (!checkcompany) {
-        res.status(HttpStatusCodes.BAD_REQUEST).json({
-          message: "Company not exists. Please create a company first.",
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          message: "Company does not exist. Please create a company first.",
         });
-        return; // Ensure no further code runs after sending the response
       }
 
-      let queryObj = {};
+      let {search, page = 1, limit = 10} = req.query;
+      page = parseInt(page);
+      limit = parseInt(limit);
+      const skip = (page - 1) * limit;
 
-      queryObj = {
-        CompanyId: checkcompany.Company_Id,
-      };
-      // Step 1: Find all projects for the given CompanyId
-      const projects = await Project.find(queryObj);
+      let queryObj = {CompanyId: checkcompany.Company_Id};
+
+      // **Adding search functionality**
+      if (search) {
+        queryObj.$or = [
+          {Project_Name: {$regex: search, $options: "i"}},
+          {Project_Code: {$regex: search, $options: "i"}},
+        ];
+      }
+
+      // Step 1: Get projects based on query and pagination
+      const totalProjects = await Project.countDocuments(queryObj);
+      const projects = await Project.find(queryObj).skip(skip).limit(limit);
 
       if (!projects || projects.length === 0) {
-        return res
-          .status(HttpStatusCodes.NOT_FOUND)
-          .json({message: "No projects found"});
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          message: "No projects found",
+        });
       }
 
       // Extract project IDs
-      const projectIds = await projects.map((project) => project.ProjectId);
+      const projectIds = projects.map((project) => project.ProjectId);
 
       // Step 2: Aggregate TimeSheet data for these projects
       const timesheetData = await TimeSheet.aggregate([
@@ -1635,12 +1671,12 @@ const managerCtr = {
             totalHours: {$sum: {$toDouble: "$hours"}},
             okHours: {$sum: {$toDouble: "$ok_hours"}},
             billedHours: {$sum: {$toDouble: "$billed_hours"}},
-            totalEntries: {$sum: 1}, // Count total entries for this project
+            totalEntries: {$sum: 1}, // Count total timesheet entries per project
           },
         },
       ]);
 
-      // Step 3: Map the results back to the projects
+      // Step 3: Map timesheet data back to projects
       const result = projects.map((project) => {
         const projectTimesheet = timesheetData.find(
           (ts) => ts._id === project.ProjectId
@@ -1667,6 +1703,12 @@ const managerCtr = {
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result,
+        pagination: {
+          total: totalProjects,
+          page,
+          limit,
+          totalPages: Math.ceil(totalProjects / limit),
+        },
       });
     } catch (error) {
       throw new Error(error?.message);

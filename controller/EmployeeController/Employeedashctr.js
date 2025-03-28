@@ -1,4 +1,7 @@
 const asynchandler = require("express-async-handler");
+const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
+const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
+const HttpStatusCodes = require("../../utils/StatusCodes/statusCodes");
 
 const employeedashctr = {
   fetchemployeedashboardCounter: asynchandler(async (req, res) => {
@@ -60,7 +63,7 @@ const employeedashctr = {
       //   });
 
       const staffTimesheets = await TimeSheet.find({Staff_Id: user.staff_Id});
-      console.log(staffTimesheets);
+      console.log(staffTimesheets, "dsdf");
       if (!staffTimesheets || staffTimesheets.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("staff Not founds");
