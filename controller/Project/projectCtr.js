@@ -26,6 +26,8 @@ const projectCtr = {
         Project_Type,
         Project_Hours,
         Project_ManagersId,
+        Start_Date,
+        End_Date,
         roleResources,
       } = req.body;
       console.log(req.body);
@@ -49,6 +51,8 @@ const projectCtr = {
         Project_Type,
         Project_Hours,
         Project_Status: true,
+        Start_Date,
+        End_Date,
         Project_ManagersId,
       });
 

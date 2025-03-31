@@ -320,14 +320,92 @@ const EmployeeCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const gettaskresponse = await Task.find({Resource_Id: user.staff_Id});
-      if (!gettaskresponse) {
-        res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("Task Not Found");
+      // Get pagination and search parameters from the request query
+      const {page = 1, limit = 10, search = ""} = req.query;
+      const skip = (page - 1) * limit;
+
+      // Create search filter
+      const searchFilter = {
+        Resource_Id: user.staff_Id, // Always filter by the current user's staffId
+      };
+
+      // Apply search if the user provided a search term
+      if (search) {
+        searchFilter.$or = [{Task_Name: {$regex: search, $options: "i"}}];
       }
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({result: gettaskresponse, success: true});
+
+      // Fetch tasks from the database with pagination and search filter
+      const gettaskresponse = await Task.find(searchFilter)
+        .skip(skip)
+        .limit(Number(limit));
+
+      if (!gettaskresponse || gettaskresponse.length === 0) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "No tasks found for this user.",
+        });
+      }
+
+      // Fetch total count of tasks for pagination
+      const totalTasks = await Task.countDocuments(searchFilter);
+
+      // Fetch additional data (milestones, resources, projects) for each task
+      const response = await Promise.all(
+        gettaskresponse.map(async (item) => {
+          // Fetch the milestone details for the current task
+          const fetchmilestone = await Milestone.find({
+            Milestone_id: {$in: item.MilestoneId},
+          });
+
+          // Fetch the resource (staff) details for the task
+          const fetchresourcename = await StaffMember.find({
+            staff_Id: {$in: item.Resource_Id},
+          });
+
+          // Fetch the project name associated with the task
+          const projectname = await Project.find({
+            ProjectId: {$in: item.ProjectId},
+          });
+
+          // Map milestone names
+          const milestoneNames = fetchmilestone.map(
+            (milestone) => milestone.Name
+          );
+
+          // Map resource first names
+          const resourceNames = fetchresourcename.map(
+            (staff) => staff.FirstName
+          );
+
+          // Map project names
+          const projectNames = projectname.map(
+            (project) => project.Project_Name
+          );
+
+          // Combine all the data into the result object
+          const result = {
+            ...item._doc, // Include task details (item data)
+            milestones: milestoneNames, // Add milestone data
+            resources: resourceNames, // Add resource data (staff member details)
+            project: projectNames, // Add project details
+          };
+
+          return result;
+        })
+      );
+
+      // Calculate total pages based on total tasks and current page size
+      const totalPages = Math.ceil(totalTasks / limit);
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: response,
+        pagination: {
+          currentPage: Number(page),
+          totalPages,
+          totalTasks,
+        },
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -740,6 +818,121 @@ const EmployeeCtr = {
       res.status(201).json({
         message: "Project and Role Resources added successfully",
         success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchemployeeproject_time: asyncHandler(async (req, res) => {
+    try {
+      // Fetch the currently authenticated user
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("UnAuthorized User Please Signup ");
+      }
+
+      // Ensure that the user is a Employee
+      const Employeedata = await StaffMember.findOne({
+        staff_Id: user?.staff_Id,
+        Role: "Employee", // Filter only Employees
+      });
+
+      if (!Employeedata) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          message: "Employee not found",
+        });
+      }
+
+      // Get search, page, and limit from query parameters
+      let {search, page = 1, limit = 10} = req.query;
+      page = parseInt(page);
+      limit = parseInt(limit);
+      const skip = (page - 1) * limit;
+
+      // Build the query object to fetch projects for the Employee
+      const queryObj = {
+        $or: [
+          {createdBy: Employeedata?.staff_Id},
+          {Project_ManagersId: Employeedata?.staff_Id},
+          {
+            ProjectId: {
+              $in: await RoleResource.find({
+                RRId: Employeedata?.staff_Id,
+              }).then((res) => res.map((item) => item.ProjectId)),
+            },
+          },
+        ],
+      };
+
+      // If a search term is provided, filter projects by Project_Name
+      if (search) {
+        queryObj.Project_Name = {$regex: search, $options: "i"};
+      }
+
+      // Step 1: Get projects based on the query and pagination
+      const totalProjects = await Project.countDocuments(queryObj);
+      const projects = await Project.find(queryObj).skip(skip).limit(limit);
+
+      if (!projects || projects.length === 0) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          message: "No projects found",
+        });
+      }
+
+      // Step 2: Aggregate timesheet data for these projects
+      const timesheetData = await TimeSheet.aggregate([
+        {
+          $match: {
+            project: {$in: projects.map((project) => project.ProjectId)},
+          },
+        },
+        {
+          $group: {
+            _id: "$project",
+            totalHours: {$sum: {$toDouble: "$hours"}},
+            okHours: {$sum: {$toDouble: "$ok_hours"}},
+            billedHours: {$sum: {$toDouble: "$billed_hours"}},
+            totalEntries: {$sum: 1}, // Count total timesheet entries per project
+          },
+        },
+      ]);
+
+      // Step 3: Map timesheet data back to the projects
+      const result = projects.map((project) => {
+        const projectTimesheet = timesheetData.find(
+          (ts) => ts._id === project.ProjectId
+        ) || {
+          totalHours: 0,
+          okHours: 0,
+          billedHours: 0,
+          totalEntries: 0,
+        };
+
+        return {
+          ProjectId: project.ProjectId,
+          ProjectName: project.Project_Name,
+          ProjectCode: project.Project_Code,
+          StartDate: project.Start_Date,
+          EndDate: project.End_Date,
+          TotalHours: projectTimesheet.totalHours,
+          OkHours: projectTimesheet.okHours,
+          BilledHours: projectTimesheet.billedHours,
+          TotalEntries: projectTimesheet.totalEntries,
+        };
+      });
+
+      // Step 4: Return the projects and pagination data
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result,
+        pagination: {
+          total: totalProjects,
+          page,
+          limit,
+          totalPages: Math.ceil(totalProjects / limit),
+        },
       });
     } catch (error) {
       throw new Error(error?.message);

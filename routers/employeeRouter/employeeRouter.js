@@ -3,6 +3,7 @@ const EmployeeCtr = require("../../controller/EmployeeController/EmployeeCtr");
 const verifyToken = require("../../Auth/verifyAuth");
 const upload = require("../../utils/FileUpload/fileUpload");
 const employeedashctr = require("../../controller/EmployeeController/Employeedashctr");
+const employeeCtr = require("../../controller/Authcontrollers/employee/employeeCtr");
 
 const employeeRouter = express.Router();
 employeeRouter.use(verifyToken);
@@ -95,4 +96,13 @@ employeeRouter.get(
   employeedashctr.fetchemployeeprojecttimeutilization
 );
 // employee
+
+employeeRouter.get(
+  "/fetch-employee-recent-project",
+  employeedashctr.fetchemployeeRecentProject
+);
+employeeRouter.get(
+  "/fetch-employee-project-time",
+  EmployeeCtr.fetchemployeeproject_time
+);
 module.exports = employeeRouter;

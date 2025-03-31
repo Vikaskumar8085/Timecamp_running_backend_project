@@ -3,9 +3,12 @@ const ContractorCtr = require("../../controller/ContracotrController/ControllerC
 const verifyToken = require("../../Auth/verifyAuth");
 const upload = require("../../utils/FileUpload/fileUpload");
 const contractordashctr = require("../../controller/ContracotrController/Contractordashctr");
+const contractorCtr = require("../../controller/Authcontrollers/contractor/contractorCtr");
 
 const contractorRouter = express.Router();
 contractorRouter.use(verifyToken);
+
+//contractor project
 contractorRouter.get(
   "/contractor-project",
   ContractorCtr.fetchcontractorprojects
@@ -19,6 +22,8 @@ contractorRouter.get(
   ContractorCtr.fetchContractorInactiveProjects
 );
 
+//contractor project
+// contractor project with id
 contractorRouter.get(
   "/contract-project-timesheet/:id",
   ContractorCtr.fetchContractorProjectTimesheet
@@ -32,17 +37,21 @@ contractorRouter.get(
   "/fetch-contractor-single-project/:id",
   ContractorCtr.fetchcontractorsingletprojectinformation
 );
+// contractor project with id
 
+// fill contractor project Timesheet
 contractorRouter.post(
   "/fill-contractor-project-timesheet",
   upload.single("file"),
   ContractorCtr.FillContractorProjectTimesheet
 );
-
+// fill contractor project Timesheet
+// fetch contractor Timesheet
 contractorRouter.get(
   "/fetch-contractor-timesheet",
   ContractorCtr.getcontractortimesheet
 );
+// fetch contractor task
 contractorRouter.get(
   "/fetch-contractor-tasks",
   ContractorCtr.getcontractortasks
@@ -92,4 +101,22 @@ contractorRouter.get(
   "/fetch-contractor-dash-approvel-billing-status",
   contractordashctr.fetchcontractorapprovelbilledhourovertime
 );
+
+// contractorRouter
+contractorRouter.get(
+  "/fetch-contractor-recent-project",
+  contractordashctr.fetchdashtotalproject
+);
+// contractorRouter
+contractorRouter.get(
+  "/fetch-contractor-by-hours",
+  contractordashctr.fetchdashhoursbyresources
+);
+
+// contractor project time
+contractorRouter.get(
+  "/fetch-contractor-project-time",
+  ContractorCtr.fetchcontractorproject_time
+);
+
 module.exports = contractorRouter;

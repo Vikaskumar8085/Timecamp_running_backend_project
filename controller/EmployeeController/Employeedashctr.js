@@ -44,6 +44,49 @@ const employeedashctr = {
     }
   }),
   //    Total hour by resources
+
+  // fetch employee recent Projects
+
+  fetchemployeeRecentProject: asynchandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please signin");
+      }
+
+      // Fetch projects the user is associated with via roles and manager/creator
+      const findprojectinroleresource = await RoleResource.find({
+        RRId: user?.staff_Id,
+      });
+      const projectcount = findprojectinroleresource.map(
+        (item) => item.ProjectId
+      );
+
+      // Query projects based on multiple roles: creator, manager, or assigned
+      const fetchrescentproject = await Project.find({
+        $or: [
+          {createdBy: user?.staff_Id},
+          {Project_ManagersId: user?.staff_Id},
+          {ProjectId: {$in: projectcount}},
+        ],
+      });
+
+      const result = fetchrescentproject.map(
+        ({Project_Name, Start_Date, End_Date}) => ({
+          ProjectName: Project_Name,
+          startdate: Start_Date,
+          enddate: End_Date,
+        })
+      );
+
+      return res.status(HttpStatusCodes.OK).json({success: true, result});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // fetch employee recent Projects
+
   //   fetch employee total Hour by resources
   fetchemployeeTotalhoursbyResources: asynchandler(async (req, res) => {
     try {
