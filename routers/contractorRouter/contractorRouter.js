@@ -119,4 +119,12 @@ contractorRouter.get(
   ContractorCtr.fetchcontractorproject_time
 );
 
+// contractor fill timesheet
+
+contractorRouter.post(
+  "/contractor-v1-fill-timesheet",
+  upload.single("file"),
+  ContractorCtr.contractorfilltimehseet
+);
+
 module.exports = contractorRouter;

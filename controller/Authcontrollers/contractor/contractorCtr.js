@@ -16,7 +16,6 @@ const contractorCtr = {
   create_contractor: asynchandler(async (req, res) => {
     try {
       // check user
-      console.log(req.body, "data ?>>>>>>>>>>>>>>>");
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);

@@ -10,7 +10,8 @@ const Roles = require("../../models/MasterModels/Roles/Roles");
 const Client = require("../../models/AuthModels/Client/Client");
 const Notification = require("../../models/Othermodels/Notification/Notification");
 const Milestone = require("../../models/Othermodels/Milestones/Milestones");
-
+const path = require("path");
+const moment = require("moment");
 const ContractorCtr = {
   fetchcontractorprojects: asyncHandler(async (req, res) => {
     try {
@@ -296,20 +297,39 @@ const ContractorCtr = {
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new error("UnAuthorized User Please Singup ");
+        throw new Error("UnAuthorized User, Please Signup");
       }
 
-      const fetchTimesheet = await TimeSheet.find({
-        Staff_Id: user.staff_Id,
-      });
+      let {page = 1, limit = 10, search = ""} = req.query;
+      page = parseInt(page);
+      limit = parseInt(limit);
 
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({result: fetchTimesheet, success: true});
+      const query = {Staff_Id: user.staff_Id};
+
+      if (search) {
+        query.$or = [
+          {task_description: {$regex: search, $options: "i"}}, // Case-insensitive search in task description
+          {Description: {$regex: search, $options: "i"}}, // Case-insensitive search in description
+        ];
+      }
+
+      const totalRecords = await TimeSheet.countDocuments(query);
+      const fetchTimesheet = await TimeSheet.find(query)
+        .skip((page - 1) * limit)
+        .limit(limit);
+
+      return res.status(HttpStatusCodes.OK).json({
+        result: fetchTimesheet,
+        currentPage: page,
+        totalPages: Math.ceil(totalRecords / limit),
+        totalRecords,
+        success: true,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
+
   getcontractortasks: asyncHandler(async (req, res) => {
     try {
       // Check if the user is authenticated
@@ -847,6 +867,63 @@ const ContractorCtr = {
           limit,
           totalPages: Math.ceil(totalProjects / limit),
         },
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  contractorfilltimehseet: asyncHandler(async (req, res) => {
+    try {
+      console.log(req.body);
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup.",
+        });
+      }
+
+      let attachmentPath = req.file ? req.file.filename : null;
+      let uploadPath = "uploads/";
+
+      if (req.file) {
+        const fileExt = path.extname(req.file.originalname).toLowerCase();
+        const mimeType = req.file.mimetype;
+
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath = path.join(uploadPath, "documents");
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath = path.join(uploadPath, "images");
+        } else if (mimeType === "text/csv") {
+          uploadPath = path.join(uploadPath, "csv");
+        } else {
+          uploadPath = path.join(uploadPath, "others"); // Fallback folder
+        }
+      }
+
+      const contractorAttachment = attachmentPath
+        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
+        : null;
+
+      const timesheetData = new TimeSheet({
+        Staff_Id: user.staff_Id,
+        hours: req.body.hours,
+        project: req.body.project,
+        day: moment(req.body.day, "YYYY-MM-DD").format("DD/MM/YYYY"),
+        Description: req.body.Description,
+        task_description: req.body.task_description,
+        attachement: contractorAttachment,
+      });
+
+      await timesheetData.save();
+
+      return res.status(HttpStatusCodes.CREATED).json({
+        message: "Timesheet Filled Successfully",
+        result: timesheetData,
+        success: true,
       });
     } catch (error) {
       throw new Error(error?.message);
