@@ -127,4 +127,18 @@ contractorRouter.post(
   ContractorCtr.contractorfilltimehseet
 );
 
+contractorRouter.get(
+  "/fetch-contractor-timesheet/:id",
+  ContractorCtr.fetchcontractortimesheet
+);
+
+contractorRouter.get(
+  "/fetch-contractor-milestone/:id",
+  ContractorCtr.fetchcontractormilestones
+);
+contractorRouter.put(
+  "/update-task-progress/:id",
+  ContractorCtr.addtaskprogress
+);
+
 module.exports = contractorRouter;

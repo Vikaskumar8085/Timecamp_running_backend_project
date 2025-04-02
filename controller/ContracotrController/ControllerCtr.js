@@ -199,31 +199,43 @@ const ContractorCtr = {
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new error("UnAuthorized User Please Singup ");
+        throw new Error("Unauthorized User. Please Sign Up.");
       }
 
-      let queryObj = {};
-      queryObj = {
-        ProjectId: req.params.id,
-      };
+      let {page = 1, limit = 10, search = ""} = req.query;
+      page = parseInt(page, 10);
+      limit = parseInt(limit, 10);
 
-      const response = await Project.find(queryObj);
-      if (!response && response.length === 0) {
+      let queryObj = {ProjectId: req.params.id};
+      const projects = await Project.find(queryObj);
+
+      if (!projects || projects.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("project Not Found");
+        throw new Error("Project Not Found");
       }
 
       const taskDetails = await Promise.all(
-        response.map(async (item) => {
-          const findTasks = await Task.find({
-            ProjectId: item.ProjectId,
-          });
+        projects.map(async (project) => {
+          let taskQuery = {ProjectId: project.ProjectId};
 
-          const result = {
-            findTasks,
+          // Adding search filter if provided
+          if (search) {
+            taskQuery["Task_Name"] = {$regex: search, $options: "i"}; // Case-insensitive search
+          }
+
+          const totalTasks = await Task.countDocuments(taskQuery);
+          const tasks = await Task.find(taskQuery)
+            .skip((page - 1) * limit)
+            .limit(limit);
+
+          return {
+            tasks,
+            pagination: {
+              totalTasks,
+              currentPage: page,
+              totalPages: Math.ceil(totalTasks / limit),
+            },
           };
-
-          return result;
         })
       );
 
@@ -234,7 +246,6 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchcontractorsingletprojectinformation: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -291,7 +302,6 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
-
   getcontractortimesheet: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -329,7 +339,6 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
-
   getcontractortasks: asyncHandler(async (req, res) => {
     try {
       // Check if the user is authenticated
@@ -429,7 +438,6 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fetch company
   fetchcontractorroles: asyncHandler(async (req, res) => {
     try {
@@ -460,7 +468,6 @@ const ContractorCtr = {
     }
   }),
   // fetch clients
-
   fetchContractorclients: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -645,7 +652,6 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
-
   SendForApprovel: asyncHandler(async (req, res) => {
     try {
       var approveIds = req.body;
@@ -709,7 +715,6 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
-
   removeContractorTimesheet: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -731,7 +736,6 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchContractornotification: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -757,7 +761,6 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchcontractorproject_time: asyncHandler(async (req, res) => {
     try {
       // Fetch the currently authenticated user
@@ -872,10 +875,8 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
-
   contractorfilltimehseet: asyncHandler(async (req, res) => {
     try {
-      console.log(req.body);
       const user = await StaffMember.findById(req.user);
       if (!user) {
         return res.status(HttpStatusCodes.UNAUTHORIZED).json({
@@ -925,6 +926,117 @@ const ContractorCtr = {
         result: timesheetData,
         success: true,
       });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // fetch contractor timesheet
+  fetchcontractortimesheet: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup.",
+        });
+      }
+
+      const {page = 1, limit = 10, search = ""} = req.query;
+      const skip = (parseInt(page) - 1) * parseInt(limit);
+
+      const query = {project: parseInt(req.params.id)};
+
+      if (search) {
+        query.$or = [
+          {task_description: {$regex: search, $options: "i"}}, // Case-insensitive search in task description
+          {Description: {$regex: search, $options: "i"}}, // Case-insensitive search in description
+        ];
+      }
+
+      const totalCount = await TimeSheet.countDocuments(query);
+      const response = await TimeSheet.find(query)
+        .skip(skip)
+        .limit(parseInt(limit));
+
+      if (!response.length) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "Timesheet Not found",
+        });
+      }
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: response,
+        totalPages: Math.ceil(totalCount / parseInt(limit)),
+        currentPage: parseInt(page),
+        totalRecords: totalCount,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // fetch contractor timesheet
+  fetchcontractormilestones: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup.",
+        });
+      }
+
+      const fetchproject = await Milestone.find({
+        ProjectId: parseInt(req.params.id),
+      });
+
+      if (!fetchproject) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Mile stone not found");
+      }
+      res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: fetchproject});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // fill tasks
+  addtaskprogress: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup.",
+        });
+      }
+
+      // fill timesheet
+
+      const response = await TimeSheet({
+        project: req.body.project,
+        task_description: req.body.task_description,
+        hours: req.body.hours,
+        day: moment().format("DD/MM/YYYY"),
+      });
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Timesheet Not found");
+      } else {
+        await response.save();
+        await Task.findOneAndUpdate({
+          Task_Id: parseInt(req.params.id),
+          Status: "COMPLETED",
+        });
+      }
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, message: "Task Progress Updated"});
     } catch (error) {
       throw new Error(error?.message);
     }

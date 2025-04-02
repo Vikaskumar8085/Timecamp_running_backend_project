@@ -44,9 +44,7 @@ const employeedashctr = {
     }
   }),
   //    Total hour by resources
-
   // fetch employee recent Projects
-
   fetchemployeeRecentProject: asynchandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -86,7 +84,6 @@ const employeedashctr = {
     }
   }),
   // fetch employee recent Projects
-
   //   fetch employee total Hour by resources
   fetchemployeeTotalhoursbyResources: asynchandler(async (req, res) => {
     try {
@@ -432,6 +429,7 @@ const employeedashctr = {
       throw new Error(error?.message);
     }
   }),
+// fetch employee 
 };
 
 module.exports = employeedashctr;
