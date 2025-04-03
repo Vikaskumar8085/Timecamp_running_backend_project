@@ -299,16 +299,34 @@ const EmployeeCtr = {
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new error("UnAuthorized User Please Singup ");
+        throw new Error("UnAuthorized User, Please Signup");
       }
 
-      const fetchTimesheet = await TimeSheet.find({
-        Staff_Id: user.staff_Id,
-      });
+      let {page = 1, limit = 10, search = ""} = req.query;
+      page = parseInt(page);
+      limit = parseInt(limit);
 
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({result: fetchTimesheet, success: true});
+      const query = {Staff_Id: user.staff_Id};
+
+      if (search) {
+        query.$or = [
+          {task_description: {$regex: search, $options: "i"}}, // Case-insensitive search in task description
+          {Description: {$regex: search, $options: "i"}}, // Case-insensitive search in description
+        ];
+      }
+
+      const totalRecords = await TimeSheet.countDocuments(query);
+      const fetchTimesheet = await TimeSheet.find(query)
+        .skip((page - 1) * limit)
+        .limit(limit);
+
+      return res.status(HttpStatusCodes.OK).json({
+        result: fetchTimesheet,
+        currentPage: page,
+        totalPages: Math.ceil(totalRecords / limit),
+        totalRecords,
+        success: true,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }

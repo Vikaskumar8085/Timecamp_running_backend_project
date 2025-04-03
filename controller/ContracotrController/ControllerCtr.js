@@ -1017,26 +1017,71 @@ const ContractorCtr = {
 
       // fill timesheet
 
-      const response = await TimeSheet({
-        project: req.body.project,
-        task_description: req.body.task_description,
-        hours: req.body.hours,
-        day: moment().format("DD/MM/YYYY"),
-      });
+      const response = await TimeSheet.findOneAndUpdate(
+        {
+          project: req.body.project,
+        },
+        {
+          $set: {
+            Description: req.body.task_Description,
+            hours: req.body.hours,
+            day: moment().format("DD/MM/YYYY"),
+          },
+        }, // 🔹 Update document with new values
+        {new: true, upsert: true} // 🔹 Return updated doc, create if not found
+      );
+
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Timesheet Not found");
       } else {
-        await response.save();
-        await Task.findOneAndUpdate({
-          Task_Id: parseInt(req.params.id),
-          Status: "COMPLETED",
-        });
+        await Task.findOneAndUpdate(
+          {task_Id: parseInt(req.params.id)},
+          {$set: {Status: "COMPLETED"}},
+          {new: true}
+        );
       }
 
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, message: "Task Progress Updated"});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchcontractorsingletask: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup.",
+        });
+      }
+
+      const fetchtask = await Task.findOne({task_Id: req.params.id});
+
+      if (!fetchtask) {
+        res.status(HttpStatusCodes.NOT_FOUND).json({error: "Task not found"});
+        return;
+      }
+
+      const fetchmilestone = await Milestone.findOne({
+        Milestone_id: fetchtask.MilestoneId,
+      });
+      const fetchprojects = await Project.findOne({
+        ProjectId: fetchtask?.ProjectId,
+      });
+
+      const result = {
+        MilestoneName: fetchmilestone?.Name || "",
+        ProjectName: fetchprojects?.Project_Name || "",
+        data: fetchtask,
+      };
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: result});
     } catch (error) {
       throw new Error(error?.message);
     }

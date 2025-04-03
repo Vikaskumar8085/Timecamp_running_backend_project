@@ -140,5 +140,9 @@ contractorRouter.put(
   "/update-task-progress/:id",
   ContractorCtr.addtaskprogress
 );
+contractorRouter.get(
+  "/fetch-contractor-single-task/:id",
+  ContractorCtr.fetchcontractorsingletask
+);
 
 module.exports = contractorRouter;

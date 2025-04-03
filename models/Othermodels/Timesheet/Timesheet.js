@@ -33,7 +33,7 @@ const TimesheetSchema = new Schema(
       ref: "User",
     },
     hours: {
-      type: String,
+      type: Number,
       default: 0,
     },
     project: {
