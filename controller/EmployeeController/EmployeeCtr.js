@@ -9,6 +9,8 @@ const Company = require("../../models/Othermodels/Companymodels/Company");
 const Roles = require("../../models/MasterModels/Roles/Roles");
 const Client = require("../../models/AuthModels/Client/Client");
 const Notification = require("../../models/Othermodels/Notification/Notification");
+const moment = require("moment");
+const Milestone = require("../../models/Othermodels/Milestones/Milestones");
 const EmployeeCtr = {
   fetchemployeeprojects: asyncHandler(async (req, res) => {
     try {
@@ -952,6 +954,114 @@ const EmployeeCtr = {
           totalPages: Math.ceil(totalProjects / limit),
         },
       });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // fetch employee milestones
+  fetchemployeemilestones: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup.",
+        });
+      }
+
+      const fetchproject = await Milestone.find({
+        ProjectId: parseInt(req.params.id),
+      });
+
+      if (!fetchproject) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Mile stone not found");
+      }
+      res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: fetchproject});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // add task progress
+  addtaskprogress: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup.",
+        });
+      }
+
+      // fill timesheet
+
+      const response = await TimeSheet.findOneAndUpdate(
+        {
+          project: req.body.project,
+        },
+        {
+          $set: {
+            Description: req.body.task_Description,
+            hours: req.body.hours,
+            day: moment().format("DD/MM/YYYY"),
+          },
+        }, // 🔹 Update document with new values
+        {new: true, upsert: true} // 🔹 Return updated doc, create if not found
+      );
+
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Timesheet Not found");
+      } else {
+        await Task.findOneAndUpdate(
+          {task_Id: parseInt(req.params.id)},
+          {$set: {Status: "COMPLETED"}},
+          {new: true}
+        );
+      }
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, message: "Task Progress Updated"});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchEmployeesingletask: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup.",
+        });
+      }
+
+      const fetchtask = await Task.findOne({task_Id: req.params.id});
+
+      if (!fetchtask) {
+        res.status(HttpStatusCodes.NOT_FOUND).json({error: "Task not found"});
+        return;
+      }
+
+      const fetchmilestone = await Milestone.findOne({
+        Milestone_id: fetchtask.MilestoneId,
+      });
+      const fetchprojects = await Project.findOne({
+        ProjectId: fetchtask?.ProjectId,
+      });
+
+      const result = {
+        MilestoneName: fetchmilestone?.Name || "",
+        ProjectName: fetchprojects?.Project_Name || "",
+        data: fetchtask,
+      };
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: result});
     } catch (error) {
       throw new Error(error?.message);
     }

@@ -106,4 +106,15 @@ employeeRouter.get(
   EmployeeCtr.fetchemployeeproject_time
 );
 
+// update task progress
+
+employeeRouter.get(
+  "/fetch-employee-milestone/:id",
+  EmployeeCtr.fetchemployeemilestones
+);
+employeeRouter.put("/update-task-progress/:id", EmployeeCtr.addtaskprogress);
+employeeRouter.get(
+  "/fetch-employee-single-task/:id",
+  EmployeeCtr.fetchEmployeesingletask
+);
 module.exports = employeeRouter;
