@@ -1086,6 +1086,102 @@ const ContractorCtr = {
       throw new Error(error?.message);
     }
   }),
+
+  // fetch contractor project chart
+
+  fetchcontractorinfochart: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+
+      const projectId = req.params.id;
+      const fetchproject = await Project.findOne({ProjectId: projectId});
+      if (!fetchproject) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Project Not Found");
+      }
+
+      const result = {
+        ProjectName: fetchproject.Project_name,
+        Start_Date: fetchproject.Start_Date,
+        End_Date: fetchproject.End_Date,
+      };
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: result});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchcontractorrecentstaff: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please sign up.",
+        });
+      }
+
+      const fetchprojectstaff = await Project.findOne({
+        ProjectId: Number(req.params.id),
+      });
+
+      if (!fetchprojectstaff) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "Project not found",
+        });
+      }
+
+      const projectmanager = await StaffMember.findOne({
+        staff_Id: fetchprojectstaff?.Project_ManagersId,
+      });
+
+      const roleresourcedata = await RoleResource.find({
+        ProjectId: Number(req.params.id),
+      });
+
+      if (!roleresourcedata || roleresourcedata.length === 0) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "Role Resources not found",
+        });
+      }
+
+      const staffids = roleresourcedata.map((item) => item.RRId);
+      const staffteam = await StaffMember.find({staff_Id: {$in: staffids}});
+
+      if (!staffteam || staffteam.length === 0) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
+          success: false,
+          message: "Staff team not found",
+        });
+      }
+
+      const team = staffteam.map((item) => item.FirstName);
+
+      // Safely push project manager's name if found
+      if (projectmanager?.FirstName) {
+        team.push(projectmanager.FirstName);
+      }
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: team,
+      });
+    } catch (error) {
+      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: error?.message || "Something went wrong",
+      });
+    }
+  }),
 };
 
 module.exports = ContractorCtr;

@@ -145,4 +145,15 @@ contractorRouter.get(
   ContractorCtr.fetchcontractorsingletask
 );
 
+// fetch contractor dash project
+
+contractorRouter.get(
+  "/fetch-contractor-single-project-chart/:id",
+  ContractorCtr.fetchcontractorinfochart
+);
+
+contractorRouter.get(
+  "/fetch-contractor-team/:id",
+  ContractorCtr.fetchcontractorrecentstaff
+);
 module.exports = contractorRouter;

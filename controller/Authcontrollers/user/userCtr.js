@@ -291,7 +291,7 @@ const userCtr = {
 
       const user = await User.findById({_id: checktoken.userId});
       if (user) {
-        await User.updateOne({isVerify: true});
+        await User.updateOne({_id: user._id}, {$set: {isVerify: true}});
       }
 
       return res.status(HttpStatusCodes.OK).json({

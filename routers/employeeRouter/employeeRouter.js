@@ -117,4 +117,10 @@ employeeRouter.get(
   "/fetch-employee-single-task/:id",
   EmployeeCtr.fetchEmployeesingletask
 );
+
+// fetch employee single project info chart
+employeeRouter.get(
+  "/fetch-employee-single-project-info-chart/:id",
+  EmployeeCtr.fetchemployeeprojectchartinfo
+);
 module.exports = employeeRouter;

@@ -17,32 +17,83 @@ const EmployeeCtr = {
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new error("UnAuthorized User Please Singup ");
+        throw new Error("Unauthorized User. Please Signup.");
       }
 
-      let queryObj = {};
-      queryObj = {
-        Project_ManagersId: user.staff_Id,
-        createdBy: user?.staff_Id,
+      // Pagination and search query parameters
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const search = req.query.search || "";
+
+      const skip = (page - 1) * limit;
+
+      // Base query
+      let queryObj = {
+        $or: [{Project_ManagersId: user.staff_Id}, {createdBy: user.staff_Id}],
       };
 
-      const response = await Project.find(queryObj).lean().exec();
-      if (!response) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request");
+      // Add search to the query (example: search by project name or description)
+      if (search) {
+        queryObj.$and = [
+          {
+            $or: [{Project_Name: {$regex: search, $options: "i"}}],
+          },
+        ];
       }
 
+      // Fetch directly managed projects
+      const response = await Project.find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec();
+
+      const totalManaged = await Project.countDocuments(queryObj);
+
+      // Fetch employee projects
       const responseResult = await RoleResource.find({RRId: user.staff_Id});
-      const rrid = await responseResult.map((item) => item.ProjectId);
+      const rrid = responseResult.map((item) => item.ProjectId);
 
-      const employeeProjects = await Project.find({ProjectId: rrid});
+      const employeeQuery = {
+        ProjectId: {$in: rrid},
+      };
 
-      const allProjects = {response, employeeProjects};
+      // Add search to employee projects too
+      if (search) {
+        employeeQuery.$and = [
+          {
+            $or: [
+              {name: {$regex: search, $options: "i"}},
+              {description: {$regex: search, $options: "i"}},
+            ],
+          },
+        ];
+      }
+
+      const employeeProjects = await Project.find(employeeQuery)
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec();
+
+      const totalEmployee = await Project.countDocuments(employeeQuery);
+
+      const allProjects = {
+        managedProjects: response,
+        employeeProjects,
+        pagination: {
+          currentPage: page,
+          limit,
+          totalManaged,
+          totalEmployee,
+        },
+      };
+
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, result: allProjects});
     } catch (error) {
-      throw new Error(error?.message);
+      throw new Error(error?.message || "Something went wrong");
     }
   }),
 
@@ -50,35 +101,73 @@ const EmployeeCtr = {
     try {
       const user = await StaffMember.findById(req.user);
       if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new error("UnAuthorized User Please Singup ");
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Sign Up.",
+        });
       }
 
-      let queryObj = {};
+      const {page = 1, limit = 10, search = ""} = req.query;
+      const pageNumber = parseInt(page, 10);
+      const limitNumber = parseInt(limit, 10);
+      const skip = (pageNumber - 1) * limitNumber;
 
-      queryObj = {
+      let queryObj = {
         Project_ManagersId: user.staff_Id,
         Project_Status: true,
+        createdBy: user?.staff_Id,
       };
 
-      const response = await Project.find(queryObj).lean().exec();
-      if (!response) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Bad Request");
+      if (search) {
+        queryObj.Project_Name = {$regex: search, $options: "i"}; // Case-insensitive search
       }
+
+      const totalProjects = await Project.countDocuments(queryObj);
+      const response = await Project.find(queryObj)
+        .skip(skip)
+        .limit(limitNumber)
+        .lean()
+        .exec();
+
+      if (!response.length) {
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: "No Active Projects Found",
+        });
+      }
+
       const responseResult = await RoleResource.find({RRId: user.staff_Id});
-      const rrid = await responseResult.map((item) => item.ProjectId);
+      const rrid = responseResult.map((item) => item.ProjectId);
 
-      const employeeactiveProjects = await Project.find({
-        ProjectId: rrid,
-        Project_Status: true,
+      let employeeactiveProjects = [];
+      if (rrid.length > 0) {
+        const employeeQuery = {
+          ProjectId: {$in: rrid},
+          Project_Status: true,
+        };
+
+        if (search) {
+          employeeQuery.Project_Name = {$regex: search, $options: "i"};
+        }
+
+        employeeactiveProjects = await Project.find(employeeQuery)
+          .skip(skip)
+          .limit(limitNumber);
+      }
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: {
+          response,
+          employeeactiveProjects,
+          pagination: {
+            totalProjects,
+            totalPages: Math.ceil(totalProjects / limitNumber),
+            currentPage: pageNumber,
+            limit: limitNumber,
+          },
+        },
       });
-
-      const activeprojects = {response, employeeactiveProjects};
-
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, result: activeprojects});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -89,38 +178,59 @@ const EmployeeCtr = {
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new error("UnAuthorized User Please Singup ");
+        throw new Error("UnAuthorized User Please Sign Up");
       }
 
-      let queryObj = {};
+      let {page = 1, limit = 10, search = ""} = req.query;
+      page = parseInt(page);
+      limit = parseInt(limit);
 
-      queryObj = {
+      let queryObj = {
         Project_ManagersId: user.staff_Id,
         Project_Status: false,
+        Project_Name: {$regex: search, $options: "i"}, // Case-insensitive search
       };
 
-      const response = await Project.find(queryObj).lean().exec();
+      const totalProjects = await Project.countDocuments(queryObj);
+      const response = await Project.find(queryObj)
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .lean()
+        .exec();
+
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
+
       const responseResult = await RoleResource.find({RRId: user.staff_Id});
-      const rrid = await responseResult.map((item) => item.ProjectId);
+      const rrid = responseResult.map((item) => item.ProjectId);
 
-      const employeeinactiveProjects = await Project.find({
-        ProjectId: rrid,
+      const employeeInactiveProjects = await Project.find({
+        ProjectId: {$in: rrid},
         Project_Status: false,
+        Project_Name: {$regex: search, $options: "i"},
+      })
+        .skip((page - 1) * limit)
+        .limit(limit);
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: {
+          response,
+          employeeInactiveProjects,
+          pagination: {
+            totalProjects,
+            totalPages: Math.ceil(totalProjects / limit),
+            currentPage: page,
+          },
+        },
       });
-
-      const inactiveprojects = {response, employeeinactiveProjects};
-
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, result: inactiveprojects});
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
+
   // fill timesheet by employee
 
   FillEmployeeProjectTimesheet: asyncHandler(async (req, res) => {
@@ -1059,6 +1169,36 @@ const EmployeeCtr = {
         ProjectName: fetchprojects?.Project_Name || "",
         data: fetchtask,
       };
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: result});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // fetch employee single project chart
+  fetchemployeeprojectchartinfo: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+
+      const projectId = req.params.id;
+      const fetchproject = await Project.findOne({ProjectId: projectId});
+      if (!fetchproject) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Project Not Found");
+      }
+
+      const result = {
+        ProjectName: fetchproject.Project_name,
+        Start_Date: fetchproject.Start_Date,
+        End_Date: fetchproject.End_Date,
+      };
+
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, result: result});
