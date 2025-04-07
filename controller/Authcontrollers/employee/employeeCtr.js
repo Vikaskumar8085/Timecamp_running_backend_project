@@ -167,9 +167,9 @@ const employeeCtr = {
       } else {
         await Notification({
           SenderId: user?.user_id,
-          ReciverId: employee?.staff_Id,
+          ReciverId: response?.staff_Id,
           Name: user?.Role.concat(" ", user?.FirstName),
-          Description: `Dear ${employee?.FirstName}, your account has been successfully updated!`,
+          Description: `Dear ${response?.FirstName}, your account has been successfully updated!`,
         }).save();
       }
       return res.status(HttpStatusCodes.CREATED).json({
