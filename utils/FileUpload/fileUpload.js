@@ -12,10 +12,8 @@ const ensureDirExists = (dir) => {
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     let uploadPath = "uploads/";
-
     // Get file extension
     const fileExt = path.extname(file.originalname).toLowerCase();
-
     // Define subfolders based on file type
     if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
       uploadPath += "documents/";

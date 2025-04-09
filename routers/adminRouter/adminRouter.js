@@ -76,12 +76,20 @@ adminRouter.get(
 
 adminRouter.get(
   "/fetch-project-timesheet/:id",
+  verifyToken,
   projectCtr.fetchProjectTimesheet
 );
 
 adminRouter.get(
   "/fetch-project-staff-chart/:id",
+  verifyToken,
   projectCtr.fetchprojectinfochart
+);
+
+adminRouter.get(
+  "/fetch-alloted-task-memebrs/:id",
+  verifyToken,
+  projectCtr.fetchallotedtaskmemebrs
 );
 // project
 

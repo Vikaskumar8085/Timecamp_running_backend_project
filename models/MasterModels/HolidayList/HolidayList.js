@@ -1,11 +1,12 @@
 const mongoose = require("mongoose");
-const AutoIncrement = require("mongoose-sequence");
+const AutoIncrement = require("mongoose-sequence")(mongoose);
 
 const HolidaylistSchema = mongoose.Schema(
   {
     Holiday_Id: {
       type: Number,
-      required: true,
+      unique: true,
+      trim: true,
     },
     Company_Id: {
       type: Number,

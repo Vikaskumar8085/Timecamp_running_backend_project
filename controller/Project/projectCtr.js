@@ -10,6 +10,7 @@ const Client = require("../../models/AuthModels/Client/Client");
 const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Notification = require("../../models/Othermodels/Notification/Notification");
 const moment = require("moment");
+const Task = require("../../models/Othermodels/Task/Task");
 const generateProjectCode = async () => {
   const lastProject = await Project.findOne().sort({ProjectId: -1});
   const lastId = lastProject ? lastProject.ProjectId : 0;
@@ -586,7 +587,7 @@ const projectCtr = {
   }),
   fetchprojectinfochart: asyncHandler(async (req, res) => {
     try {
-      const user = await User.findOne(req.user);
+      const user = await User.find(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User");
@@ -644,6 +645,54 @@ const projectCtr = {
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, message: "success", result: projectData});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchallotedtaskmemebrs: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User");
+      }
+
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const response = await Task.aggregate([
+        {$match: {ProjectId: parseInt(req.params.id)}},
+        {
+          $lookup: {
+            from: "staffmembers",
+            localField: "Resource_Id",
+            foreignField: "staff_Id",
+            as: "detailsofresponse",
+          },
+        },
+        {
+          $unwind: "$detailsofresponse",
+        },
+        {
+          $group: {
+            _id: "$detailsofresponse.FirstName", // group by FirstName to remove duplicates
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            FirstName: "$_id",
+          },
+        },
+      ]);
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }

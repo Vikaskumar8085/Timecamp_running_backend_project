@@ -1,10 +1,12 @@
 const mongoose = require("mongoose");
-const AutoIncrement = require("mongoose-sequence");
+const AutoIncrement = require("mongoose-sequence")(mongoose);
+
 const colorSchema = mongoose.Schema(
   {
     Color_Id: {
       type: Number,
-      required: true,
+      unique: true,
+      trim: true,
     },
     CompnayId: {
       type: Number,

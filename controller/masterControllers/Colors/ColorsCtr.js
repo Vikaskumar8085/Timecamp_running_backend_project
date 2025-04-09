@@ -24,14 +24,14 @@ const ColorCtr = {
 
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("Color Not Found");
+        throw new Error("Item Not Found");
       }
 
       await response.save();
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, message: "color successfully created"});
+        .json({success: true, message: "Item created successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -47,7 +47,7 @@ const ColorCtr = {
         throw new Error("UnAuthorized User please login");
       }
       //   check company
-      const checkcompany = await Company.findOne({UserId: ures.user_id});
+      const checkcompany = await Company.findOne({UserId: user.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not found Please Login");
@@ -62,7 +62,7 @@ const ColorCtr = {
       // pagination
       let queryObj = {};
       queryObj = {
-        Company_Id: checkcompany?.Company_Id,
+        CompnayId: checkcompany?.Company_Id,
       };
       if (search.trim()) {
         queryObj.$or = [{Name: {$regex: search, $options: "i"}}];
@@ -88,6 +88,66 @@ const ColorCtr = {
         currentpage: page,
         totalPage: Math.ceil(totalcount / limit),
       });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  updateColor: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("UnAuthorized User please login");
+      }
+      //   check company
+      const checkcompany = await Company.findOne({UserId: ures.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not found Please Login");
+      }
+
+      const response = await Color.findOne({Color_Id: parseInt(req.params.id)});
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Item Not Found");
+      } else {
+        await response.updateOne({$set: {...req.body}}, {new: true});
+      }
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: "item updated successfully"});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // remove color
+  removecolor: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("UnAuthorized User please login");
+      }
+      //   check company
+      const checkcompany = await Company.findOne({UserId: user.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not found Please Login");
+      }
+
+      const response = await Color.findOne({Color_Id: parseInt(req.params.id)});
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Color Not Found");
+      } else {
+        await response.deleteOne();
+      }
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, message: "item deleted successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }

@@ -52,47 +52,110 @@ const HolidayListCtr = {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not found");
       }
-      //   pagination
 
+      // Pagination
       let page = parseInt(req.query.page) || 1;
       let limit = parseInt(req.query.limit) || 10;
       let skip = (page - 1) * limit;
-      // pagination
-      //   searching
+
+      // Searching
       const search = req.query.search || "";
-
-      let queryObj = {};
-
-      queryObj = {
-        Company_Id: checkcompany.Company_Id,
+      let queryObj = {
+        Company_Id: checkcompany?.Company_Id,
       };
 
       if (search.trim()) {
         queryObj.$or = [{Name: {$regex: search, $options: "i"}}];
       }
-      // searching
+
       const response = await Holidaylist.aggregate([
-        {
-          $match: queryObj,
-        },
+        {$match: queryObj},
         {$sort: {createdAt: -1}},
         {$skip: skip},
         {$limit: limit},
       ]);
 
-      if (!response) {
+      if (!response || response.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Holiday Not found");
       }
 
-      const totalCount = Holidaylist.countDocuments(response);
+      const totalCount = await Holidaylist.countDocuments(queryObj);
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result: response,
         totalItem: totalCount,
         currentPage: page,
-        tatalPage: Math.ceil(totalCount / limit),
+        totalPage: Math.ceil(totalCount / limit), // fixed typo from `tatalPage`
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // update holiday
+  updateHoliday: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please Login");
+      }
+
+      const checkcompany = await Company.findOne({UserId: user.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not found");
+      }
+      //
+
+      const response = await Holidaylist.findOne({
+        Holiday_Id: parseInt(req.params.id),
+      });
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Item does Not Found for Updation");
+      } else {
+        await response.updateOne({$set: {...req.body}}, {new: true});
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        message: "Item updated successfully",
+        success: true,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // remove holiday
+  removeHoliday: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User please Login");
+      }
+
+      const checkcompany = await Company.findOne({UserId: user.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not found");
+      }
+      //
+
+      const response = await Holidaylist.findOne({
+        Holiday_Id: parseInt(req.params.id),
+      });
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Item does Not Found for deletion");
+      } else {
+        await response.deleteOne();
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        message: "Item Deleted successfully",
+        success: true,
       });
     } catch (error) {
       throw new Error(error?.message);

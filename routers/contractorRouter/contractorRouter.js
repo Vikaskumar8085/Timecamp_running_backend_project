@@ -144,7 +144,6 @@ contractorRouter.get(
   "/fetch-contractor-single-task/:id",
   ContractorCtr.fetchcontractorsingletask
 );
-
 // fetch contractor dash project
 
 contractorRouter.get(
