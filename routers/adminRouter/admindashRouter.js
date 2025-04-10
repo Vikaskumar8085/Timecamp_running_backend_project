@@ -67,4 +67,10 @@ admindashRouter.get(
   verifyToken,
   admindashboardCtr.fetchProjectroi
 );
+
+admindashRouter.get(
+  "/fetch-recent-project",
+  verifyToken,
+  admindashboardCtr.fetchRecentTask
+);
 module.exports = admindashRouter;

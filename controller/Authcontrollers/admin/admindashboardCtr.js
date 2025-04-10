@@ -515,7 +515,36 @@ const admindashboardCtr = {
         });
       }
 
-      const fetchtask = await Task.find({Company_Id: checkcompany?.Company_Id});
+      const fetchtask = await Task.aggregate([
+        {$match: {Company_Id: checkcompany?.Company_Id}},
+        {
+          $lookup: {
+            from: "staffmembers",
+            localField: "staff_Id",
+            foreignField: "Resource_Id",
+            as: "recenttask",
+          },
+        },
+        {
+          $unwind: {
+            path: "$recenttask",
+            preserveNullAndEmptyArrays: false, // or true if you want to include tasks without a match
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            FirstName: "$recenttask.FirstName",
+            Estimated_Time: "$Estimated_Time",
+          },
+        },
+        {
+          $sort: {createdAt: -1},
+        },
+        {
+          $limit: 5,
+        },
+      ]);
 
       if (!fetchtask) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -523,6 +552,10 @@ const admindashboardCtr = {
       }
 
       // const fetch
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: fetchtask, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -754,6 +787,31 @@ const admindashboardCtr = {
         .json({success: true, result: staffWithTasksAndProjects});
     } catch (error) {
       throw new Error(error?.message);
+    }
+  }),
+
+  fetchEmployeetimehours: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup",
+        });
+      }
+      // Check if the company exists
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: "Company does not exist. Please create a company first.",
+        });
+      }
+
+const response= await T
+
+    } catch (error) {
+      console.log(error?.message);
     }
   }),
 };
