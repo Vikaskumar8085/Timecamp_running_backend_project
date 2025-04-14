@@ -5,7 +5,7 @@ const WeekoffSettingSchema = mongoose.Schema(
   {
     WeekoffSetting_Id: {
       type: Number,
-      required: true,
+      trim: true,
       unique: true,
     },
     CompanyId: {
@@ -23,6 +23,13 @@ const WeekoffSettingSchema = mongoose.Schema(
         "Saturday",
         "Sunday",
       ],
+      validate: {
+        validator: function (arr) {
+          return !this.AllowbacklogEntryOnWeekOff || arr.length > 0;
+        },
+        message:
+          "Week_Off_Days must not be empty when AllowbacklogEntryOnWeekOff is true.",
+      },
     },
     AllowbacklogEntryOnWeekOff: {
       type: Boolean,

@@ -1,10 +1,14 @@
 const mongoose = require("mongoose");
 const autoIncrement = require("mongoose-auto-increment");
 autoIncrement.initialize(mongoose.connection);
+
+
+
+
 const bucketSchema = new mongoose.Schema({
   bucket_id: {
     type: Number,
-    required: true,
+    trim: true,
     unique: true,
   },
   ProjectId: {type: Number, ref: "Project", required: true},

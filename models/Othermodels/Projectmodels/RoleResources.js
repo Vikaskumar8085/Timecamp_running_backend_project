@@ -20,6 +20,26 @@ const RoleResourceSchema = mongoose.Schema(
     ProjectId: {
       type: Number,
     },
+    Enable: {
+      type: Boolean,
+    },
+    currency: {
+      type: String,
+      default: null,
+    },
+    Rate: {
+      type: Number,
+      default: null,
+      set: (val) => (val < 0 ? 0 : val),
+    },
+    Unit: {
+      type: String,
+      default: null,
+    },
+    Engagement_Ratio: {
+      type: Number,
+      default: null,
+    },
   },
   {timestamps: true}
 );

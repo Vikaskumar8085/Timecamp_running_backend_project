@@ -22,9 +22,20 @@ const weekoffdaysCtr = {
         throw new Error("company not exists please create first company");
       }
 
+      const {AllowbacklogEntryOnWeekOff, Week_Off_Days} = req.body;
+
+      if (
+        AllowbacklogEntryOnWeekOff &&
+        (!Array.isArray(Week_Off_Days) || Week_Off_Days.length === 0)
+      ) {
+        return res
+          .status(400)
+          .json({error: "Week_Off_Days is required when backlog is allowed."});
+      }
       const repsonse = await WeekoffSetting({
         CompanyId: checkcompany.Company_Id,
-        ...req.body,
+        AllowbacklogEntryOnWeekOff,
+        Week_Off_Days,
       });
       if (!repsonse) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -45,7 +56,7 @@ const weekoffdaysCtr = {
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Un Authorized User please sign up");
+        throw new Error("Un Authorized User. Please sign up.");
       }
 
       const checkcompany = await Company.findOne({UserId: user.user_id});
@@ -54,41 +65,38 @@ const weekoffdaysCtr = {
         throw new Error("Company Not Found");
       }
 
-      let queryObj = {};
-      let page = parseInt(req.query.page) || 1;
-      let limit = parseInt(req.query.limit) || 10;
-      let skip = (page - 1) * limit;
-      let search = req.query.search || "";
-      queryObj = {
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+      const search = req.query.search || "";
+
+      let queryObj = {
         CompanyId: checkcompany.Company_Id,
       };
+
       if (search.trim()) {
-        queryObj.$or = [{Week_Off_Days: {$regex: search, $options: "i"}}];
+        queryObj.Week_Off_Days = {$regex: search, $options: "i"};
       }
 
-      const response = await WeekoffSetting.aggregate([
-        {$match: queryObj},
-        {
-          $limit: limit,
-        },
-        {
-          $skip: skip,
-        },
-        {$sort: {createdAt: -1}},
+      const [response, totalcount] = await Promise.all([
+        WeekoffSetting.find(queryObj)
+          .sort({createdAt: -1})
+          .skip(skip)
+          .limit(limit),
+        WeekoffSetting.countDocuments(queryObj),
       ]);
 
-      const totalcount = WeekoffSetting.countDocuments(response);
-      if (!response || response.length == 0) {
+      if (!response || response.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("item Not found");
+        throw new Error("Items not found");
       }
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         result: response,
-        currentpage: page,
-        totalItem: totalcount,
-        totalpage: Math.ceil(totalcount / limit),
+        currentPage: page,
+        totalItems: totalcount,
+        totalPages: Math.ceil(totalcount / limit),
       });
     } catch (error) {
       throw new Error(error?.message);
