@@ -9,6 +9,7 @@ const contractorCtr = require("../../controller/Authcontrollers/contractor/contr
 const TaskCtr = require("../../controller/Task/TaskCtr");
 const TimesheetCtr = require("../../controller/TimesheetCtr/TimesheetCtr");
 const upload = require("../../utils/FileUpload/fileUpload");
+const InvoiceCtr = require("../../controller/Authcontrollers/Invoice/InvoiceCtr");
 
 const adminRouter = express.Router();
 // admin create
@@ -236,4 +237,7 @@ adminRouter.put(
   verifyToken,
   adminCtr.billedByadminTimesheet
 );
+// invoice
+adminRouter.post("/create-invoice", verifyToken, InvoiceCtr.createInvoice);
+adminRouter.get("/fetch-invoice", verifyToken, InvoiceCtr.fetchInvoice);
 module.exports = adminRouter;

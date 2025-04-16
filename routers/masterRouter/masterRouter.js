@@ -7,6 +7,7 @@ const ColorCtr = require("../../controller/masterControllers/Colors/ColorsCtr");
 const HolidayListCtr = require("../../controller/masterControllers/HolidayList/HolidayListCtr");
 const WeekoffSetting = require("../../models/MasterModels/Weekofsetting/WeekofSetting");
 const weekoffdaysCtr = require("../../controller/masterControllers/WeekOffDays/WeekOffDaysCtr");
+const standardCtr = require("../../controller/masterControllers/StandardMaster");
 
 const masterRouter = express.Router();
 // department master
@@ -45,5 +46,10 @@ masterRouter.post("/create-weekoffday", weekoffdaysCtr.createweekoffday);
 masterRouter.get("/fetch-weekoffday", weekoffdaysCtr.fetchweekoffdays);
 masterRouter.put("/update-holiday/:id", weekoffdaysCtr.updateweekoffdays);
 masterRouter.delete("/remove-holiday/:id", weekoffdaysCtr.removeweekoffdays);
+
+// standard
+masterRouter.get("/fetch-standard", standardCtr.fetchstandard);
+masterRouter.post("/create-standard", standardCtr.createstandard);
+masterRouter.delete("/remove-standard/:id", standardCtr.removestandard);
 
 module.exports = masterRouter;
