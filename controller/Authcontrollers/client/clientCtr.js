@@ -24,6 +24,25 @@ const clientCtr = {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
+
+      // check in user
+      const checkinadmin = await User.findOne({Email: Client_Email});
+      if (checkinadmin) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "This email is already used. Please provide a different email address."
+        );
+      }
+// check
+      // check in staff
+      const checkinstaff = await StaffMember.findOne({Email: Client_Email});
+      if (checkinstaff) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "This email is already used. Please provide a different email address."
+        );
+      }
+      // check in staff
       req.body.Password = req.body.Client_Phone;
 
       console.log(req.body.Password, "this is the client password");

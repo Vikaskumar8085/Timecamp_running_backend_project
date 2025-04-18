@@ -28,6 +28,26 @@ const contractorCtr = {
         throw new Error("company not exists please create first company");
       }
 
+      // check in admin
+      const checkinadmin = await User.findOne({Email: req.body.Email});
+      if (checkinadmin) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "This email is already used. Please provide a different email address."
+        );
+      }
+      // check in client
+
+      const checkinclient = await Client.findOne({
+        Client_Email: req.body.Email,
+      });
+      if (checkinclient) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "This email is already used. Please provide a different email address."
+        );
+      }
+
       req.body.Password = req.body.Phone;
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(req.body.Password, genhash);

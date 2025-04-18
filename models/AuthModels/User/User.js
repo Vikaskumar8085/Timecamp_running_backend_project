@@ -85,12 +85,3 @@ UserSchema.pre("save", async (next) => {
 const User = mongoose.model("User", UserSchema);
 
 module.exports = User;
-
-// {
-//   "FirstName": "John",
-//   "LastName": "Doe",
-//   "Email": "john.doe@example.com",
-//   "Password": "yourPassword",
-//   "Photo": "https://i.ibb.co/4pDNDk1/avatar.png",
-//   "Role": "Employee"
-// }

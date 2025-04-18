@@ -12,6 +12,7 @@ const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const sendEmail = require("../../../utils/SendMail/SendMail");
 const Notification = require("../../../models/Othermodels/Notification/Notification");
 const path = require("path");
+const Client = require("../../../models/AuthModels/Client/Client");
 
 const employeeCtr = {
   // create employee
@@ -28,6 +29,25 @@ const employeeCtr = {
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
+      }
+      // check in admin
+      const checkinadmin = await User.findOne({Email: req.body.Email});
+      if (checkinadmin) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "This email is already used. Please provide a different email address."
+        );
+      }
+      // check in admin
+
+      const checkinclient = await Client.findOne({
+        Client_Email: req.body.Email,
+      });
+      if (checkinclient) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "This email is already used. Please provide a different email address."
+        );
       }
 
       req.body.Password = req.body.Phone;
