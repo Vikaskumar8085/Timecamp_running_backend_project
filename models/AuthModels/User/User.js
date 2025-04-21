@@ -26,6 +26,11 @@ const UserSchema = mongoose.Schema({
     type: String,
     default: "",
   },
+  Phone: {
+    type: String,
+    required: [true, "Please enter your phone number"],
+    trim: true,
+  },
   Photo: {
     type: String,
     required: [true, "Please add a photo"],
@@ -72,14 +77,15 @@ UserSchema.plugin(AutoIncrement, {
   start_seq: 1,
 });
 
-UserSchema.pre("save", async (next) => {
-  if (this.Password) {
-    this.Password = await bcrypt.hash(this.Password, 10);
-    // } else if (this.Client_Phone) {
-    //   const hashedPassword = await bcrypt.hash(this.Client_Phone, 10);
-    //   this.Password = hashedPassword;
+UserSchema.pre("save", async function (next) {
+  try {
+    if (this.isModified("Password") && this.Password) {
+      this.Password = await bcrypt.hash(this.Password, 10);
+    }
+    next();
+  } catch (err) {
+    next(err);
   }
-  next();
 });
 
 const User = mongoose.model("User", UserSchema);

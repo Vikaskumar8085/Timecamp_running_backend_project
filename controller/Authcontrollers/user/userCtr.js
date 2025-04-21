@@ -18,8 +18,13 @@ const userCtr = {
   register: asynchandler(async (req, res) => {
     try {
       let {FirstName, LastName, Email, Password, Term} = req.body;
+      if (!Password) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Please Enter Your Password");
+      }
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(Password, genhash);
+
       const userExists = await User.findOne({Email: req.body.Email});
       if (userExists) {
         res.status(HttpStatusCodes.BAD_REQUEST);
@@ -32,6 +37,7 @@ const userCtr = {
         Password: hashpassword,
         Term,
         IsAdmin: true,
+        ...req.body,
       });
 
       if (resp) {
