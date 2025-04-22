@@ -97,6 +97,7 @@ const contractorCtr = {
         Role: "Contractor",
         Photos: contractorattachment,
         CompanyId: company.Company_Id,
+        ...req.body,
       });
 
       await response.save();

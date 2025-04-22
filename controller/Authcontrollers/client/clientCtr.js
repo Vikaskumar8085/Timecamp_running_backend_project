@@ -33,7 +33,7 @@ const clientCtr = {
           "This email is already used. Please provide a different email address."
         );
       }
-// check
+      // check
       // check in staff
       const checkinstaff = await StaffMember.findOne({Email: Client_Email});
       if (checkinstaff) {
@@ -61,6 +61,7 @@ const clientCtr = {
         GstNumber: req.body.GstNumber,
         System_Access: req.body.System_Access,
         Common_Id: company?.Company_Id,
+        ...req.body,
       });
 
       if (addItem) {

@@ -96,6 +96,7 @@ const employeeCtr = {
         Photos: employeeattachment,
         Role: "Employee",
         CompanyId: company.Company_Id,
+        ...req.body,
       });
 
       const managerids = await response.ManagerId;
