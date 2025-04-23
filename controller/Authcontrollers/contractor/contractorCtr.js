@@ -186,6 +186,7 @@ const contractorCtr = {
           SenderId: user?.user_id,
           ReciverId: response?.staff_Id,
           Name: user?.Role.concat(" ", user?.FirstName),
+          Pic: user?.Photo,
           Description: `Dear ${response?.FirstName}, your account has been successfully updated!`,
         }).save();
       }

@@ -189,6 +189,7 @@ const employeeCtr = {
         await Notification({
           SenderId: user?.user_id,
           ReciverId: response?.staff_Id,
+          Pic: user?.Photo,
           Name: user?.Role.concat(" ", user?.FirstName),
           Description: `Dear ${response?.FirstName}, your account has been successfully updated!`,
         }).save();

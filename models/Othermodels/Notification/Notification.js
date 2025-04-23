@@ -20,6 +20,10 @@ const NotificationSchema = mongoose.Schema(
       type: String,
       required: true,
     },
+    Pic: {
+      type: String,
+      required: true,
+    },
     Description: {
       type: String,
       required: true,

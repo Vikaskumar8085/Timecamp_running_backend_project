@@ -26,24 +26,25 @@ const clientCtr = {
       }
 
       // check in user
-      const checkinadmin = await User.findOne({Email: Client_Email});
-      if (checkinadmin) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error(
-          "This email is already used. Please provide a different email address."
-        );
-      }
+      // const checkinadmin = await User.findOne({Email:Client_Email});
+      // if (checkinadmin) {
+      //   res.status(HttpStatusCodes.BAD_REQUEST);
+      //   throw new Error(
+      //     "This email is already used. Please provide a different email address."
+      //   );
+      // }
       // check
       // check in staff
-      const checkinstaff = await StaffMember.findOne({Email: Client_Email});
-      if (checkinstaff) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error(
-          "This email is already used. Please provide a different email address."
-        );
-      }
+      // const checkinstaff = await StaffMember.findOne({Email: Client_Email});
+      // if (checkinstaff) {
+      //   res.status(HttpStatusCodes.BAD_REQUEST);
+      //   throw new Error(
+      //     "This email is already used. Please provide a different email address."
+      //   );
+      // }
       // check in staff
-      req.body.Password = req.body.Client_Phone;
+
+      // req.body.Password = req.body.Client_Phone;
 
       console.log(req.body.Password, "this is the client password");
 
@@ -60,18 +61,15 @@ const clientCtr = {
         Password: hashpassword,
         GstNumber: req.body.GstNumber,
         System_Access: req.body.System_Access,
+        Username: await generateUniqueClientName(
+          req.body.Client_Name || "client"
+        ),
         Common_Id: company?.Company_Id,
         ...req.body,
       });
 
       if (addItem) {
         await addItem.save();
-        await Notification({
-          SenderId: user?.user_id,
-          ReciverId: addItem.Client_Id,
-          Name: user?.Role.concat(" ", user?.FirstName),
-          Description: `Dear ${addItem.Client_Name}, your account has been successfully created. Welcome aboard!`,
-        }).save();
 
         const send_to = addItem?.Client_Email;
         const subject = `Welcome! Your ${company?.Company_Name} Account Credentials`;
@@ -146,6 +144,14 @@ const clientCtr = {
         if (!mailsend) {
           res.status(HttpStatusCodes.BAD_REQUEST);
           throw new Error("Email not sent");
+        } else {
+          await Notification({
+            SenderId: user?.user_id,
+            ReciverId: addItem.Client_Id,
+            Name: user?.Role.concat(" ", user?.FirstName),
+            Pic: user?.Photo,
+            Description: `Dear ${addItem.Client_Name}, your account has been successfully created. Welcome aboard!`,
+          }).save();
         }
         return res
           .status(200)

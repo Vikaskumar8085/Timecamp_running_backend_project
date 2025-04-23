@@ -13,9 +13,14 @@ const ClientRegistrationSchema = mongoose.Schema(
       type: String,
       required: false,
     },
+    Username: {
+      type: String,
+      unique: true,
+      required: true,
+      trim: true,
+    },
     Client_Name: {
       type: String,
-
       required: false,
     },
     Client_Email: {
@@ -90,15 +95,15 @@ ClientRegistrationSchema.plugin(AutoIncrement, {
 const Client = mongoose.model("Client", ClientRegistrationSchema);
 module.exports = Client;
 
-// {
-//   "Company_Name": "Acme Corp",
-//   "Client_Name": "John Doe",
-//   "Client_Email": "john.doe@example.com",
-//   "Client_Phone": "1234567890",
-//   "Client_Address": "123 Main St",
-//   "Client_Postal_Code": 12345,
-//   "GstNumber": "GST123456",
-//   "Common_Id": 1
-// }
+// export async function generateUniqueClientName(baseName) {
+//   let name = baseName.trim().toLowerCase().replace(/\s+/g, "-");
+//   let uniqueName = name;
+//   let count = 0;
 
-// 27ABCDE1234F1Z5
+//   while (await Client.findOne({Client_Name: uniqueName})) {
+//     count++;
+//     uniqueName = `${name}-${count}`;
+//   }
+
+//   return uniqueName;
+// }

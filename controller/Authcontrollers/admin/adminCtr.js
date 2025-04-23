@@ -68,6 +68,7 @@ const adminCtr = {
           SenderId: user?.user_id,
           ReciverId: createuser?.user_id,
           Name: user?.FirstName,
+          Pic: user?.Photo,
           Description: `Dear ${createuser?.FirstName}, you have been successfully added as an Admin in ${checkcompany?.Company_Name} company. Welcome aboard!`,
           IsRead: false,
         }).save();
