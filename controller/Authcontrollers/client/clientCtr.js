@@ -10,6 +10,27 @@ const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMember
 const Notification = require("../../../models/Othermodels/Notification/Notification");
 const sendEmail = require("../../../utils/SendMail/SendMail");
 
+// function
+async function generateUniqueClientName(baseName) {
+  const username = baseName.toLowerCase().replace(/\s+/g, "_");
+
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const suffix = Math.floor(Math.random() * 10000);
+    const uniqueUsername = `${username}_${suffix}`;
+    const exists = await Client.findOne({Username: uniqueUsername});
+
+    if (!exists) {
+      return uniqueUsername;
+    }
+  }
+
+  throw new Error(
+    "Failed to generate a unique username after several attempts."
+  );
+}
+
+// function
+
 const clientCtr = {
   // create client
   create_client: asyncHandler(async (req, res) => {
