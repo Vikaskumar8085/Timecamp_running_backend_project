@@ -73,6 +73,7 @@ const projectCtr = {
           SenderId: user?.user_id,
           ReciverId: newProject?.clientId,
           Name: user?.FirstName,
+          Pic: user?.Photo,
           Description: `You have been assigned to the ${Project_Name} project as a new client by the admin.`,
           IsRead: false,
         }).save();
@@ -91,6 +92,7 @@ const projectCtr = {
           SenderId: user?.user_id,
           ReciverId: newProject?.responseProjectmangerid,
           Name: user?.FirstName,
+          Pic: user?.Photo,
           Description: `You have been assigned to the ${Project_Name} project as a new projectmanager by the admin.`,
           IsRead: false,
         }).save();
@@ -127,6 +129,7 @@ const projectCtr = {
               SenderId: user?.user_id,
               ReciverId: RRId, // Receiver is RRId
               Name: user?.FirstName,
+              Pic: user?.Photo,
               Description: "Your role has been updated to Active",
               IsRead: false,
             });
