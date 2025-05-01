@@ -26,10 +26,11 @@ const projectCtr = {
         clientId,
         Project_Type,
         Project_Hours,
-        Project_ManagersId,
+        Currency,
         Start_Date,
         End_Date,
         roleResources,
+        roleProjectMangare,
       } = req.body;
       console.log(req.body);
 
@@ -44,6 +45,7 @@ const projectCtr = {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
+
       // Create the project
       const newProject = new Project({
         CompanyId: checkcompany.Company_Id,
@@ -54,7 +56,6 @@ const projectCtr = {
         Project_Status: true,
         Start_Date,
         End_Date,
-        Project_ManagersId,
       });
 
       await newProject.save();
@@ -102,14 +103,63 @@ const projectCtr = {
       const projectId = newProject?.ProjectId;
       console.log(projectId, "...");
 
+      // roleProjectMangare
+      if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
+        return;
+
+      const roleProjectMangaredata = roleProjectMangare.map(
+        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
+          RRId,
+          RId,
+          ProjectId: projectId,
+          Rate,
+          Unit,
+          Engagement_Ratio,
+        })
+      );
+      await RoleResource.insertMany(roleProjectMangaredata);
+      try {
+        let updatestaffmember = await Promise.all(
+          (roleProjectMangaredata || []).map(async ({RRId, RId}) => {
+            if (!RRId) return;
+
+            await StaffMember.updateOne(
+              {staff_Id: RRId},
+              {$set: {IsActive: "Active"}}
+            );
+            // Send notification
+            await Notification.create({
+              SenderId: user?.user_id,
+              ReciverId: RRId, // Receiver is RRId
+              Name: user?.FirstName,
+              Pic: user?.Photo,
+              Description: "Your role has been updated to Active",
+              IsRead: false,
+            });
+          })
+        );
+
+        if (!updatestaffmember) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error("staff Not found");
+        }
+      } catch (error) {
+        console.error("Error updating staff members:", error);
+      }
+
       // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({RRId, RId}) => ({
-        RRId,
-        RId,
-        ProjectId: projectId,
-      }));
+      const roleResourceData = roleResources.map(
+        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
+          RRId,
+          RId,
+          ProjectId: projectId,
+          Rate,
+          Unit,
+          Engagement_Ratio,
+        })
+      );
 
       await RoleResource.insertMany(roleResourceData);
 
@@ -117,7 +167,6 @@ const projectCtr = {
         let updatestaffmember = await Promise.all(
           (roleResources || []).map(async ({RRId, RId}) => {
             if (!RRId) return; // Skip invalid entries
-
             // Update staff member status
             await StaffMember.updateOne(
               {staff_Id: RRId},
@@ -189,7 +238,6 @@ const projectCtr = {
           {Project_Name: {$regex: search, $options: "i"}}, // Case-insensitive search
         ];
       }
-
       // Fetch total count for pagination
       const totalProjects = await Project.countDocuments(queryObj);
 
@@ -213,7 +261,6 @@ const projectCtr = {
           });
           const rIds = roleResources.map((rr) => rr.RId);
           const rrid = roleResources.map((rr) => rr.RRId);
-
           const roles = await Role.find({RoleId: {$in: rIds}});
           const staffMember = await StaffMember.find({staff_Id: {$in: rrid}});
 
@@ -225,9 +272,9 @@ const projectCtr = {
       return res.status(HttpStatusCodes.OK).json({
         message: "Projects fetched successfully",
         result: projectsWithDetails,
-        totalPages: Math.ceil(totalProjects / limit), // Total number of pages
-        currentPage: page, // Current page number
-        totalProjects, // Total number of projects
+        totalPages: Math.ceil(totalProjects / limit),
+        currentPage: page,
+        totalProjects,
         success: true,
       });
     } catch (error) {
@@ -477,7 +524,42 @@ const projectCtr = {
         ProjectId: req.params.id,
       };
 
-      const response = await Project.find(queryObj).lean().exec();
+      const response = await Project.aggregate([
+        {$match: queryObj},
+        {
+          $lookup: {
+            from: "clients",
+            foreignField: "Client_Id",
+            localField: "clientId",
+            as: "defaultclients",
+          },
+        },
+        {
+          $unwind: "$defaultclients",
+        },
+        {
+          $lookup: {
+            from: "Timesheets",
+            localField: "",
+            foreignField: "",
+            as: "defaulttimesheet",
+          },
+        },
+        {
+          $unwind: "$defaulttimesheet",
+        },
+        {
+          $lookup: {
+            from: "Buckets",
+            localField: "",
+            foreignField: "",
+            as: "deafaultbuckets",
+          },
+        },
+        {
+          $unwind: "$deafaultbuckets",
+        },
+      ]);
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");

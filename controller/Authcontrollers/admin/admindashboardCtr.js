@@ -808,8 +808,7 @@ const admindashboardCtr = {
         });
       }
 
-const response= await T
-
+      const response = await T;
     } catch (error) {
       console.log(error?.message);
     }

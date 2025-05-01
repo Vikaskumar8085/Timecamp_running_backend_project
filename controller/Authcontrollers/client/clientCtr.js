@@ -619,40 +619,78 @@ const clientCtr = {
       const skip = (page - 1) * limit;
 
       // Get paginated projects
-      const response = await Project.find(queryObj).skip(skip).limit(limit);
+      const response = await Project.aggregate([
+        {$match: queryObj},
+        {
+          $lookup: {
+            from: "timesheets",
+            localField: "project", // Assuming 'project' field in Project collection matches 'ProjectId' in timesheets
+            foreignField: "ProjectId",
+            as: "defaultTimesheetsdata",
+          },
+        },
+        {
+          $unwind: {
+            path: "$defaultTimesheetsdata",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: "staffmembers",
+            let: {staffId: "$defaultTimesheetsdata.staffIds"},
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $in: ["$staff_Id", "$$staffId"],
+                  },
+                },
+              },
+            ],
+            as: "defaultStaffmemebers",
+          },
+        },
+        {
+          $unwind: {
+            path: "$defaultStaffmemebers",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+      ]);
 
-      if (!response || response.length === 0) {
-        res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("Projects Not Found");
-      }
+      // if (!response || response.length === 0) {
+      //   res.status(HttpStatusCodes.NOT_FOUND);
+      //   throw new Error("Projects Not Found");
+      // }
 
       // Fetch timesheet data for the projects
-      const timesheetresponse = await Promise.all(
-        response.map(async (item) => {
-          const timesheetdata = await TimeSheet.find({
-            project: item?.ProjectId,
-          })
-            .skip(skip)
-            .limit(limit); // Apply pagination to timesheet data
+      // const timesheetresponse = await Promise.all(
+      //   response.map(async (item) => {
+      //     const timesheetdata = await TimeSheet.find({
+      //       project: item?.ProjectId,
+      //     })
+      //       .skip(skip)
+      //       .limit(limit); // Apply pagination to timesheet data
 
-          // Extract all staff IDs
-          const staffIds = await timesheetdata.map((ts) => ts.Staff_Id);
+      //     // Extract all staff IDs
+      //     const staffIds = await timesheetdata.map((ts) => ts.Staff_Id);
 
-          const members = await StaffMember.find({
-            staff_Id: {$in: staffIds},
-          });
+      //     const members = await StaffMember.find({
+      //       staff_Id: {$in: staffIds},
+      //     });
 
-          const MemberName = await members.map((member) => member.FirstName);
+      //     const MemberName = await members.map((member) => member.FirstName);
 
-          return {timesheetdata, MemberName};
-        })
-      );
+      //     return {timesheetdata, MemberName};
+      //   })
+      // );
 
       // Get total count of projects (for frontend pagination)
       const totalProjects = await Project.countDocuments(queryObj);
 
       return res.status(HttpStatusCodes.OK).json({
-        result: timesheetresponse,
+        result: response,
         success: true,
         message: "Timesheet client",
         pagination: {

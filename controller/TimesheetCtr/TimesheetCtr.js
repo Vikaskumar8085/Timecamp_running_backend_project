@@ -14,6 +14,7 @@ const TimesheetCtr = {
       if (!response) {
         // resturn
       }
+
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, result: response});
@@ -175,7 +176,7 @@ const TimesheetCtr = {
             totalHours: {$sum: {$toDouble: "$hours"}},
             okHours: {$sum: {$toDouble: "$ok_hours"}},
             billedHours: {$sum: {$toDouble: "$billed_hours"}},
-            totalEntries: {$sum: 1}, // Count total entries for this project
+            totalEntries: {$sum: 1}, 
           },
         },
       ]);

@@ -624,10 +624,42 @@ const employeeCtr = {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
+      let queryObj = {};
 
-      const response = await StaffMember.findOne({staff_Id: parseInt(id)})
-        .lean()
-        .exec();
+      queryObj = {
+        staff_Id: parseInt(id),
+      };
+
+      const response = await StaffMember.aggregate([
+        {$match: queryObj},
+        {
+          $lookup: {
+            from: "designations",
+            localField: "Designation_Id",
+            foreignField: "DesignationId",
+            as: "defaultdesignation",
+          },
+        },
+        {
+          $unwind: {
+            path: "$defaultdesignation",
+            preserveNullAndEmptyArrays: true, // Optional: set to false if you want to exclude non-matches
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            FirstName: 1,
+            LastName: 1,
+            DesignationName: "$defaultdesignation.Designation_Name",
+            Email: 1,
+            Phone: 1,
+            Address: 1,
+            Joining_Date: 1,
+            IsActive: 1,
+          },
+        },
+      ]);
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Not Found");
@@ -662,6 +694,67 @@ const employeeCtr = {
           .status(HttpStatusCodes.BAD_REQUEST)
           .json({error: "Bad Request"});
       }
+
+      // fetch projects
+
+      const newresponse = await StaffMember.aggregate([
+        {
+          $match: {staff_Id: parseInt(id)},
+        },
+        {
+          $lookup: {
+            from: "roles",
+            localField: "RId",
+            foreignField: "RoleId",
+            as: "roles",
+          },
+        },
+        {
+          $unwind: {
+            path: "$roles",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $lookup: {
+            from: "roleresources",
+            localField: "RRId",
+            foreignField: "staff_Id",
+            as: "defaultroleresource",
+          },
+        },
+        {
+          $unwind: {
+            path: "$defaultroleresource",
+          },
+        },
+        {
+          $lookup: {
+            from: "projects",
+            localField: "defaultroleresource.ProjectId",
+            foreignField: "ProjectId",
+            as: "defaultproject",
+          },
+        },
+        {
+          $unwind: {
+            path: "$defaultproject",
+            preserveNullAndEmptyArrays: true, // Optional: set to false if you want to exclude non-matches
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            Project_Name: "$defaultproject.Project_Name",
+            Project_Code: "$defaultproject.Project_Code",
+            StartDate: "$defaultproject.Start_Date",
+            EndData: "$defaultproject.End_Date",
+            ProjectType: "$defaultproject.Project_Type",
+          },
+        },
+      ]);
+
+      // fetch projects
 
       // Fetch staff member
       const response = await StaffMember.findOne({staff_Id: parseInt(id)});
@@ -699,7 +792,7 @@ const employeeCtr = {
       };
 
       return res.status(HttpStatusCodes.OK).json({
-        result: employeeProjectsResponse,
+        result: newresponse,
         success: true,
       });
     } catch (error) {

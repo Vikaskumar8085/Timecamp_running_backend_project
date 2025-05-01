@@ -56,7 +56,7 @@ const staffMemberSchema = mongoose.Schema(
       required: false,
     },
     DesignationId: {
-      type: String,
+      type: Number,
       trim: true,
     },
     Role: {
@@ -71,10 +71,6 @@ const staffMemberSchema = mongoose.Schema(
         default: "",
       },
     ],
-    ManagerId: {
-      type: Number,
-      default: null,
-    },
     Permission: {
       type: Boolean,
       required: false,

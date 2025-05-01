@@ -2,63 +2,68 @@ const mongoose = require("mongoose");
 const AutoIncrement = require("mongoose-sequence")(mongoose);
 const moment = require("moment");
 
-const ProjectSchema = mongoose.Schema({
-  CompanyId: {
-    type: Number,
-    ref: "Company",
-    required: true,
-  },
-  ProjectId: {
-    type: Number,
-    unique: true,
-    trim: true,
-  },
-  Project_Name: {
-    type: String,
-    required: false,
-    trim: true,
-  },
-  Project_Code: {
-    type: String,
-    trim: true,
-  },
-  Start_Date: {
-    type: String,
-    default: moment().format("DD/MM/YYYY"),
-  },
-  End_Date: {
-    type: String,
-    default: moment().format("DD/MM/YYYY"),
-  },
-  clientId: {
-    type: Number,
-    required: false,
-  },
+const ProjectSchema = mongoose.Schema(
+  {
+    CompanyId: {
+      type: Number,
+      ref: "Company",
+      required: true,
+    },
+    ProjectId: {
+      type: Number,
+      unique: true,
+      trim: true,
+    },
+    Project_Name: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    Project_Code: {
+      type: String,
+      trim: true,
+    },
+    Start_Date: {
+      type: String,
+      default: moment().format("DD/MM/YYYY"),
+    },
+    End_Date: {
+      type: String,
+      default: moment().format("DD/MM/YYYY"),
+    },
+    clientId: {
+      type: Number,
+      required: false,
+    },
 
-  Project_Type: {
-    type: String,
-    required: false,
-  },
-  Project_Hours: {
-    type: String,
-    required: false,
-  },
+    Project_Type: {
+      type: String,
+      required: false,
+    },
+    Project_Hours: {
+      type: String,
+      required: false,
+    },
 
-  Project_Status: {
-    type: Boolean,
-    required: false,
-    default: false,
+    Project_Status: {
+      type: Boolean,
+      required: false,
+      default: false,
+    },
+    createdBy: {
+      type: Number,
+      required: false,
+      default: null,
+    },
+    Currency: {
+      type: String,
+      required: true,
+    },
   },
-  createdBy: {
-    type: Number,
-    required: false,
-    default: null,
-  },
-  Project_ManagersId: {
-    type: Number,
-    required: false,
-  },
-});
+  {
+    timestamps: true,
+  }
+);
 
 ProjectSchema.plugin(AutoIncrement, {
   inc_field: "ProjectId",
