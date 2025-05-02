@@ -14,6 +14,15 @@ const clientdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User !Please Sign up");
       }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
+
       const projectcount = await Project.find({
         clientId: user?.Client_Id,
       });
@@ -46,6 +55,13 @@ const clientdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unauthorized User Please signup");
       }
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
 
       const findProjects = await Project.find({clientId: user?.Client_Id});
 
@@ -129,6 +145,14 @@ const clientdashctr = {
           .json({error: "Unauthorized User Please Signup"});
       }
 
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
+
       // Find projects for the client
       const projects = await Project.find({clientId: user.Client_Id});
       const projectIds = projects
@@ -201,6 +225,14 @@ const clientdashctr = {
         throw new Error("Unauthorized User Please Signup");
       }
 
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
+
       const projects = await Project.find({clientId: user.Client_Id});
       if (!projects.length) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -245,6 +277,21 @@ const clientdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unauthorized User Please Signup");
       }
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
+
       const checkprojects = await Project.find({
         clientId: user.Client_Id,
       });
@@ -290,6 +337,15 @@ const clientdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unauthorized User Please Signup");
       }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
+
       const checkprojects = await Project.find({
         clientId: user.Client_Id,
       });
@@ -337,6 +393,14 @@ const clientdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unauthorized User Please Signup");
       }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
       const checkprojects = await Project.find({
         clientId: user.Client_Id,
       });
@@ -391,6 +455,14 @@ const clientdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unauthorized User Please Signup");
       }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
       const checkprojects = await Project.find({
         createdBy: user?.staff_Id,
       });
@@ -437,6 +509,14 @@ const clientdashctr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unauthorized User Please Signup");
       }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
       const checkprojects = await Project.find({
         createdBy: user?.staff_Id,
       });

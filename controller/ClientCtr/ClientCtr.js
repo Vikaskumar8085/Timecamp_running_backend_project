@@ -15,6 +15,11 @@ const ClientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unauthorized User! Please Sign up.");
       }
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
 
       // Extract query parameters for pagination and search
       let {page = 1, limit = 10, search = ""} = req.query;
@@ -75,6 +80,11 @@ const ClientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User. Please Sign up.");
       }
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
 
       // Extract query parameters for pagination and searching
       let {page = 1, limit = 10, search = ""} = req.query;
@@ -126,6 +136,12 @@ const ClientCtr = {
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User. Please Sign up.");
+      }
+
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
       }
 
       // Extract query parameters for pagination and searching
@@ -185,6 +201,12 @@ const ClientCtr = {
         });
       }
 
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+
       // Query object for finding projects
       const queryObj = {
         clientId: user.Client_Id,
@@ -233,7 +255,13 @@ const ClientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User please Singup");
       }
-
+      // fetch client project task
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // fetch client project task
       let queryObj = {};
       queryObj = {
         clientId: user?.Client_Id,
@@ -275,7 +303,13 @@ const ClientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User please Singup");
       }
-
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
       let queryObj = {};
       queryObj = {
         clientId: user?.Client_Id,
@@ -304,6 +338,13 @@ const ClientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User please Singup");
       }
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
 
       const page = parseInt(req.query.page) || 1;
       const limit = parseInt(req.query.limit) || 10;
@@ -376,6 +417,14 @@ const ClientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User please Singup");
       }
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
+
       let queryObj = {};
       queryObj = {
         clientId: user?.Client_Id,
@@ -419,6 +468,14 @@ const ClientCtr = {
         });
         throw new Error("Unauthorized User, please Sign up");
       }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
 
       const findTimesheet = await TimeSheet.findOne({
         project: req.params.id,
@@ -571,6 +628,15 @@ const ClientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User please Singup");
       }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
+
       const response = await Notification.find({
         ReciverId: user?.staff_Id,
       }).sort({createdAt: -1});
@@ -602,6 +668,14 @@ const ClientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unauthorized User, please Signup");
       }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+      // auth client system access
 
       let {page = 1, limit = 10, search = ""} = req.query;
       page = parseInt(page);

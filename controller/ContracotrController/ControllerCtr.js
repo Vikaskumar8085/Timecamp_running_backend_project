@@ -535,8 +535,11 @@ const ContractorCtr = {
         clientId,
         Project_Type,
         Project_Hours,
-        Project_ManagersId,
+        Currency,
+        Start_Date,
+        End_Date,
         roleResources,
+        roleProjectMangare,
       } = req.body;
       console.log(req.body);
 
@@ -559,7 +562,9 @@ const ContractorCtr = {
         Project_Type,
         Project_Hours,
         Project_Status: true,
-        Project_ManagersId,
+        Currency,
+        Start_Date,
+        End_Date,
         createdBy: user?.staff_Id,
       });
 
@@ -579,6 +584,7 @@ const ContractorCtr = {
           SenderId: user?.staff_Id,
           ReciverId: responseClientId?.clientId,
           Name: user?.FirstName,
+          Pic: user?.Photos,
           Description: `You have been assigned to the ${Project_Name} project as a new client.`,
           IsRead: false,
         }).save();
@@ -602,16 +608,19 @@ const ContractorCtr = {
       }
 
       // Retrieve the generated ProjectId
-      const projectId = newProject?.ProjectId;
-      console.log(projectId, "...");
-
+      const projectId = createproject?.ProjectId;
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({RRId, RId}) => ({
-        RRId,
-        RId,
-        ProjectId: projectId,
-      }));
+      const roleResourceData = roleResources.map(
+        ({RRId, RId, Unit, Rate, Engagement_Ratio}) => ({
+          RRId,
+          RId,
+          ProjectId: projectId,
+          Unit,
+          Rate,
+          Engagement_Ratio,
+        })
+      );
 
       await RoleResource.insertMany(roleResourceData);
 
@@ -628,7 +637,7 @@ const ContractorCtr = {
 
             // Send notification
             await Notification.create({
-              SenderId: user?.user_id,
+              SenderId: user?.staff_Id,
               ReciverId: RRId, // Receiver is RRId
               Name: user?.FirstName,
               Description: "Your role has been updated to Active",
@@ -644,6 +653,54 @@ const ContractorCtr = {
       } catch (error) {
         console.error("Error updating staff members:", error);
       }
+
+      // role resource project manager
+
+      // roleProjectMangare
+      if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
+        return;
+
+      const roleProjectMangaredata = roleProjectMangare.map(
+        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
+          RRId,
+          RId,
+          ProjectId: projectId,
+          Rate,
+          Unit,
+          Engagement_Ratio,
+        })
+      );
+      await RoleResource.insertMany(roleProjectMangaredata);
+      try {
+        let updatestaffmember = await Promise.all(
+          (roleProjectMangaredata || []).map(async ({RRId, RId}) => {
+            if (!RRId) return;
+
+            await StaffMember.updateOne(
+              {staff_Id: RRId},
+              {$set: {IsActive: "Active"}}
+            );
+            // Send notification
+            await Notification.create({
+              SenderId: user?.user_id,
+              ReciverId: RRId, // Receiver is RRId
+              Name: user?.FirstName,
+              Pic: user?.Photos,
+              Description: "Your role has been updated to Active",
+              IsRead: false,
+            });
+          })
+        );
+
+        if (!updatestaffmember) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error("staff Not found");
+        }
+      } catch (error) {
+        console.error("Error updating staff members:", error);
+      }
+      // role resource project manager
+      
       res.status(201).json({
         message: "Project and Role Resources added successfully",
         success: true,

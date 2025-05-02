@@ -640,8 +640,11 @@ const managerCtr = {
         clientId,
         Project_Type,
         Project_Hours,
-        Project_ManagersId,
+        Start_Date,
+        End_Date,
+        Currency,
         roleResources,
+        roleProjectMangare,
       } = req.body;
       console.log(req.body);
 
@@ -664,7 +667,9 @@ const managerCtr = {
         Project_Type,
         Project_Hours,
         Project_Status: true,
-        Project_ManagersId,
+        Start_Date,
+        End_Date,
+        Currency,
         createdBy: user?.staff_Id,
       });
 
@@ -692,28 +697,96 @@ const managerCtr = {
       }
 
       // Retrieve the generated ProjectId
-      const projectId = newProject?.ProjectId;
-      console.log(projectId, "...");
-
-      // Exit early if roleResources is not a valid array or is empty
+      const projectId = createproject?.ProjectId;
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({RRId, RId}) => ({
-        RRId,
-        RId,
-        ProjectId: projectId,
-      }));
+      const roleResourceData = roleResources.map(
+        ({RRId, RId, Unit, Rate, Engagement_Ratio}) => ({
+          RRId,
+          RId,
+          ProjectId: projectId,
+          Unit,
+          Rate,
+          Engagement_Ratio,
+        })
+      );
 
       await RoleResource.insertMany(roleResourceData);
 
-      let updatestaffmember = await Promise.all(
-        roleResources?.map(({RRId, RId}) =>
-          StaffMember.updateOne({staff_Id: RRId}, {$set: {IsActive: "Active"}})
-        ) || []
+      try {
+        let updatestaffmember = await Promise.all(
+          (roleResources || []).map(async ({RRId, RId}) => {
+            if (!RRId) return; // Skip invalid entries
+
+            // Update staff member status
+            await StaffMember.updateOne(
+              {staff_Id: RRId},
+              {$set: {IsActive: "Active"}}
+            );
+
+            // Send notification
+            await Notification.create({
+              SenderId: user?.staff_Id,
+              ReciverId: RRId, // Receiver is RRId
+              Name: user?.FirstName,
+              Description: "Your role has been updated to Active",
+              IsRead: false,
+            });
+          })
+        );
+
+        if (!updatestaffmember) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error("staff Not found");
+        }
+      } catch (error) {
+        console.error("Error updating staff members:", error);
+      }
+
+      // role resource project manager
+
+      // roleProjectMangare
+      if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
+        return;
+
+      const roleProjectMangaredata = roleProjectMangare.map(
+        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
+          RRId,
+          RId,
+          ProjectId: projectId,
+          Rate,
+          Unit,
+          Engagement_Ratio,
+        })
       );
-      if (!updatestaffmember) {
-        res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("staff Not found");
+      await RoleResource.insertMany(roleProjectMangaredata);
+      try {
+        let updatestaffmember = await Promise.all(
+          (roleProjectMangaredata || []).map(async ({RRId, RId}) => {
+            if (!RRId) return;
+
+            await StaffMember.updateOne(
+              {staff_Id: RRId},
+              {$set: {IsActive: "Active"}}
+            );
+            // Send notification
+            await Notification.create({
+              SenderId: user?.user_id,
+              ReciverId: RRId, // Receiver is RRId
+              Name: user?.FirstName,
+              Pic: user?.Photos,
+              Description: "Your role has been updated to Active",
+              IsRead: false,
+            });
+          })
+        );
+
+        if (!updatestaffmember) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error("staff Not found");
+        }
+      } catch (error) {
+        console.error("Error updating staff members:", error);
       }
       res.status(201).json({
         message: "Project and Role Resources added successfully",
