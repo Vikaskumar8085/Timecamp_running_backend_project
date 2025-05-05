@@ -64,13 +64,13 @@ const staffMemberSchema = mongoose.Schema(
       enum: ["Employee", "Contractor", "Manager"],
       default: "Employee",
     },
-    SubRole: [
-      {
-        type: String,
-        enum: ["Manager", "ContractorManager"],
-        default: "",
-      },
-    ],
+    // SubRole: [
+    //   {
+    //     type: String,
+    //     enum: ["Manager", "ContractorManager"],
+    //     default: "",
+    //   },
+    // ],
     Permission: {
       type: Boolean,
       required: false,
