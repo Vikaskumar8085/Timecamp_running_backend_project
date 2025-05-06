@@ -72,8 +72,6 @@ const contractorCtr = {
         uploadPath += "others/"; // Fallback folder
       }
 
-      console.log(uploadPath, "upload path");
-
       const contractorattachment = attachmentPath
         ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
         : null;

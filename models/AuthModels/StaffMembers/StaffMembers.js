@@ -71,6 +71,18 @@ const staffMemberSchema = mongoose.Schema(
     //     default: "",
     //   },
     // ],
+    days: {
+      type: [String],
+      enum: [
+        "Sunday",
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+      ],
+    },
     Permission: {
       type: Boolean,
       required: false,
