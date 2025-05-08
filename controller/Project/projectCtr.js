@@ -11,6 +11,7 @@ const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Notification = require("../../models/Othermodels/Notification/Notification");
 const moment = require("moment");
 const Task = require("../../models/Othermodels/Task/Task");
+const Bucket = require("../../models/Othermodels/Bucket/Bucket");
 const generateProjectCode = async () => {
   const lastProject = await Project.findOne().sort({ProjectId: -1});
   const lastId = lastProject ? lastProject.ProjectId : 0;
@@ -29,10 +30,10 @@ const projectCtr = {
         Currency,
         Start_Date,
         End_Date,
+        bucket,
         roleResources,
         roleProjectMangare,
       } = req.body;
-      console.log(req.body);
 
       const user = await User.findById(req.user);
       if (!user) {
@@ -52,6 +53,7 @@ const projectCtr = {
         Project_Name,
         clientId,
         Project_Type,
+        Currency,
         Project_Hours,
         Project_Status: true,
         Start_Date,
@@ -59,6 +61,16 @@ const projectCtr = {
       });
 
       await newProject.save();
+
+      if (Project_Type !== "Bucket" && bucket.length === 0) return;
+
+      const bucketdata = bucket.map(({ bucketHourly, bucketHourlyRate }) => ({
+        bucketHourly,
+        bucketHourlyRate,
+        ProjectId: newProject.ProjectId,
+      }));
+      
+      await Bucket.insertMany(bucketdata);
 
       let responseClientId = newProject.clientId;
 

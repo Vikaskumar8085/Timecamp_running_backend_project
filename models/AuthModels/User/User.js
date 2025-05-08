@@ -28,7 +28,7 @@ const UserSchema = mongoose.Schema({
   },
   Phone: {
     type: String,
-    required: [true, "Please enter your phone number"],
+    required: [false, "Please enter your phone number"],
     trim: true,
   },
   Photo: {

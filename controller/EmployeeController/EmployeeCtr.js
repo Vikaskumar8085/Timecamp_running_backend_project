@@ -670,6 +670,9 @@ const EmployeeCtr = {
 
       await createproject.save();
 
+      // modified client data
+
+      // pro
       let responseClientId = createproject.clientId;
 
       if (!responseClientId) {
@@ -688,7 +691,9 @@ const EmployeeCtr = {
           Description: `You have been assigned to the ${Project_Name} project as a new client.`,
           IsRead: false,
         }).save();
+        // modified client data
 
+        // project manager id
         let responseProjectmangerid = createproject?.Project_ManagersId;
         if (!responseProjectmangerid) {
           return;
@@ -707,6 +712,21 @@ const EmployeeCtr = {
           }).save();
         }
       }
+
+      // project manager id
+
+      // set bucket if project type bucket or  not
+      if (Project_Type !== "Bucket" && bucket.length === 0) return;
+
+      const bucketdata = bucket.map(({bucketHourly, bucketHourlyRate}) => ({
+        bucketHourly,
+        bucketHourlyRate,
+        ProjectId: newProject.ProjectId,
+      }));
+
+      await Bucket.insertMany(bucketdata);
+      // set bucket if project type bucket or  not
+
       const projectId = createproject?.ProjectId;
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 

@@ -541,8 +541,6 @@ const ContractorCtr = {
         roleResources,
         roleProjectMangare,
       } = req.body;
-      console.log(req.body);
-
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
@@ -569,6 +567,17 @@ const ContractorCtr = {
       });
 
       await newProject.save();
+      // set bucket if project type bucket or  not
+      if (Project_Type !== "Bucket" && bucket.length === 0) return;
+
+      const bucketdata = bucket.map(({bucketHourly, bucketHourlyRate}) => ({
+        bucketHourly,
+        bucketHourlyRate,
+        ProjectId: newProject.ProjectId,
+      }));
+
+      await Bucket.insertMany(bucketdata);
+      // set bucket if project type bucket or  not
 
       let responseClientId = newProject.clientId;
 
@@ -700,7 +709,7 @@ const ContractorCtr = {
         console.error("Error updating staff members:", error);
       }
       // role resource project manager
-      
+
       res.status(201).json({
         message: "Project and Role Resources added successfully",
         success: true,

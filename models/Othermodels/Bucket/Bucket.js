@@ -1,9 +1,5 @@
 const mongoose = require("mongoose");
-const autoIncrement = require("mongoose-auto-increment");
-autoIncrement.initialize(mongoose.connection);
-
-
-
+const AutoIncrement = require("mongoose-sequence")(mongoose);
 
 const bucketSchema = new mongoose.Schema({
   bucket_id: {
@@ -11,23 +7,22 @@ const bucketSchema = new mongoose.Schema({
     trim: true,
     unique: true,
   },
-  ProjectId: {type: Number, ref: "Project", required: true},
+  ProjectId: {type: Number, ref: "Project", required: false},
   bucketHourlyRate: {
     type: String,
-    required: true,
+    required: false,
   },
   bucketHourly: {
     type: Number,
-    required: true,
+    required: false,
   },
 });
 
 // Apply the auto-increment plugin to the _id field
-bucketSchema.plugin(autoIncrement.plugin, {
-  model: "Bucket",
-  field: "bucket_id",
-  startAt: 1,
-  incrementBy: 1,
+bucketSchema.plugin(AutoIncrement, {
+  inc_field: "bucket_id",
+  start_seq: 1,
 });
 
-module.exports = mongoose.model("Bucket", bucketSchema);
+const Bucket = mongoose.model("Bucket", bucketSchema);
+module.exports = Bucket;

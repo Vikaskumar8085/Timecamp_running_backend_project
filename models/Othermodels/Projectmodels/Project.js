@@ -57,7 +57,7 @@ const ProjectSchema = mongoose.Schema(
     },
     Currency: {
       type: String,
-      required: true,
+      required: false,
     },
   },
   {

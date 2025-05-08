@@ -11,6 +11,7 @@ const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Task = require("../../models/Othermodels/Task/Task");
 const Notification = require("../../models/Othermodels/Notification/Notification");
 const Role = require("../../models/MasterModels/Roles/Roles");
+const Bucket = require("../../models/Othermodels/Bucket/Bucket");
 const managerCtr = {
   // fetch manager team
   fetchmanagerTeam: asyncHandler(async (req, res) => {
@@ -345,8 +346,12 @@ const managerCtr = {
         clientId,
         Project_Type,
         Project_Hours,
-        Project_ManagersId,
+        Currency,
+        Start_Date,
+        End_Date,
+        bucket,
         roleResources,
+        roleProjectMangare,
       } = req.body;
       const user = await StaffMember.findById(req.user);
       if (!user) {
@@ -364,9 +369,11 @@ const managerCtr = {
         Project_Name,
         clientId,
         Project_Type,
+        Currency,
         Project_Hours,
         Project_Status: true,
-        Project_ManagersId,
+        Start_Date,
+        End_Date,
         createdBy: user?.staff_Id,
       });
       if (!createproject) {
@@ -375,7 +382,18 @@ const managerCtr = {
       }
 
       await createproject.save();
+      // for bucket
+      if (Project_Type !== "Bucket" && bucket.length === 0) return;
 
+      const bucketdata = bucket.map(({bucketHourly, bucketHourlyRate}) => ({
+        bucketHourly,
+        bucketHourlyRate,
+        ProjectId: createproject.ProjectId,
+      }));
+
+      await Bucket.insertMany(bucketdata);
+      // for bucket
+      // client data modification
       let responseClientId = createproject.clientId;
 
       if (!responseClientId) {
@@ -389,38 +407,94 @@ const managerCtr = {
         await Notification({
           SenderId: user?.staff_Id,
           ReciverId: createproject?.clientId,
+          Pic: user?.Photo,
           Name: user?.FirstName,
           Description: `You have been assigned to the ${Project_Name} project as a new client by the Manager.`,
           IsRead: false,
         }).save();
       }
 
-      let responseProjectmangerid = createproject.Project_ManagersId;
-      if (!responseProjectmangerid) {
-        return;
-      } else {
-        await StaffMember.updateOne(
-          {staff_Id: responseProjectmangerid},
-          {$set: {IsActive: "Active"}}
-        );
+      // client data modification
 
-        await Notification({
-          SenderId: user?.staff_Id,
-          ReciverId: createproject?.responseProjectmangerid,
-          Name: user?.FirstName,
-          Description: `You have been assigned to the ${Project_Name} project as a new projectmanager by the Manager.`,
-          IsRead: false,
-        }).save();
-      }
+      // let responseProjectmangerid = createproject.Project_ManagersId;
+      // if (!responseProjectmangerid) {
+      //   return;
+      // } else {
+      //   await StaffMember.updateOne(
+      //     {staff_Id: responseProjectmangerid},
+      //     {$set: {IsActive: "Active"}}
+      //   );
+
+      //   await Notification({
+      //     SenderId: user?.staff_Id,
+      //     ReciverId: createproject?.responseProjectmangerid,
+      //     Name: user?.FirstName,
+      //     Description: `You have been assigned to the ${Project_Name} project as a new projectmanager by the Manager.`,
+      //     IsRead: false,
+      //   }).save();
+      // }
       const projectId = createproject?.ProjectId;
       console.log(projectId, "...");
+
+      // select project maanger
+      // roleProjectMangare
+      if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
+        return;
+
+      const roleProjectMangaredata = roleProjectMangare.map(
+        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
+          RRId,
+          RId,
+          ProjectId: projectId,
+          Rate,
+          Unit,
+          Engagement_Ratio,
+        })
+      );
+      await RoleResource.insertMany(roleProjectMangaredata);
+      try {
+        let updatestaffmember = await Promise.all(
+          (roleProjectMangaredata || []).map(async ({RRId, RId}) => {
+            if (!RRId) return;
+
+            await StaffMember.updateOne(
+              {staff_Id: RRId},
+              {$set: {IsActive: "Active"}}
+            );
+            // Send notification
+            await Notification.create({
+              SenderId: user?.user_id,
+              ReciverId: RRId, // Receiver is RRId
+              Name: user?.FirstName,
+              Pic: user?.Photo,
+              Description: "Your role has been updated to Active",
+              IsRead: false,
+            });
+          })
+        );
+
+        if (!updatestaffmember) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error("staff Not found");
+        }
+      } catch (error) {
+        console.error("Error updating staff members:", error);
+      }
+
+      // role resource data
+
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(({RRId, RId}) => ({
-        RRId,
-        RId,
-        ProjectId: projectId,
-      }));
+      const roleResourceData = roleResources.map(
+        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
+          RRId,
+          RId,
+          ProjectId: projectId,
+          Rate,
+          Unit,
+          Engagement_Ratio,
+        })
+      );
 
       await RoleResource.insertMany(roleResourceData);
 
@@ -440,6 +514,7 @@ const managerCtr = {
               SenderId: user?.user_id,
               ReciverId: RRId, // Receiver is RRId
               Name: user?.FirstName,
+              Pic: user?.Photo,
               Description: "Your role has been updated to Active",
               IsRead: false,
             });
