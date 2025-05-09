@@ -250,6 +250,7 @@ const userCtr = {
         }
       }
 
+      // const checkholiday
       // If user is not found in `User`, check `Client`
       if (!user) {
         user = await Client.findById(req.user);
