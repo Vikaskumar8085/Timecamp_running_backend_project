@@ -25,6 +25,7 @@ userRouter.post("/forget-password", userCtr.ForgetPasswordCtr);
 userRouter.put("/reset-password/:resetToken", userCtr.ResetPasswordCtr);
 userRouter.get("/verify/:token", userCtr.verifyUser);
 userRouter.post("/google-auth", userCtr.Googleauth);
+userRouter.post("/changer-password", verifyToken, userCtr.ChangepasswordCtr);
 userRouter.get(
   "/fetch-user-notification",
   verifyToken,

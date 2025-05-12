@@ -64,12 +64,12 @@ const projectCtr = {
 
       if (Project_Type !== "Bucket" && bucket.length === 0) return;
 
-      const bucketdata = bucket.map(({ bucketHourly, bucketHourlyRate }) => ({
+      const bucketdata = bucket.map(({bucketHourly, bucketHourlyRate}) => ({
         bucketHourly,
         bucketHourlyRate,
         ProjectId: newProject.ProjectId,
       }));
-      
+
       await Bucket.insertMany(bucketdata);
 
       let responseClientId = newProject.clientId;
@@ -531,47 +531,12 @@ const projectCtr = {
         throw new Error("company not exists please create first company");
       }
 
-      let queryObj = {
+      const queryObj = {
         CompanyId: company.Company_Id,
-        ProjectId: req.params.id,
+        ProjectId: parseInt(req.params.id),
       };
 
-      const response = await Project.aggregate([
-        {$match: queryObj},
-        {
-          $lookup: {
-            from: "clients",
-            foreignField: "Client_Id",
-            localField: "clientId",
-            as: "defaultclients",
-          },
-        },
-        {
-          $unwind: "$defaultclients",
-        },
-        {
-          $lookup: {
-            from: "Timesheets",
-            localField: "",
-            foreignField: "",
-            as: "defaulttimesheet",
-          },
-        },
-        {
-          $unwind: "$defaulttimesheet",
-        },
-        {
-          $lookup: {
-            from: "Buckets",
-            localField: "",
-            foreignField: "",
-            as: "deafaultbuckets",
-          },
-        },
-        {
-          $unwind: "$deafaultbuckets",
-        },
-      ]);
+      const response = await Project.findOne(queryObj);
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");

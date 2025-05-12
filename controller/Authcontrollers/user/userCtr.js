@@ -324,21 +324,32 @@ const userCtr = {
   ChangepasswordCtr: asynchandler(async (req, res) => {
     try {
       const {oldPassword, newPassword} = req.body;
+      console.log(req.body, "realkskldf");
       // Validate request body
       if (!oldPassword || !newPassword) {
         res.status(HttpStatusCodes?.NOT_FOUND);
         throw new Error("All fields are required");
       }
 
-      let user = await User.findOne(req.user);
+      let user = await User.findById(req.user);
+
+      // if (!user.Password || user.Password === "") {
+      //   const hashed = await bcrypt.hash(newPassword, 10);
+      //   user.Password = hashed;
+      //   await user.save();
+      //   return res.status(200).json({
+      //     success: true,
+      //     message: "Password set successfully for Google login user",
+      //   });
+      // }
       // Check Client Schema
       if (!user) {
-        user = await Client.findOne(req.user);
+        user = await Client.findById(req.user);
       }
 
       // Check StaffMember Schema
       if (!user) {
-        user = await StaffMember.findOne({Email});
+        user = await StaffMember.findById(req.user);
       }
 
       if (!user) {
@@ -348,7 +359,7 @@ const userCtr = {
       }
 
       // Verify old password
-      const isMatch = await bcrypt.compare(oldPassword, user.Password);
+      const isMatch = await bcrypt.compare(oldPassword, user?.Password);
       if (!isMatch) {
         res.status(HttpStatusCodes?.NOT_FOUND);
         throw new Error("Old password is incorrects");
@@ -356,7 +367,6 @@ const userCtr = {
 
       // Hash new password
       const hashedPassword = await bcrypt.hash(newPassword, 10);
-
       // Update password in database
       user.Password = hashedPassword;
       await user.save();
@@ -606,7 +616,7 @@ const userCtr = {
         throw new Error("Un Authorized User please Singup");
       }
       const response = await Notification.find({
-        ReciverId: user?.staff_Id,
+        ReciverId: user?.user_id,
         IsRead: false,
       }).sort({createdAt: -1});
       if (!response) {
