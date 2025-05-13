@@ -9,7 +9,7 @@ const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 const Notification = require("../../../models/Othermodels/Notification/Notification");
 const sendEmail = require("../../../utils/SendMail/SendMail");
-
+const path = require("path");
 // function
 async function generateUniqueClientName(baseName) {
   const username = baseName.toLowerCase().replace(/\s+/g, "_");
@@ -67,10 +67,37 @@ const clientCtr = {
 
       // req.body.Password = req.body.Client_Phone;
 
-      console.log(req.body.Password, "this is the client password");
+      console.log(req.body, "this is the client password");
 
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(req.body.Password, genhash);
+
+      let attachmentPath = req.file ? req.file.filename : "";
+      let uploadPath = "uploads/";
+
+      // Get file extension
+      const fileExt = path.extname(req.file.originalname).toLowerCase();
+      // console.log(fileExt, "reqogsdfisdfl");
+
+      // Define subfolders based on file type
+      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+        uploadPath += "documents/";
+      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
+        uploadPath += "images/";
+      } else if (file.mimetype === "text/csv") {
+        uploadPath += "csv/";
+      } else {
+        uploadPath += "others/"; // Fallback folder
+      }
+
+      const clientPhoto = attachmentPath
+        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
+        : null;
+
+      if (!clientPhoto) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request");
+      }
 
       const addItem = await Client({
         Company_Name: req.body.Company_Name,
@@ -79,6 +106,7 @@ const clientCtr = {
         Client_Phone: req.body.Client_Phone,
         Client_Postal_Code: req.body.Client_Postal_Code,
         Client_Address: req.body.Client_Address,
+        Client_Photo: clientPhoto,
         Password: hashpassword,
         GstNumber: req.body.GstNumber,
         System_Access: req.body.System_Access,
@@ -215,6 +243,39 @@ const clientCtr = {
         updateData.Password = await bcrypt.hash(req.body.Password, salt);
       }
 
+      // upload edit pic of client
+      if (req.file) {
+        let attachmentPath = req.file ? req.file.filename : "Photos";
+
+        let uploadPath = "uploads/";
+
+        // Get file extension
+        const fileExt = path
+          .extname(req.file.originalname || null)
+          .toLowerCase();
+        // console.log(fileExt, "reqogsdfisdfl");
+
+        // Define subfolders based on file type
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/"; // Fallback folder
+        }
+
+        const clientPhoto = attachmentPath
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}/${attachmentPath}`
+          : null;
+
+        updateData.Client_Photo = clientPhoto;
+      }
       if (!client) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Client not found.");
@@ -222,6 +283,7 @@ const clientCtr = {
         await Notification({
           SenderId: user?.user_id,
           ReciverId: client?.Client_Id,
+          Pic: user?.Photo,
           Name: user?.Role.concat(" ", user?.FirstName),
           Description: `Dear ${client.Client_Name}, your account has been updated By Admin`,
         }).save();

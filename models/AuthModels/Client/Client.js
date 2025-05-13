@@ -71,6 +71,10 @@ const ClientRegistrationSchema = mongoose.Schema(
       enum: ["Active", "InActive", "Dead"],
       default: "InActive",
     },
+    Client_Photo: {
+      type: String,
+      default: "",
+    },
   },
   {
     timestamps: true,
