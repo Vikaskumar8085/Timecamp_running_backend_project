@@ -12,6 +12,7 @@ const Notification = require("../../models/Othermodels/Notification/Notification
 const Milestone = require("../../models/Othermodels/Milestones/Milestones");
 const path = require("path");
 const moment = require("moment");
+const Bucket = require("../../models/Othermodels/Bucket/Bucket");
 const ContractorCtr = {
   fetchcontractorprojects: asyncHandler(async (req, res) => {
     try {
@@ -535,6 +536,7 @@ const ContractorCtr = {
         clientId,
         Project_Type,
         Project_Hours,
+        bucket,
         Currency,
         Start_Date,
         End_Date,
@@ -562,21 +564,33 @@ const ContractorCtr = {
         Project_Status: true,
         Currency,
         Start_Date,
+
         End_Date,
         createdBy: user?.staff_Id,
       });
 
       await newProject.save();
       // set bucket if project type bucket or  not
-      if (Project_Type !== "Bucket" && bucket.length === 0) return;
+      if (Project_Type !== "Bucket" && bucket.length === 0) {
+        return;
+      } else {
+        if (!Array.isArray(bucket) || bucket.length === 0) {
+          return res.status(400).json({
+            message: "Milestones data is required and should be an array.",
+          });
+        }
+        let insertedMilestones = [];
+        for (const item of bucket) {
+          const bucket = new Bucket({
+            ProjectId: newProject.ProjectId,
+            bucketHourly: item.bucketHourly,
+            bucketHourlyRate: item.bucketHourlyRate,
+          });
 
-      const bucketdata = bucket.map(({bucketHourly, bucketHourlyRate}) => ({
-        bucketHourly,
-        bucketHourlyRate,
-        ProjectId: newProject.ProjectId,
-      }));
-
-      await Bucket.insertMany(bucketdata);
+          const savedbucket = await bucket.save();
+          insertedMilestones.push(savedbucket);
+        }
+      }
       // set bucket if project type bucket or  not
 
       let responseClientId = newProject.clientId;

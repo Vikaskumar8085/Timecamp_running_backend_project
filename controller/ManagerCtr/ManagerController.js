@@ -383,19 +383,29 @@ const managerCtr = {
 
       await createproject.save();
       // for bucket
-      if (Project_Type !== "Bucket" && bucket.length === 0) return;
+      if (Project_Type !== "Bucket" && bucket.length === 0) {
+        return;
+      } else {
+        if (!Array.isArray(bucket) || bucket.length === 0) {
+          return res.status(400).json({
+            message: "Milestones data is required and should be an array.",
+          });
+        }
+        let insertedMilestones = [];
+        for (const item of bucket) {
+          const bucket = new Bucket({
+            ProjectId: createproject.ProjectId,
+            bucketHourly: item.bucketHourly,
+            bucketHourlyRate: item.bucketHourlyRate,
+          });
 
-      const bucketdata = bucket.map(({bucketHourly, bucketHourlyRate}) => ({
-        bucketHourly,
-        bucketHourlyRate,
-        ProjectId: createproject.ProjectId,
-      }));
-
-      await Bucket.insertMany(bucketdata);
+          const savedbucket = await bucket.save();
+          insertedMilestones.push(savedbucket);
+        }
+      }
       // for bucket
       // client data modification
       let responseClientId = createproject.clientId;
-
       if (!responseClientId) {
         return; // Exit if clientId is undefined or empty
       } else {
@@ -1634,7 +1644,7 @@ const managerCtr = {
 
       let attachmentPath = req.file ? req.file.filename : "";
       const todaydata = new Date();
-    
+
       const response = new TimeSheet({
         attachement: attachmentPath,
         ...req.body,

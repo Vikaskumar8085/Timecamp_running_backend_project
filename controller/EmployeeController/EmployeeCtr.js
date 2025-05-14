@@ -637,6 +637,7 @@ const EmployeeCtr = {
         Currency,
         Start_Date,
         End_Date,
+        bucket,
         roleResources,
         roleProjectMangare,
       } = req.body;
@@ -671,6 +672,26 @@ const EmployeeCtr = {
       await createproject.save();
 
       // modified client data
+      if (Project_Type !== "Bucket" && bucket.length === 0) {
+        return;
+      } else {
+        if (!Array.isArray(bucket) || bucket.length === 0) {
+          return res.status(400).json({
+            message: "Milestones data is required and should be an array.",
+          });
+        }
+        let insertedMilestones = [];
+        for (const item of bucket) {
+          const bucket = new Bucket({
+            ProjectId: createproject.ProjectId,
+            bucketHourly: item.bucketHourly,
+            bucketHourlyRate: item.bucketHourlyRate,
+          });
+
+          const savedbucket = await bucket.save();
+          insertedMilestones.push(savedbucket);
+        }
+      }
 
       // pro
       let responseClientId = createproject.clientId;

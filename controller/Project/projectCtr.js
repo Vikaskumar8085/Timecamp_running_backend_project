@@ -27,13 +27,11 @@ const projectCtr = {
         clientId,
         Project_Type,
         Project_Hours,
-        Currency,
-        Start_Date,
-        End_Date,
         bucket,
         roleResources,
         roleProjectMangare,
       } = req.body;
+      console.log(req.body, "data");
 
       const user = await User.findById(req.user);
       if (!user) {
@@ -48,30 +46,40 @@ const projectCtr = {
       }
 
       // Create the project
-      const newProject = new Project({
+      const newProject = await new Project({
         CompanyId: checkcompany.Company_Id,
         Project_Name,
         clientId,
         Project_Type,
-        Currency,
+        currency: req.body.Currency,
         Project_Hours,
         Project_Status: true,
-        Start_Date,
-        End_Date,
+        Start_Date: moment(req.body.Start_Date).format("DD/MM/YYYY"),
+        End_Date: moment(req.body.End_Date).format("DD/MM/YYYY"),
       });
 
       await newProject.save();
 
-      if (Project_Type !== "Bucket" && bucket.length === 0) return;
+      if (Project_Type !== "Bucket" && bucket.length === 0) {
+        return;
+      } else {
+        if (!Array.isArray(bucket) || bucket.length === 0) {
+          return res.status(400).json({
+            message: "Milestones data is required and should be an array.",
+          });
+        }
+        let insertedMilestones = [];
+        for (const item of bucket) {
+          const bucket = new Bucket({
+            ProjectId: newProject.ProjectId,
+            bucketHourly: item.bucketHourly,
+            bucketHourlyRate: item.bucketHourlyRate,
+          });
 
-      const bucketdata = bucket.map(({bucketHourly, bucketHourlyRate}) => ({
-        bucketHourly,
-        bucketHourlyRate,
-        ProjectId: newProject.ProjectId,
-      }));
-
-      await Bucket.insertMany(bucketdata);
-
+          const savedbucket = await bucket.save();
+          insertedMilestones.push(savedbucket);
+        }
+      }
       let responseClientId = newProject.clientId;
 
       if (!responseClientId) {
@@ -209,6 +217,27 @@ const projectCtr = {
         message: "Project and Role Resources added successfully",
         success: true,
       });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // Edit Project
+
+  Edit_Projects: asyncHandler(async (req, res) => {
+    try {
+      // Authenticate
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User");
+      }
+      // check company
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -608,7 +637,7 @@ const projectCtr = {
 
       let queryObj = {
         CompanyId: company.Company_Id,
-        project: req.params.id,
+        project: parseInt(req.params.id),
       };
 
       const response = await TimeSheet.find(queryObj);
@@ -661,7 +690,9 @@ const projectCtr = {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
-      const project = await Project.findOne({ProjectId: req.params.id});
+      const project = await Project.findOne({
+        ProjectId: parseInt(req.params.id),
+      });
       if (!project) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)

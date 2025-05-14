@@ -19,6 +19,7 @@ const employeeCtr = {
   create_employee: asyncHandler(async (req, res) => {
     try {
       // check user
+      console.log(req.body, ">>>>>>>>>>>>>");
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
@@ -31,55 +32,59 @@ const employeeCtr = {
         throw new Error("company not exists please create first company");
       }
       // check in admin
-      const checkinadmin = await User.findOne({Email: req.body.Email});
-      if (checkinadmin) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error(
-          "This email is already used. Please provide a different email address."
-        );
-      }
+      // const checkinadmin = await User.findOne({Email: req.body.Email});
+      // if (checkinadmin) {
+      //   res.status(HttpStatusCodes.BAD_REQUEST);
+      //   throw new Error(
+      //     "This email is already used. Please provide a different email address."
+      //   );
+      // }
       // check in admin
 
-      const checkinclient = await Client.findOne({
-        Client_Email: req.body.Email,
-      });
-      if (checkinclient) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error(
-          "This email is already used. Please provide a different email address."
-        );
-      }
+      // const checkinclient = await Client.findOne({
+      //   Client_Email: req.body.Email,
+      // });
+      // if (checkinclient) {
+      //   res.status(HttpStatusCodes.BAD_REQUEST);
+      //   throw new Error(
+      //     "This email is already used. Please provide a different email address."
+      //   );
+      // }
 
       req.body.Password = req.body.Phone;
 
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(req.body.Password, genhash);
+      if (req.file) {
+        let attachmentPath = req.file ? req.file.filename : "Profile";
+        let uploadPath = "uploads/";
 
-      let attachmentPath = req.file ? req.file.filename : Profile;
-      let uploadPath = "uploads/";
+        // Get file extension
+        const fileExt = path.extname(req.file.originalname).toLowerCase();
+        // console.log(fileExt, "reqogsdfisdfl");
 
-      // Get file extension
-      const fileExt = path.extname(req.file.originalname).toLowerCase();
-      // console.log(fileExt, "reqogsdfisdfl");
+        // Define subfolders based on file type
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/"; // Fallback folder
+        }
 
-      // Define subfolders based on file type
-      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
-        uploadPath += "documents/";
-      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
-        uploadPath += "images/";
-      } else if (file.mimetype === "text/csv") {
-        uploadPath += "csv/";
-      } else {
-        uploadPath += "others/"; // Fallback folder
+        var employeeattachment = attachmentPath
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}/${attachmentPath}`
+          : null;
       }
 
-      console.log(uploadPath, "upload path");
-
-      const employeeattachment = attachmentPath
-        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
-        : null;
-
       // create Employee
+
       const response = await StaffMember({
         FirstName: req.body.FirstName,
         LastName: req.body.LastName,
@@ -94,9 +99,12 @@ const employeeCtr = {
         Permission: req.body.Permission,
         ManagerId: req.body.ManagerId,
         Photos: employeeattachment,
+        Unit: req.body.Unit,
+        Currency: req.body.Currency,
+        Cost: req.body.Cost,
         Role: "Employee",
         CompanyId: company.Company_Id,
-        ...req.body,
+        days: req.body.days,
       });
 
       const managerids = await response.ManagerId;

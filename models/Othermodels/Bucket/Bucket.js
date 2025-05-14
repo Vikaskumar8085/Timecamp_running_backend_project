@@ -4,21 +4,21 @@ const AutoIncrement = require("mongoose-sequence")(mongoose);
 const bucketSchema = new mongoose.Schema({
   bucket_id: {
     type: Number,
-    trim: true,
     unique: true,
+    trim: true,
   },
-  ProjectId: {type: Number, ref: "Project", required: false},
+  ProjectId: {
+    type: Number,
+  },
   bucketHourlyRate: {
     type: String,
-    required: false,
   },
   bucketHourly: {
     type: Number,
-    required: false,
   },
 });
 
-// Apply the auto-increment plugin to the _id field
+// Auto-increment plugin applied to bucket_id field
 bucketSchema.plugin(AutoIncrement, {
   inc_field: "bucket_id",
   start_seq: 1,

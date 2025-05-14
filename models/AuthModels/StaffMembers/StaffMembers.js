@@ -73,15 +73,6 @@ const staffMemberSchema = mongoose.Schema(
     // ],
     days: {
       type: [String],
-      enum: [
-        "Sunday",
-        "Monday",
-        "Tuesday",
-        "Wednesday",
-        "Thursday",
-        "Friday",
-        "Saturday",
-      ],
     },
     Permission: {
       type: Boolean,
@@ -91,11 +82,20 @@ const staffMemberSchema = mongoose.Schema(
     Backlog_Entries: {
       type: Number,
       required: false,
-      default: 0,
+      default: 1,
     },
     Socail_Links: {
       type: String,
       required: false,
+    },
+    Currency: {
+      type: String,
+    },
+    Rate: {
+      type: String,
+    },
+    Unit: {
+      type: String,
     },
     Contractor_Company: {
       type: String,

@@ -31,30 +31,35 @@ const TaskCtr = {
         });
         return; // Ensure no further code runs after sending the response
       }
+      if (req.file) {
+        let attachmentPath = req.file ? req.file.filename : "Attachment";
+        let uploadPath = "uploads/";
 
-      let attachmentPath = req.file ? req.file.filename : Attachment;
-      let uploadPath = "uploads/";
+        // Get file extension
+        const fileExt = path.extname(req.file.originalname).toLowerCase();
+        console.log(fileExt, "reqogsdfisdfl");
 
-      // Get file extension
-      const fileExt = path.extname(req.file.originalname).toLowerCase();
-      console.log(fileExt, "reqogsdfisdfl");
+        // Define subfolders based on file type
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/"; // Fallback folder
+        }
 
-      // Define subfolders based on file type
-      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
-        uploadPath += "documents/";
-      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
-        uploadPath += "images/";
-      } else if (file.mimetype === "text/csv") {
-        uploadPath += "csv/";
-      } else {
-        uploadPath += "others/"; // Fallback folder
+        console.log(uploadPath, "upload path");
+
+        var taskattachment = attachmentPath
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}/${attachmentPath}`
+          : null;
       }
-
-      console.log(uploadPath, "upload path");
-
-      const taskattachment = attachmentPath
-        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
-        : null;
 
       // Create a new task instance
       const newTask = new Task({
@@ -76,6 +81,7 @@ const TaskCtr = {
         await new Notification({
           SenderId: user?.user_id,
           ReciverId: newTask?.Resource_Id,
+          Pic: user?.Photo,
           Name: user?.FirstName,
           Description: "You have been allotted a new task by the admin",
           IsRead: false,

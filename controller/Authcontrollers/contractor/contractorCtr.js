@@ -53,28 +53,33 @@ const contractorCtr = {
       const hashpassword = await bcrypt.hash(req.body.Password, genhash);
       // const formattedDate = moment(req.body.Joining_Date).format("YYYY-MM-DD");
       // create contractor
+      if (req.file) {
+        let attachmentPath = req.file ? req.file.filename : Photos;
+        let uploadPath = "uploads/";
 
-      let attachmentPath = req.file ? req.file.filename : Photos;
-      let uploadPath = "uploads/";
+        // Get file extension
+        const fileExt = path.extname(req.file.originalname).toLowerCase();
+        // console.log(fileExt, "reqogsdfisdfl");
 
-      // Get file extension
-      const fileExt = path.extname(req.file.originalname).toLowerCase();
-      // console.log(fileExt, "reqogsdfisdfl");
+        // Define subfolders based on file type
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/"; // Fallback folder
+        }
 
-      // Define subfolders based on file type
-      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
-        uploadPath += "documents/";
-      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
-        uploadPath += "images/";
-      } else if (file.mimetype === "text/csv") {
-        uploadPath += "csv/";
-      } else {
-        uploadPath += "others/"; // Fallback folder
+        var contractorattachment = attachmentPath
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}/${attachmentPath}`
+          : null;
       }
-
-      const contractorattachment = attachmentPath
-        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
-        : null;
 
       const response = await StaffMember({
         FirstName: req.body.FirstName,
