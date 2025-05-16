@@ -8,7 +8,6 @@ const RoleResourceSchema = mongoose.Schema(
       unique: true,
       trim: true,
     },
-
     RRId: {
       type: Number,
       required: true,
@@ -23,10 +22,7 @@ const RoleResourceSchema = mongoose.Schema(
     Enable: {
       type: Boolean,
     },
-    currency: {
-      type: String,
-      default: null,
-    },
+
     Rate: {
       type: Number,
       default: null,
@@ -35,6 +31,10 @@ const RoleResourceSchema = mongoose.Schema(
     Unit: {
       type: String,
       default: null,
+    },
+    IsProjectManager: {
+      type: Boolean,
+      default: false,
     },
     Engagement_Ratio: {
       type: Number,

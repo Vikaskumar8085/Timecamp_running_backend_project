@@ -13,6 +13,7 @@ const sendEmail = require("../../../utils/SendMail/SendMail");
 const Notification = require("../../../models/Othermodels/Notification/Notification");
 const path = require("path");
 const Client = require("../../../models/AuthModels/Client/Client");
+const Designation = require("../../../models/MasterModels/Designation/Designation");
 
 const employeeCtr = {
   // create employee
@@ -51,10 +52,8 @@ const employeeCtr = {
       //   );
       // }
 
-      req.body.Password = req.body.Phone;
-
       const genhash = await bcrypt.genSalt(12);
-      const hashpassword = await bcrypt.hash(req.body.Password, genhash);
+      const hashpassword = await bcrypt.hash(req.body.Phone, genhash);
       if (req.file) {
         let attachmentPath = req.file ? req.file.filename : "Profile";
         let uploadPath = "uploads/";
@@ -101,7 +100,7 @@ const employeeCtr = {
         Photos: employeeattachment,
         Unit: req.body.Unit,
         Currency: req.body.Currency,
-        Cost: req.body.Cost,
+        Rate: req.body.Cost,
         Role: "Employee",
         CompanyId: company.Company_Id,
         days: req.body.days,
@@ -238,30 +237,35 @@ const employeeCtr = {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Employee not found.");
       }
-      let attachmentPath = req.file ? req.file.filename : employee.Photos;
-      let uploadPath = "uploads/";
+      if (req.file) {
+        let attachmentPath = req.file ? req.file.filename : employee.Photos;
+        let uploadPath = "uploads/";
 
-      // Get file extension
-      const fileExt = path.extname(req.file.originalname).toLowerCase();
-      console.log(fileExt, "reqogsdfisdfl");
+        // Get file extension
+        const fileExt = path.extname(req.file.originalname).toLowerCase();
+        console.log(fileExt, "reqogsdfisdfl");
 
-      // Define subfolders based on file type
-      if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
-        uploadPath += "documents/";
-      } else if ([".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)) {
-        uploadPath += "images/";
-      } else if (file.mimetype === "text/csv") {
-        uploadPath += "csv/";
-      } else {
-        uploadPath += "others/"; // Fallback folder
+        // Define subfolders based on file type
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/"; // Fallback folder
+        }
+
+        // console.log(uploadPath, "upload path");
+
+        var employeeattachment = attachmentPath
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}/${attachmentPath}`
+          : null;
       }
-
-      // console.log(uploadPath, "upload path");
-
-      const employeeattachment = attachmentPath
-        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
-        : null;
-
       // Update fields
       employee.FirstName = req.body.FirstName || employee.FirstName;
       employee.LastName = req.body.LastName || employee.LastName;
@@ -636,38 +640,21 @@ const employeeCtr = {
 
       queryObj = {
         staff_Id: parseInt(id),
+        CompanyId: company?.Company_Id,
       };
 
-      const response = await StaffMember.aggregate([
-        {$match: queryObj},
-        {
-          $lookup: {
-            from: "designations",
-            localField: "Designation_Id",
-            foreignField: "DesignationId",
-            as: "defaultdesignation",
-          },
-        },
-        {
-          $unwind: {
-            path: "$defaultdesignation",
-            preserveNullAndEmptyArrays: true, // Optional: set to false if you want to exclude non-matches
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            FirstName: 1,
-            LastName: 1,
-            DesignationName: "$defaultdesignation.Designation_Name",
-            Email: 1,
-            Phone: 1,
-            Address: 1,
-            Joining_Date: 1,
-            IsActive: 1,
-          },
-        },
-      ]);
+      let response = await StaffMember.findOne(queryObj);
+
+      if (response) {
+        const findDesignation = await Designation.findOne({
+          Designation_Id: response.DesignationId,
+        });
+
+        // Add a new property to the response object
+        response = response.toObject(); // Convert Mongoose document to plain JS object (optional if needed)
+        response.Designation_Name = findDesignation?.Designation_Name || null;
+      }
+
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Not Found");
@@ -675,6 +662,7 @@ const employeeCtr = {
       return res.status(HttpStatusCodes.OK).json({
         message: "fetch successfully Employee",
         result: response,
+
         success: true,
       });
     } catch (error) {
@@ -702,107 +690,130 @@ const employeeCtr = {
           .status(HttpStatusCodes.BAD_REQUEST)
           .json({error: "Bad Request"});
       }
+      const response = await RoleResource.find({RRId: {$in: [parseInt(id)]}});
 
+      if (!response || response.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Role Resource Not Found");
+      }
+
+      // Extract ProjectIds from response array
+      const projectIds = await response
+        .map((item) => item.ProjectId)
+        .filter(Boolean);
+
+      // Find projects using the extracted IDs
+      const findProject = await Project.find({ProjectId: {$in: projectIds}});
+
+      if (!findProject) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("project Not Found");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "fetch Employee project successfully",
+        result: findProject,
+      });
       // fetch projects
 
-      const newresponse = await StaffMember.aggregate([
-        {
-          $match: {staff_Id: parseInt(id)},
-        },
-        {
-          $lookup: {
-            from: "roles",
-            localField: "RId",
-            foreignField: "RoleId",
-            as: "roles",
-          },
-        },
-        {
-          $unwind: {
-            path: "$roles",
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-        {
-          $lookup: {
-            from: "roleresources",
-            localField: "RRId",
-            foreignField: "staff_Id",
-            as: "defaultroleresource",
-          },
-        },
-        {
-          $unwind: {
-            path: "$defaultroleresource",
-          },
-        },
-        {
-          $lookup: {
-            from: "projects",
-            localField: "defaultroleresource.ProjectId",
-            foreignField: "ProjectId",
-            as: "defaultproject",
-          },
-        },
-        {
-          $unwind: {
-            path: "$defaultproject",
-            preserveNullAndEmptyArrays: true, // Optional: set to false if you want to exclude non-matches
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            Project_Name: "$defaultproject.Project_Name",
-            Project_Code: "$defaultproject.Project_Code",
-            StartDate: "$defaultproject.Start_Date",
-            EndData: "$defaultproject.End_Date",
-            ProjectType: "$defaultproject.Project_Type",
-          },
-        },
-      ]);
+      // const newresponse = await StaffMember.aggregate([
+      //   {
+      //     $match: {staff_Id: parseInt(id)},
+      //   },
+      //   {
+      //     $lookup: {
+      //       from: "roles",
+      //       localField: "RId",
+      //       foreignField: "RoleId",
+      //       as: "roles",
+      //     },
+      //   },
+      //   {
+      //     $unwind: {
+      //       path: "$roles",
+      //       preserveNullAndEmptyArrays: true,
+      //     },
+      //   },
+      //   {
+      //     $lookup: {
+      //       from: "roleresources",
+      //       localField: "RRId",
+      //       foreignField: "staff_Id",
+      //       as: "defaultroleresource",
+      //     },
+      //   },
+      //   {
+      //     $unwind: {
+      //       path: "$defaultroleresource",
+      //     },
+      //   },
+      //   {
+      //     $lookup: {
+      //       from: "projects",
+      //       localField: "defaultroleresource.ProjectId",
+      //       foreignField: "ProjectId",
+      //       as: "defaultproject",
+      //     },
+      //   },
+      //   {
+      //     $unwind: {
+      //       path: "$defaultproject",
+      //       preserveNullAndEmptyArrays: true, // Optional: set to false if you want to exclude non-matches
+      //     },
+      //   },
+      //   {
+      //     $project: {
+      //       _id: 0,
+      //       Project_Name: "$defaultproject.Project_Name",
+      //       Project_Code: "$defaultproject.Project_Code",
+      //       StartDate: "$defaultproject.Start_Date",
+      //       EndData: "$defaultproject.End_Date",
+      //       ProjectType: "$defaultproject.Project_Type",
+      //     },
+      //   },
+      // ]);
 
       // fetch projects
 
       // Fetch staff member
-      const response = await StaffMember.findOne({staff_Id: parseInt(id)});
+      // const response = await StaffMember.findOne({staff_Id: parseInt(id)});
 
-      if (!response) {
-        return res
-          .status(HttpStatusCodes.NOT_FOUND)
-          .json({error: "Staff Member not found"});
-      }
+      // if (!response) {
+      //   return res
+      //     .status(HttpStatusCodes.NOT_FOUND)
+      //     .json({error: "Staff Member not found"});
+      // }
 
-      // Process the single staff member instead of using map
-      const employeemanagerProjectData = await Project.find({
-        Project_ManagersId: {$in: [response.staff_Id]},
-      });
+      // // Process the single staff member instead of using map
+      // const employeemanagerProjectData = await Project.find({
+      //   Project_ManagersId: {$in: [response.staff_Id]},
+      // });
 
-      const getResourceId = await RoleResource.find({
-        RRId: {$in: [response.staff_Id]},
-      });
+      // const getResourceId = await RoleResource.find({
+      //   RRId: {$in: [response.staff_Id]},
+      // });
 
-      const projectIds = getResourceId.flatMap(
-        (resource) => resource.ProjectId || []
-      );
+      // const projectIds = getResourceId.flatMap(
+      //   (resource) => resource.ProjectId || []
+      // );
 
-      // Find Projects where staff is a resource
-      const findEmployeeProject = await Project.find({
-        ProjectId: {$in: projectIds},
-      })
-        .lean()
-        .exec();
-      // Format response
-      const employeeProjectsResponse = {
-        ...response.toObject(),
-        ManagerProject: employeemanagerProjectData,
-        Employeeproject: findEmployeeProject,
-      };
+      // // Find Projects where staff is a resource
+      // const findEmployeeProject = await Project.find({
+      //   ProjectId: {$in: projectIds},
+      // })
+      //   .lean()
+      //   .exec();
+      // // Format response
+      // const employeeProjectsResponse = {
+      //   ...response.toObject(),
+      //   ManagerProject: employeemanagerProjectData,
+      //   Employeeproject: findEmployeeProject,
+      // };
 
-      return res.status(HttpStatusCodes.OK).json({
-        result: newresponse,
-        success: true,
-      });
+      // return res.status(HttpStatusCodes.OK).json({
+      //   result: newresponse,
+      //   success: true,
+      // });
     } catch (error) {
       throw new Error(error?.message);
     }

@@ -50,7 +50,10 @@ const staffMemberSchema = mongoose.Schema(
       enum: ["Active", "InActive"],
       default: null,
     },
-
+    ManagerId: {
+      type: String,
+      default: "",
+    },
     Password: {
       type: String,
       required: false,
@@ -64,13 +67,7 @@ const staffMemberSchema = mongoose.Schema(
       enum: ["Employee", "Contractor", "Manager"],
       default: "Employee",
     },
-    // SubRole: [
-    //   {
-    //     type: String,
-    //     enum: ["Manager", "ContractorManager"],
-    //     default: "",
-    //   },
-    // ],
+
     days: {
       type: [String],
     },

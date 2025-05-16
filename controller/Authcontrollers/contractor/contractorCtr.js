@@ -11,11 +11,13 @@ const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const sendEmail = require("../../../utils/SendMail/SendMail");
 const Notification = require("../../../models/Othermodels/Notification/Notification");
 const path = require("path");
+const Designation = require("../../../models/MasterModels/Designation/Designation");
 const contractorCtr = {
   // create contractor
   create_contractor: asynchandler(async (req, res) => {
     try {
       // check user
+
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
@@ -29,32 +31,31 @@ const contractorCtr = {
       }
 
       // check in admin
-      const checkinadmin = await User.findOne({Email: req.body.Email});
-      if (checkinadmin) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error(
-          "This email is already used. Please provide a different email address."
-        );
-      }
+      // const checkinadmin = await User.findOne({Email: req.body.Email});
+      // if (checkinadmin) {
+      //   res.status(HttpStatusCodes.BAD_REQUEST);
+      //   throw new Error(
+      //     "This email is already used. Please provide a different email address."
+      //   );
+      // }
       // check in client
 
-      const checkinclient = await Client.findOne({
-        Client_Email: req.body.Email,
-      });
-      if (checkinclient) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error(
-          "This email is already used. Please provide a different email address."
-        );
-      }
+      // const checkinclient = await Client.findOne({
+      //   Client_Email: req.body.Email,
+      // });
+      // if (checkinclient) {
+      //   res.status(HttpStatusCodes.BAD_REQUEST);
+      //   throw new Error(
+      //     "This email is already used. Please provide a different email address."
+      //   );
+      // }
 
-      req.body.Password = req.body.Phone;
       const genhash = await bcrypt.genSalt(12);
-      const hashpassword = await bcrypt.hash(req.body.Password, genhash);
+      const hashpassword = await bcrypt.hash(req.body.Phone, genhash);
       // const formattedDate = moment(req.body.Joining_Date).format("YYYY-MM-DD");
       // create contractor
       if (req.file) {
-        let attachmentPath = req.file ? req.file.filename : Photos;
+        let attachmentPath = req.file ? req.file.filename : "Photos";
         let uploadPath = "uploads/";
 
         // Get file extension
@@ -100,7 +101,9 @@ const contractorCtr = {
         Role: "Contractor",
         Photos: contractorattachment,
         CompanyId: company.Company_Id,
-        ...req.body,
+        Rate: req.body.Cost,
+        Unit: req.body.Unit,
+        Currency: req.body.Currency,
       });
 
       await response.save();
@@ -251,6 +254,7 @@ const contractorCtr = {
         await Notification({
           SenderId: user?.user_id,
           ReciverId: response?.staff_Id,
+          Pic: user?.Photos,
           Name: user?.Role.concat(" ", user?.FirstName),
           Description: `Dear ${response?.FirstName}, your account has been successfully updated!`,
         }).save();
@@ -302,7 +306,7 @@ const contractorCtr = {
       // Main query
       const queryObj = {
         CompanyId: company.Company_Id,
-        Role: {$in: ["Contractor", "Manager"]},
+        Role: {$in: ["Contractor"]},
         ...searchQuery,
       };
 
@@ -486,48 +490,32 @@ const contractorCtr = {
         throw new Error("company not exists please create first company");
       }
       let queryObj = {};
+
       queryObj = {
         staff_Id: parseInt(id),
+        CompanyId: company?.Company_Id,
       };
 
-      const response = await StaffMember.aggregate([
-        {$match: {staff_Id: parseInt(id)}},
-        {
-          $lookup: {
-            from: "designations",
-            localField: "Designation_Id",
-            foreignField: "DesignationId",
-            as: "defaultdesignation",
-          },
-        },
-        {
-          $unwind: {
-            path: "$defaultdesignation",
-            preserveNullAndEmptyArrays: false, // Optional: set to false if you want to exclude non-matches
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            FirstName: 1,
-            LastName: 1,
-            DesignationName: "$defaultdesignation.Designation_Name",
-            Email: 1,
-            Phone: 1,
-            Address: 1,
-            Joining_Date: 1,
-            IsActive: 1,
-          },
-        },
-      ]);
+      let response = await StaffMember.findOne(queryObj);
+
+      if (response) {
+        const findDesignation = await Designation.findOne({
+          Designation_Id: response.DesignationId,
+        });
+
+        // Add a new property to the response object
+        response = response.toObject(); // Convert Mongoose document to plain JS object (optional if needed)
+        response.Designation_Name = findDesignation?.Designation_Name || null;
+      }
 
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Not Found");
       }
       return res.status(HttpStatusCodes.OK).json({
+        message: "fetch successfully Contractor",
         result: response,
-        message: "Contractor fetched successfully",
+
         success: true,
       });
     } catch (error) {
@@ -553,111 +541,135 @@ const contractorCtr = {
           .status(HttpStatusCodes.BAD_REQUEST)
           .json({error: "Bad Request"});
       }
-      // new change
-      const newresponse = await StaffMember.aggregate([
-        {
-          $match: {staff_Id: Number(id)},
-        },
-        {
-          $lookup: {
-            from: "roles",
-            localField: "RId",
-            foreignField: "RoleId",
-            as: "roles",
-          },
-        },
-        {
-          $unwind: {
-            path: "$roles",
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-        {
-          $lookup: {
-            from: "roleresources",
-            localField: "RRId",
-            foreignField: "staff_Id",
-            as: "defaultroleresource",
-          },
-        },
-        {
-          $unwind: {
-            path: "$defaultroleresource",
-          },
-        },
-        {
-          $lookup: {
-            from: "projects",
-            localField: "defaultroleresource.ProjectId",
-            foreignField: "ProjectId",
-            as: "defaultproject",
-          },
-        },
-        {
-          $unwind: {
-            path: "$defaultproject",
-            preserveNullAndEmptyArrays: true, // Optional: set to false if you want to exclude non-matches
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            Project_Name: "$defaultproject.Project_Name",
-            Project_Code: "$defaultproject.Project_Code",
-            StartDate: "$defaultproject.Start_Date",
-            EndData: "$defaultproject.End_Date",
-            ProjectType: "$defaultproject.Project_Type",
-          },
-        },
-      ]);
+      const response = await RoleResource.find({RRId: {$in: [parseInt(id)]}});
 
-      // newchange
-      const response = await StaffMember.findOne({staff_Id: Number(id)})
-        .lean()
-        .exec();
-      if (!response) {
-        return res
-          .status(HttpStatusCodes.NOT_FOUND)
-          .json({error: "Staff Member not found"});
+      if (!response || response.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Role Resource Not Found");
       }
 
-      // Find Projects where staff is a manager
-      const contractorProjectData = await Project.find({
-        Project_ManagersId: {$in: [response.staff_Id]},
-      })
-        .lean()
-        .exec();
+      // Extract ProjectIds from response array
+      const projectIds = await response
+        .map((item) => item.ProjectId)
+        .filter(Boolean);
 
-      // Find Resource Roles
-      const getResourceId = await RoleResource.find({
-        RRId: {$in: [response.staff_Id]},
-      })
-        .lean()
-        .exec();
+      // Find projects using the extracted IDs
+      const findProject = await Project.find({ProjectId: {$in: projectIds}});
 
-      // Extract project IDs from `getResourceId`
-      const projectIds = getResourceId.flatMap(
-        (resource) => resource.ProjectId || []
-      );
-
-      // Find Projects where staff is a resource
-      const findContractorProject = await Project.find({
-        ProjectId: {$in: projectIds},
-      })
-        .lean()
-        .exec();
-
-      // Format response
-      const contractorProjectsResponse = {
-        ...response,
-        ManagerProject: contractorProjectData,
-        ContractorProject: findContractorProject,
-      };
-
+      if (!findProject) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("project Not Found");
+      }
       return res.status(HttpStatusCodes.OK).json({
-        result: newresponse,
         success: true,
+        message: "fetch Contractor project successfully",
+        result: findProject,
       });
+      // new change
+      // const newresponse = await StaffMember.aggregate([
+      //   {
+      //     $match: {staff_Id: Number(id)},
+      //   },
+      //   {
+      //     $lookup: {
+      //       from: "roles",
+      //       localField: "RId",
+      //       foreignField: "RoleId",
+      //       as: "roles",
+      //     },
+      //   },
+      //   {
+      //     $unwind: {
+      //       path: "$roles",
+      //       preserveNullAndEmptyArrays: true,
+      //     },
+      //   },
+      //   {
+      //     $lookup: {
+      //       from: "roleresources",
+      //       localField: "RRId",
+      //       foreignField: "staff_Id",
+      //       as: "defaultroleresource",
+      //     },
+      //   },
+      //   {
+      //     $unwind: {
+      //       path: "$defaultroleresource",
+      //     },
+      //   },
+      //   {
+      //     $lookup: {
+      //       from: "projects",
+      //       localField: "defaultroleresource.ProjectId",
+      //       foreignField: "ProjectId",
+      //       as: "defaultproject",
+      //     },
+      //   },
+      //   {
+      //     $unwind: {
+      //       path: "$defaultproject",
+      //       preserveNullAndEmptyArrays: true, // Optional: set to false if you want to exclude non-matches
+      //     },
+      //   },
+      //   {
+      //     $project: {
+      //       _id: 0,
+      //       Project_Name: "$defaultproject.Project_Name",
+      //       Project_Code: "$defaultproject.Project_Code",
+      //       StartDate: "$defaultproject.Start_Date",
+      //       EndData: "$defaultproject.End_Date",
+      //       ProjectType: "$defaultproject.Project_Type",
+      //     },
+      //   },
+      // ]);
+
+      // // newchange
+      // const response = await StaffMember.findOne({staff_Id: Number(id)})
+      //   .lean()
+      //   .exec();
+      // if (!response) {
+      //   return res
+      //     .status(HttpStatusCodes.NOT_FOUND)
+      //     .json({error: "Staff Member not found"});
+      // }
+
+      // // Find Projects where staff is a manager
+      // const contractorProjectData = await Project.find({
+      //   Project_ManagersId: {$in: [response.staff_Id]},
+      // })
+      //   .lean()
+      //   .exec();
+
+      // // Find Resource Roles
+      // const getResourceId = await RoleResource.find({
+      //   RRId: {$in: [response.staff_Id]},
+      // })
+      //   .lean()
+      //   .exec();
+
+      // // Extract project IDs from `getResourceId`
+      // const projectIds = getResourceId.flatMap(
+      //   (resource) => resource.ProjectId || []
+      // );
+
+      // // Find Projects where staff is a resource
+      // const findContractorProject = await Project.find({
+      //   ProjectId: {$in: projectIds},
+      // })
+      //   .lean()
+      //   .exec();
+
+      // // Format response
+      // const contractorProjectsResponse = {
+      //   ...response,
+      //   ManagerProject: contractorProjectData,
+      //   ContractorProject: findContractorProject,
+      // };
+
+      // return res.status(HttpStatusCodes.OK).json({
+      //   result: newresponse,
+      //   success: true,
+      // });
     } catch (error) {
       throw new Error(error?.message);
     }

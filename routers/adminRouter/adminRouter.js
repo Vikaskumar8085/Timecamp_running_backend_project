@@ -62,6 +62,12 @@ adminRouter.get(
 // create project
 
 adminRouter.post("/create-projects", verifyToken, projectCtr.create_Project);
+adminRouter.put("/edit-projects/:id", verifyToken, projectCtr.Edit_Projects);
+adminRouter.delete(
+  "/remove-project/:id",
+  verifyToken,
+  projectCtr.remove_Project
+);
 adminRouter.get("/fetch-projects", verifyToken, projectCtr.fetch_projects);
 adminRouter.get(
   "/fetch-inactive-projects",
@@ -107,7 +113,7 @@ adminRouter.get(
 // employee
 adminRouter.post(
   "/create-employee",
-  upload.single("Profile"),
+  upload.single("profileImage"),
   verifyToken,
   employeeCtr.create_employee
 );
@@ -149,7 +155,7 @@ adminRouter.get(
 // contractor
 adminRouter.post(
   "/create-contractor",
-  upload.single("Profile"),
+  upload.single("profileImage"),
   verifyToken,
   contractorCtr.create_contractor
 );
@@ -157,6 +163,7 @@ adminRouter.post(
 adminRouter.put(
   "/edit-contractor/:id",
   verifyToken,
+  upload.single("profileImage"),
   contractorCtr?.update_contractor
 );
 adminRouter.get(

@@ -166,6 +166,7 @@ const userCtr = {
       // Admin functionality
       if (!user && Email) {
         user = await StaffMember.findOne({UserName: Email});
+        console.log(user, "user staff");
 
         if (user) {
           role = await user?.Role;

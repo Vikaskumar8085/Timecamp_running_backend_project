@@ -31,7 +31,6 @@ const projectCtr = {
         roleResources,
         roleProjectMangare,
       } = req.body;
-      console.log(req.body, "data");
 
       const user = await User.findById(req.user);
       if (!user) {
@@ -100,29 +99,30 @@ const projectCtr = {
         }).save();
       }
 
-      let responseProjectmangerid = newProject.Project_ManagersId;
-      if (!responseProjectmangerid) {
-        return;
-      } else {
-        await StaffMember.updateOne(
-          {staff_Id: responseProjectmangerid},
-          {$set: {IsActive: "Active"}}
-        );
+      // let responseProjectmangerid = newProject.Project_ManagersId;
+      // if (!responseProjectmangerid) {
+      //   return;
+      // } else {
+      //   await StaffMember.updateOne(
+      //     {staff_Id: responseProjectmangerid},
+      //     {$set: {IsActive: "Active"}}
+      //   );
 
-        await Notification({
-          SenderId: user?.user_id,
-          ReciverId: newProject?.responseProjectmangerid,
-          Name: user?.FirstName,
-          Pic: user?.Photo,
-          Description: `You have been assigned to the ${Project_Name} project as a new projectmanager by the admin.`,
-          IsRead: false,
-        }).save();
-      }
+      //   await Notification({
+      //     SenderId: user?.user_id,
+      //     ReciverId: newProject?.responseProjectmangerid,
+      //     Name: user?.FirstName,
+      //     Pic: user?.Photo,
+      //     Description: `You have been assigned to the ${Project_Name} project as a new projectmanager by the admin.`,
+      //     IsRead: false,
+      //   }).save();
+      // }
 
       // Retrieve the generated ProjectId
       const projectId = newProject?.ProjectId;
       console.log(projectId, "...");
 
+      console.log(roleProjectMangare, "role Project Manager");
       // roleProjectMangare
       if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
         return;
@@ -169,7 +169,7 @@ const projectCtr = {
 
       // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
-
+      console.log(roleResources, "resourse");
       const roleResourceData = roleResources.map(
         ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
           RRId,
@@ -238,6 +238,57 @@ const projectCtr = {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
+      const findProject = await Project.findOne({
+        projectId: parseInt(req.params.id),
+      });
+      if (!findProject) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Project Not Found");
+      }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // remove_Project
+
+  remove_Project: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Un Authorized User");
+      }
+
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const findproject = await Project.findOne({
+        ProjectId: parseInt(req.params.id),
+      });
+      if (!findproject) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Project Not Found");
+      } else {
+        await findproject.deleteOne();
+      }
+      const findProjectInRoleResource = await RoleResource.find({
+        ProjectId: parseInt(req.params.id),
+      });
+      if (!findProjectInRoleResource) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error();
+      } else {
+        for (let item of findProjectInRoleResource) {
+          await item.deleteOne();
+        }
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, message: "Project Deleted Successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -570,50 +621,50 @@ const projectCtr = {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
-      const projectsWithDetails = await Promise.all(
-        response.map(async (projectitem) => {
-          const roleResources = await RoleResource.find({
-            ProjectId: projectitem.ProjectId,
-          });
+      // const projectsWithDetails = await Promise.all(
+      //   response.map(async (projectitem) => {
+      //     const roleResources = await RoleResource.find({
+      //       ProjectId: projectitem.ProjectId,
+      //     });
 
-          // Extract RRId values
-          const rIds = roleResources.map((rr) => rr.RId);
-          const roles = await Role.find({RoleId: {$in: rIds}});
-          const rrid = roleResources.map((rr) => rr.RRId);
+      //     // Extract RRId values
+      //     const rIds = roleResources.map((rr) => rr.RId);
+      //     const roles = await Role.find({RoleId: {$in: rIds}});
+      //     const rrid = roleResources.map((rr) => rr.RRId);
 
-          const staffMember = await StaffMember.find({
-            staff_Id: {$in: rrid},
-          });
+      //     const staffMember = await StaffMember.find({
+      //       staff_Id: {$in: rrid},
+      //     });
 
-          const responseclient = await Client.find({
-            Client_Id: projectitem.clientId,
-          });
-          const ProjectManager = await StaffMember.find({
-            staff_Id: {$in: projectitem.Project_ManagersId},
-          });
-          const ProjectManagerName = await ProjectManager.map(
-            (item) => item.FirstName
-          );
-          const ClientName = await responseclient.map(
-            (item) => item.Client_Name
-          );
-          const RoleName = await roles.map((item) => item.RoleName);
-          const StaffName = await staffMember.map((item) => item.FirstName);
+      //     const responseclient = await Client.find({
+      //       Client_Id: projectitem.clientId,
+      //     });
+      //     const ProjectManager = await StaffMember.find({
+      //       staff_Id: {$in: projectitem.Project_ManagersId},
+      //     });
+      //     const ProjectManagerName = await ProjectManager.map(
+      //       (item) => item.FirstName
+      //     );
+      //     const ClientName = await responseclient.map(
+      //       (item) => item.Client_Name
+      //     );
+      //     const RoleName = await roles.map((item) => item.RoleName);
+      //     const StaffName = await staffMember.map((item) => item.FirstName);
 
-          const projectResult = {
-            ...projectitem,
-            RoleName,
-            StaffName,
-            ClientName,
-            ProjectManagerName,
-          };
-          return projectResult;
-        })
-      );
+      //     const projectResult = {
+      //       ...projectitem,
+      //       RoleName,
+      //       StaffName,
+      //       ClientName,
+      //       ProjectManagerName,
+      //     };
+      //     return projectResult;
+      //   })
+      // );
 
       return res.status(HttpStatusCodes.OK).json({
         message: "fetch single projects successfully",
-        result: projectsWithDetails,
+        result: response,
         success: true,
       });
     } catch (error) {
