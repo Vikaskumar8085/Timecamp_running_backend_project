@@ -353,7 +353,7 @@ const managerCtr = {
         roleResources,
         roleProjectMangare,
       } = req.body;
-      const user = await StaffMember.findById(req.user);
+      var user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
@@ -426,23 +426,6 @@ const managerCtr = {
 
       // client data modification
 
-      // let responseProjectmangerid = createproject.Project_ManagersId;
-      // if (!responseProjectmangerid) {
-      //   return;
-      // } else {
-      //   await StaffMember.updateOne(
-      //     {staff_Id: responseProjectmangerid},
-      //     {$set: {IsActive: "Active"}}
-      //   );
-
-      //   await Notification({
-      //     SenderId: user?.staff_Id,
-      //     ReciverId: createproject?.responseProjectmangerid,
-      //     Name: user?.FirstName,
-      //     Description: `You have been assigned to the ${Project_Name} project as a new projectmanager by the Manager.`,
-      //     IsRead: false,
-      //   }).save();
-      // }
       const projectId = createproject?.ProjectId;
       console.log(projectId, "...");
 

@@ -24,7 +24,6 @@ const ContractorCtr = {
 
       let queryObj = {};
       queryObj = {
-        Project_ManagersId: user.staff_Id,
         createdBy: user?.staff_Id,
       };
 
@@ -34,15 +33,15 @@ const ContractorCtr = {
         throw new Error("Bad Request");
       }
 
-      const responseResult = await RoleResource.find({RRId: user.staff_Id});
-      const rrid = await responseResult.map((item) => item.ProjectId);
+      // const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      // const rrid = await responseResult.map((item) => item.ProjectId);
 
-      const contractorProjects = await Project.find({ProjectId: rrid});
+      // const contractorProjects = await Project.find({ProjectId: rrid});
 
-      const allProjects = {response, contractorProjects};
+      // const allProjects = {response, contractorProjects};
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: allProjects});
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -56,7 +55,6 @@ const ContractorCtr = {
       }
 
       queryObj = {
-        Project_ManagersId: user.staff_Id,
         Project_Status: true,
         createdBy: user?.staff_Id,
       };
@@ -66,19 +64,19 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
-      const responseResult = await RoleResource.find({RRId: user.staff_Id});
-      const rrid = await responseResult.map((item) => item.ProjectId);
+      // const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      // const rrid = await responseResult.map((item) => item.ProjectId);
 
-      const contractoractiveProjects = await Project.find({
-        ProjectId: rrid,
-        Project_Status: true,
-      });
+      // const contractoractiveProjects = await Project.find({
+      //   ProjectId: rrid,
+      //   Project_Status: true,
+      // });
 
-      const activeprojects = {response, contractoractiveProjects};
+      // const activeprojects = {response, contractoractiveProjects};
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: activeprojects});
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -91,7 +89,6 @@ const ContractorCtr = {
         throw new error("UnAuthorized User Please Singup ");
       }
       queryObj = {
-        Project_ManagersId: user.staff_Id,
         Project_Status: false,
         createdBy: user?.staff_Id,
       };
@@ -101,19 +98,19 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
-      const responseResult = await RoleResource.find({RRId: user.staff_Id});
-      const rrid = await responseResult.map((item) => item.ProjectId);
+      // const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      // const rrid = await responseResult.map((item) => item.ProjectId);
 
-      const contractorinactiveProjects = await Project.find({
-        ProjectId: rrid,
-        Project_Status: false,
-      });
+      // const contractorinactiveProjects = await Project.find({
+      //   ProjectId: rrid,
+      //   Project_Status: false,
+      // });
 
-      const inactiveprojects = {response, contractorinactiveProjects};
+      // const inactiveprojects = {response, contractorinactiveProjects};
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: inactiveprojects});
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -536,41 +533,47 @@ const ContractorCtr = {
         clientId,
         Project_Type,
         Project_Hours,
-        bucket,
-        Currency,
+        currency,
         Start_Date,
         End_Date,
+        bucket,
         roleResources,
         roleProjectMangare,
       } = req.body;
-      const user = await StaffMember.findById(req.user);
+
+      var user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
 
-      const checkcompany = await Company?.findOne({UserId: user?.user_id});
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not Found");
       }
-      // Create the project
-      const newProject = new Project({
+
+      const createproject = new Project({
         CompanyId: checkcompany.Company_Id,
         Project_Name,
         clientId,
         Project_Type,
         Project_Hours,
         Project_Status: true,
-        Currency,
-        Start_Date,
-
-        End_Date,
+        currency,
+        Start_Date: moment(Start_Date).format("DD/MM/YYYY"),
+        End_Date: moment(End_Date).format("DD/MM/YYYY"),
         createdBy: user?.staff_Id,
+        ...req.body,
       });
+      if (!createproject) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Project Not Found");
+      }
 
-      await newProject.save();
-      // set bucket if project type bucket or  not
+      await createproject.save();
+
+      // bucket added
       if (Project_Type !== "Bucket" && bucket.length === 0) {
         return;
       } else {
@@ -582,7 +585,7 @@ const ContractorCtr = {
         let insertedMilestones = [];
         for (const item of bucket) {
           const bucket = new Bucket({
-            ProjectId: newProject.ProjectId,
+            ProjectId: createproject.ProjectId,
             bucketHourly: item.bucketHourly,
             bucketHourlyRate: item.bucketHourlyRate,
           });
@@ -591,81 +594,83 @@ const ContractorCtr = {
           insertedMilestones.push(savedbucket);
         }
       }
-      // set bucket if project type bucket or  not
-
-      let responseClientId = newProject.clientId;
+      // Bucket add
+      // modified client data
+      let responseClientId = createproject.clientId;
 
       if (!responseClientId) {
-        return; // Exit if clientId is undefined or empty
-      } else {
+        return; // Exit early if clientId is not available
+      }
+
+      const client = await Client.findOne({Client_Id: responseClientId});
+      if (!client) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error(`Client with ID ${responseClientId} not found.`);
+      }
+
+      if (client.Client_Status !== "Active") {
         await Client.updateOne(
-          {Client_Id: responseClientId}, // Ensure we update the correct client
-          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
+          {Client_Id: responseClientId},
+          {$set: {Client_Status: "Active"}}
         );
-
-        await Notification({
-          SenderId: user?.staff_Id,
-          ReciverId: responseClientId?.clientId,
-          Name: user?.FirstName,
-          Pic: user?.Photos,
-          Description: `You have been assigned to the ${Project_Name} project as a new client.`,
-          IsRead: false,
-        }).save();
       }
 
-      let responseProjectmangerid = newProject.Project_ManagersId;
-      if (!responseProjectmangerid) {
-        return;
-      } else {
-        await StaffMember.updateOne(
-          {staff_Id: responseProjectmangerid},
-          {$set: {IsActive: "Active"}}
-        );
-        await Notification({
-          SenderId: user?.staff_Id,
-          ReciverId: responseProjectmangerid,
-          Name: user?.FirstName,
-          Description: `You have been assigned to the ${Project_Name} project as a new project Manager.`,
-          IsRead: false,
-        }).save();
-      }
+      // Optionally log or notify about t
+      await new Notification({
+        SenderId: user?.staff_Id,
+        ReciverId: responseClientId,
+        Pic: user?.Photos[0],
+        Name: user?.FirstName,
+        Description: `You have been assigned to the ${Project_Name} project as a new client.`,
+        IsRead: false,
+      }).save();
 
-      // Retrieve the generated ProjectId
+      // client data added
+
+      // project multiple role resource added
+
       const projectId = createproject?.ProjectId;
+
+      // role resource id add fucntionality
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(
-        ({RRId, RId, Unit, Rate, Engagement_Ratio}) => ({
-          RRId,
-          RId,
+      for (let roleitem of roleResources) {
+        await new RoleResource({
+          RRId: roleitem?.RRId,
+          RId: roleitem?.RId,
           ProjectId: projectId,
-          Unit,
-          Rate,
-          Engagement_Ratio,
-        })
-      );
-
-      await RoleResource.insertMany(roleResourceData);
+          Rate: roleitem?.Rate,
+          Unit: roleitem?.Unit,
+          Engagement_Ratio: roleitem?.Engagement_Ratio,
+        }).save();
+      }
 
       try {
         let updatestaffmember = await Promise.all(
           (roleResources || []).map(async ({RRId, RId}) => {
             if (!RRId) return; // Skip invalid entries
+            const staff = await StaffMember.findOne({staff_Id: RRId});
 
-            // Update staff member status
-            await StaffMember.updateOne(
-              {staff_Id: RRId},
-              {$set: {IsActive: "Active"}}
-            );
+            if (!staff) {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(`Staff with ID ${RRId} not found.`);
+            }
 
-            // Send notification
-            await Notification.create({
+            if (staff.IsActive !== "Active") {
+              await StaffMember.updateOne(
+                {staff_Id: RRId},
+                {$set: {IsActive: "Active"}}
+              );
+            }
+            // send notification as Employee Roles
+            await Notification({
               SenderId: user?.staff_Id,
               ReciverId: RRId, // Receiver is RRId
               Name: user?.FirstName,
-              Description: "Your role has been updated to Active",
+              Pic: user?.Photos[0],
+              Description: `${staff?.FirstName}, you have been assigned to the ${Project_Name} project as a employee.`,
               IsRead: false,
-            });
+            }).save();
           })
         );
 
@@ -677,41 +682,53 @@ const ContractorCtr = {
         console.error("Error updating staff members:", error);
       }
 
-      // role resource project manager
+      // role resource id add fucntionality
 
-      // roleProjectMangare
+      // project mamanger created by Contractor
+
       if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
         return;
-
-      const roleProjectMangaredata = roleProjectMangare.map(
-        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
-          RRId,
-          RId,
+      let insertProjectManagerdata = [];
+      for (let item of roleProjectMangare) {
+        const responseitem = new RoleResource({
+          RRId: item?.RRId,
+          RId: item?.RId,
           ProjectId: projectId,
-          Rate,
-          Unit,
-          Engagement_Ratio,
-        })
-      );
-      await RoleResource.insertMany(roleProjectMangaredata);
+          Rate: item?.Rate,
+          Unit: item?.Unit,
+          Engagement_Ratio: item?.Engagement_Ratio,
+        });
+        let data = await responseitem.save();
+        insertProjectManagerdata.push(data);
+      }
       try {
         let updatestaffmember = await Promise.all(
-          (roleProjectMangaredata || []).map(async ({RRId, RId}) => {
+          (roleProjectMangare || []).map(async ({RRId, RId}) => {
             if (!RRId) return;
 
-            await StaffMember.updateOne(
-              {staff_Id: RRId},
-              {$set: {IsActive: "Active"}}
-            );
+            const staff = await StaffMember.findOne({staff_Id: RRId});
+
+            if (!staff) {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(`Staff with ID ${RRId} not found.`);
+            }
+
+            if (staff.IsActive !== "Active") {
+              await StaffMember.updateOne(
+                {staff_Id: RRId},
+                {$set: {IsActive: "Active"}}
+              );
+            }
+
             // Send notification
-            await Notification.create({
-              SenderId: user?.user_id,
+            await Notification({
+              SenderId: user?.staff_Id,
               ReciverId: RRId, // Receiver is RRId
               Name: user?.FirstName,
-              Pic: user?.Photos,
-              Description: "Your role has been updated to Active",
+              Pic: user?.Photos[0],
+              Description: `${staff?.FirstName}, you have been assigned to the ${Project_Name} project as a Project Manager.`,
               IsRead: false,
-            });
+            }).save();
           })
         );
 
@@ -719,15 +736,14 @@ const ContractorCtr = {
           res.status(HttpStatusCodes.NOT_FOUND);
           throw new Error("staff Not found");
         }
+        //  update add Project manager role
       } catch (error) {
         console.error("Error updating staff members:", error);
       }
-      // role resource project manager
 
-      res.status(201).json({
-        message: "Project and Role Resources added successfully",
-        success: true,
-      });
+      return res
+        .status(HttpStatusCodes.CREATED)
+        .json({success: true, message: "Project Created Successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }

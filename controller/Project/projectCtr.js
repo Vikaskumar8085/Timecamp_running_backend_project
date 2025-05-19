@@ -50,7 +50,7 @@ const projectCtr = {
         Project_Name,
         clientId,
         Project_Type,
-        currency: req.body.Currency,
+        currency: req.body.currency,
         Project_Hours,
         Project_Status: true,
         Start_Date: moment(req.body.Start_Date).format("DD/MM/YYYY"),
@@ -120,10 +120,8 @@ const projectCtr = {
 
       // Retrieve the generated ProjectId
       const projectId = newProject?.ProjectId;
-      console.log(projectId, "...");
 
-      console.log(roleProjectMangare, "role Project Manager");
-      // roleProjectMangare
+      // roleProjectManagare
       if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
         return;
 
@@ -167,9 +165,12 @@ const projectCtr = {
         console.error("Error updating staff members:", error);
       }
 
+      // role Project Manager
+
+      console.log(roleResources, "role resource data");
       // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
-      console.log(roleResources, "resourse");
+
       const roleResourceData = roleResources.map(
         ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
           RRId,
@@ -226,6 +227,17 @@ const projectCtr = {
 
   Edit_Projects: asyncHandler(async (req, res) => {
     try {
+      const {
+        Project_Name,
+        clientId,
+        Project_Type,
+        Project_Hours,
+        bucket,
+        roleResources,
+        roleProjectMangare,
+      } = req.body;
+
+      console.log(req?.body, "request body");
       // Authenticate
       const user = await User.findById(req.user);
       if (!user) {

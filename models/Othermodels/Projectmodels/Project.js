@@ -55,7 +55,7 @@ const ProjectSchema = mongoose.Schema(
       required: false,
       default: null,
     },
-    Currency: {
+    currency: {
       type: String,
       required: false,
     },

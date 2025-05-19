@@ -48,6 +48,5 @@ RoleResourceSchema.plugin(AutoIncrement, {
   inc_field: "RoleResource_Id",
   start_seq: 1,
 });
-
 const RoleResource = mongoose.model("RoleResource", RoleResourceSchema);
 module.exports = RoleResource;

@@ -22,7 +22,6 @@ const NotificationSchema = mongoose.Schema(
     },
     Pic: {
       type: String,
-      required: true,
     },
     Description: {
       type: String,

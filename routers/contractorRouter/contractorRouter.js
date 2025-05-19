@@ -3,10 +3,14 @@ const ContractorCtr = require("../../controller/ContracotrController/ControllerC
 const verifyToken = require("../../Auth/verifyAuth");
 const upload = require("../../utils/FileUpload/fileUpload");
 const contractordashctr = require("../../controller/ContracotrController/Contractordashctr");
-const contractorCtr = require("../../controller/Authcontrollers/contractor/contractorCtr");
 
 const contractorRouter = express.Router();
 contractorRouter.use(verifyToken);
+
+contractorRouter.post(
+  "/create-contractor-project",
+  ContractorCtr.addContractorProject
+);
 
 //contractor project
 contractorRouter.get(

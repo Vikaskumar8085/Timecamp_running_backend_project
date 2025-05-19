@@ -7,8 +7,15 @@ const employeeCtr = require("../../controller/Authcontrollers/employee/employeeC
 
 const employeeRouter = express.Router();
 employeeRouter.use(verifyToken);
+// Employee Create Project
+
+employeeRouter.post(
+  "/create-employee-project",
+  EmployeeCtr.createEmployeeProject
+);
 
 employeeRouter.get("/employee-project", EmployeeCtr.fetchemployeeprojects);
+
 employeeRouter.get(
   "/employee-active-project",
   EmployeeCtr.fetchemployeeActiveProjects
