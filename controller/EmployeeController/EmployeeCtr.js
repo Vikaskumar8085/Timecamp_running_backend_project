@@ -1102,6 +1102,7 @@ const EmployeeCtr = {
   // add task progress
   addtaskprogress: asyncHandler(async (req, res) => {
     try {
+      console.log("employee", req.body);
       const user = await StaffMember.findById(req.user);
       if (!user) {
         return res.status(HttpStatusCodes.UNAUTHORIZED).json({
@@ -1111,7 +1112,6 @@ const EmployeeCtr = {
       }
 
       // fill timesheet
-
       const response = await TimeSheet.findOneAndUpdate(
         {
           project: req.body.project,

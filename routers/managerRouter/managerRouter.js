@@ -136,4 +136,14 @@ managerRouter.get(
 );
 managerRouter.get("/manager-daily-hour", managerdashctr.managerdashdailyhours);
 
+
+
+
+// fetch manager manager Team inforamation
+
+managerRouter.get(
+  "/fetch-manager-team-info/:id",
+  managerCtr.fetchManagerTeamInformation
+);
+
 module.exports = managerRouter;

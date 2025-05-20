@@ -34,7 +34,7 @@ const RoleResourceSchema = mongoose.Schema(
     },
     IsProjectManager: {
       type: Boolean,
-      default: false,
+      default: true,
     },
     Engagement_Ratio: {
       type: Number,

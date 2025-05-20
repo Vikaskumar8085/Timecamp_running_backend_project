@@ -12,6 +12,7 @@ const Task = require("../../models/Othermodels/Task/Task");
 const Notification = require("../../models/Othermodels/Notification/Notification");
 const Role = require("../../models/MasterModels/Roles/Roles");
 const Bucket = require("../../models/Othermodels/Bucket/Bucket");
+const moment = require("moment");
 const managerCtr = {
   // fetch manager team
   fetchmanagerTeam: asyncHandler(async (req, res) => {
@@ -71,79 +72,182 @@ const managerCtr = {
           .json({message: "Unauthorized User, please Signup"});
       }
 
-      // Pagination
-      const page = parseInt(req.query.page) || 1;
-      const limit = parseInt(req.query.limit) || 10;
-      const skip = (page - 1) * limit;
-
-      // Searching (trim input and use OR operator)
-      const search = req.query.search?.trim() || "";
-      let matchStage = {ManagerId: user?.staff_Id};
-
-      if (search) {
-        matchStage["$or"] = [
-          {Project_Name: {$regex: search, $options: "i"}}, // Case-insensitive search in Project_Name
-        ];
+      const checkcompany = await Company.findOne({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Company Not Found");
       }
 
-      // Aggregation pipeline
-      const fetchstaff = await StaffMember.aggregate([
-        {$match: matchStage},
-        {$skip: skip},
-        {$limit: limit},
+      let queryMatch = {
+        CompanyId: checkcompany.Company_Id,
+        createdBy: user?.staff_Id,
+      };
+
+      const response = await Project.aggregate([
+        {
+          $match: queryMatch,
+        },
+
+        {
+          $lookup: {
+            from: "clients",
+            foreignField: "Client_Id",
+            localField: "clientId",
+            as: "clientDetails",
+          },
+        },
+        {
+          $unwind: "$clientDetails",
+        },
+        {
+          $lookup: {
+            from: "roleresources",
+            foreignField: "ProjectId",
+            localField: "ProjectId",
+            as: "role_resources",
+          },
+        },
+
+        {
+          $unwind: "$role_resources",
+        },
+        {
+          $lookup: {
+            from: "staffmembers",
+            foreignField: "staff_Id",
+            localField: "role_resources.RRId", // Assuming RRId is a staff_Id
+            as: "staff_details",
+          },
+        },
+        {
+          $unwind: "$staff_details",
+        },
+        {
+          $lookup: {
+            from: "roles",
+            foreignField: "RoleId",
+            localField: "role_resources.RId",
+            as: "roles",
+          },
+        },
+        {
+          $unwind: {
+            path: "$roles",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+
+        {
+          $project: {
+            _id: 0,
+            ProjectId: 1,
+            Project_Name: 1,
+            Project_Code: 1,
+            Start_Date: 1,
+            End_Date: 1,
+            Project_Type: 1,
+            Project_Hours: 1,
+            Project_Status: 1,
+            currency: 1,
+            ClientName: "$clientDetails.Client_Name",
+            roleResource: {
+              RoleName: "$roles.RoleName",
+              ResourceName: "$staff_details.FirstName",
+              billable: "$role_resources.Billable",
+              Rate: "$role_resources.Rate",
+              Unit: "$role_resources.Unit",
+              Engagement_Ratio: "$role_resources.Engagement_Ratio",
+            },
+            roleProjectMangare: {
+              RoleName: "$roles.RoleName",
+              ResourceName: "$staff_details.FirstName",
+              billable: "$role_resources.Billable",
+              Rate: "$role_resources.Rate",
+              Unit: "$role_resources.Unit",
+              Engagement_Ratio: "$role_resources.Engagement_Ratio",
+              ProjectId: "$role_resources.IsProjectManager",
+            },
+          },
+        },
       ]);
 
-      if (!fetchstaff.length) {
-        return res
-          .status(HttpStatusCodes.NOT_FOUND)
-          .json({message: "Staff Not Found"});
-      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
 
-      // Fetch projects for each staff member
-      const fetchproject = await Promise.all(
-        fetchstaff.map(async (item) => {
-          try {
-            // Find RoleResources for the given staff_Id
-            const fetchprojectbyrrids = await RoleResource.find({
-              RRId: item?.staff_Id,
-            });
+      // Pagination
+      // const page = parseInt(req.query.page) || 1;
+      // const limit = parseInt(req.query.limit) || 10;
+      // const skip = (page - 1) * limit;
 
-            // Extract ProjectIds from RoleResources
-            const projectids = fetchprojectbyrrids.map((rr) => rr.ProjectId);
+      // Searching (trim input and use OR operator)
+      // const search = req.query.search?.trim() || "";
+      // let matchStage = {ManagerId: user?.staff_Id};
 
-            // Fetch projects using aggregation
-            const fetchproject = projectids.length
-              ? await Project.aggregate([
-                  {$match: {ProjectId: {$in: projectids}}},
-                  {$match: {Project_Name: {$regex: search, $options: "i"}}}, // Apply search within projects
-                ])
-              : [];
+      // if (search) {
+      //   matchStage["$or"] = [
+      //     {Project_Name: {$regex: search, $options: "i"}}, // Case-insensitive search in Project_Name
+      //   ];
+      // }
 
-            // Fetch projects where staff is a direct project manager
-            const fetchteamproject = await Project.find({
-              Project_ManagersId: item?.staff_Id,
-            });
+      // Aggregation pipeline
+      // const fetchstaff = await StaffMember.aggregate([
+      //   {$match: matchStage},
+      //   {$skip: skip},
+      //   {$limit: limit},
+      // ]);
 
-            return {fetchproject, fetchteamproject};
-          } catch (error) {
-            console.error(
-              `Error fetching projects for staff ${item?.staff_Id}:`,
-              error
-            );
-            return {fetchproject: [], fetchteamproject: []};
-          }
-        })
-      );
+      // if (!fetchstaff.length) {
+      //   return res
+      //     .status(HttpStatusCodes.NOT_FOUND)
+      //     .json({message: "Staff Not Found"});
+      // }
 
-      // Get total records count for pagination
-      const totalRecords = await StaffMember.countDocuments(matchStage);
+      // // Fetch projects for each staff member
+      // const fetchproject = await Promise.all(
+      //   fetchstaff.map(async (item) => {
+      //     try {
+      //       // Find RoleResources for the given staff_Id
+      //       const fetchprojectbyrrids = await RoleResource.find({
+      //         RRId: item?.staff_Id,
+      //       });
 
-      return res.status(HttpStatusCodes.OK).json({
-        result: fetchproject,
-        totalRecords,
-        currentPage: page,
-        totalPages: Math.ceil(totalRecords / limit),
-      });
+      //       // Extract ProjectIds from RoleResources
+      //       const projectids = fetchprojectbyrrids.map((rr) => rr.ProjectId);
+
+      //       // Fetch projects using aggregation
+      //       const fetchproject = projectids.length
+      //         ? await Project.aggregate([
+      //             {$match: {ProjectId: {$in: projectids}}},
+      //             {$match: {Project_Name: {$regex: search, $options: "i"}}}, // Apply search within projects
+      //           ])
+      //         : [];
+
+      //       // Fetch projects where staff is a direct project manager
+      //       const fetchteamproject = await Project.find({
+      //         Project_ManagersId: item?.staff_Id,
+      //       });
+
+      //       return {fetchproject, fetchteamproject};
+      //     } catch (error) {
+      //       console.error(
+      //         `Error fetching projects for staff ${item?.staff_Id}:`,
+      //         error
+      //       );
+      //       return {fetchproject: [], fetchteamproject: []};
+      //     }
+      //   })
+      // );
+
+      // // Get total records count for pagination
+      // const totalRecords = await StaffMember.countDocuments(matchStage);
+
+      // return res.status(HttpStatusCodes.OK).json({
+      //   result: fetchproject,
+      //   totalRecords,
+      //   currentPage: page,
+      //   totalPages: Math.ceil(totalRecords / limit),
+      // });
     } catch (error) {
       res
         .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
@@ -346,18 +450,20 @@ const managerCtr = {
         clientId,
         Project_Type,
         Project_Hours,
-        Currency,
+        currency,
         Start_Date,
         End_Date,
         bucket,
         roleResources,
         roleProjectMangare,
       } = req.body;
+
       var user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
+
       const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -369,20 +475,24 @@ const managerCtr = {
         Project_Name,
         clientId,
         Project_Type,
-        Currency,
         Project_Hours,
         Project_Status: true,
-        Start_Date,
-        End_Date,
+        currency,
+        Start_Date: moment(Start_Date).format("DD/MM/YYYY"),
+        End_Date: moment(End_Date).format("DD/MM/YYYY"),
         createdBy: user?.staff_Id,
+        ...req.body,
       });
+
       if (!createproject) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Project Not Found");
       }
 
       await createproject.save();
-      // for bucket
+
+      // Create RoleResource
+
       if (Project_Type !== "Bucket" && bucket.length === 0) {
         return;
       } else {
@@ -403,114 +513,82 @@ const managerCtr = {
           insertedMilestones.push(savedbucket);
         }
       }
-      // for bucket
-      // client data modification
+      // Bucket add
+      // modified client data
       let responseClientId = createproject.clientId;
+
       if (!responseClientId) {
-        return; // Exit if clientId is undefined or empty
-      } else {
+        return; // Exit early if clientId is not available
+      }
+
+      const client = await Client.findOne({Client_Id: responseClientId});
+      if (!client) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error(`Client with ID ${responseClientId} not found.`);
+      }
+
+      if (client.Client_Status !== "Active") {
         await Client.updateOne(
-          {Client_Id: responseClientId}, // Ensure we update the correct client
-          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
+          {Client_Id: responseClientId},
+          {$set: {Client_Status: "Active"}}
         );
-
-        await Notification({
-          SenderId: user?.staff_Id,
-          ReciverId: createproject?.clientId,
-          Pic: user?.Photo,
-          Name: user?.FirstName,
-          Description: `You have been assigned to the ${Project_Name} project as a new client by the Manager.`,
-          IsRead: false,
-        }).save();
       }
 
-      // client data modification
+      // Optionally log or notify about t
+      await new Notification({
+        SenderId: user?.staff_Id,
+        ReciverId: responseClientId,
+        Pic: user?.Photos[0],
+        Name: user?.FirstName,
+        Description: `You have been assigned to the ${Project_Name} project as a new client.`,
+        IsRead: false,
+      }).save();
 
+      // Proceed to create the notification regardless
+
+      //  update add Project manager role
       const projectId = createproject?.ProjectId;
-      console.log(projectId, "...");
 
-      // select project maanger
-      // roleProjectMangare
-      if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
-        return;
-
-      const roleProjectMangaredata = roleProjectMangare.map(
-        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
-          RRId,
-          RId,
-          ProjectId: projectId,
-          Rate,
-          Unit,
-          Engagement_Ratio,
-        })
-      );
-      await RoleResource.insertMany(roleProjectMangaredata);
-      try {
-        let updatestaffmember = await Promise.all(
-          (roleProjectMangaredata || []).map(async ({RRId, RId}) => {
-            if (!RRId) return;
-
-            await StaffMember.updateOne(
-              {staff_Id: RRId},
-              {$set: {IsActive: "Active"}}
-            );
-            // Send notification
-            await Notification.create({
-              SenderId: user?.user_id,
-              ReciverId: RRId, // Receiver is RRId
-              Name: user?.FirstName,
-              Pic: user?.Photo,
-              Description: "Your role has been updated to Active",
-              IsRead: false,
-            });
-          })
-        );
-
-        if (!updatestaffmember) {
-          res.status(HttpStatusCodes.NOT_FOUND);
-          throw new Error("staff Not found");
-        }
-      } catch (error) {
-        console.error("Error updating staff members:", error);
-      }
-
-      // role resource data
-
+      // role resource id add fucntionality
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(
-        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
-          RRId,
-          RId,
+      for (let roleitem of roleResources) {
+        await new RoleResource({
+          RRId: roleitem?.RRId,
+          RId: roleitem?.RId,
           ProjectId: projectId,
-          Rate,
-          Unit,
-          Engagement_Ratio,
-        })
-      );
-
-      await RoleResource.insertMany(roleResourceData);
+          Rate: roleitem?.Rate,
+          Unit: roleitem?.Unit,
+          Engagement_Ratio: roleitem?.Engagement_Ratio,
+        }).save();
+      }
 
       try {
         let updatestaffmember = await Promise.all(
           (roleResources || []).map(async ({RRId, RId}) => {
             if (!RRId) return; // Skip invalid entries
+            const staff = await StaffMember.findOne({staff_Id: RRId});
 
-            // Update staff member status
-            await StaffMember.updateOne(
-              {staff_Id: RRId},
-              {$set: {IsActive: "Active"}}
-            );
+            if (!staff) {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(`Staff with ID ${RRId} not found.`);
+            }
 
-            // Send notification
-            await Notification.create({
-              SenderId: user?.user_id,
+            if (staff.IsActive !== "Active") {
+              await StaffMember.updateOne(
+                {staff_Id: RRId},
+                {$set: {IsActive: "Active"}}
+              );
+            }
+            // send notification as Employee Roles
+            await Notification({
+              SenderId: user?.staff_Id,
               ReciverId: RRId, // Receiver is RRId
               Name: user?.FirstName,
-              Pic: user?.Photo,
-              Description: "Your role has been updated to Active",
+              Pic: user?.Photos[0],
+              Description: `${staff?.FirstName}, you have been assigned to the ${Project_Name} project as a employee.`,
               IsRead: false,
-            });
+            }).save();
           })
         );
 
@@ -522,6 +600,63 @@ const managerCtr = {
         console.error("Error updating staff members:", error);
       }
 
+      // role resource id add fucntionality
+      // // roleProjectMangare
+      if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
+        return;
+      let insertProjectManagerdata = [];
+      for (let item of roleProjectMangare) {
+        const responseitem = new RoleResource({
+          RRId: item?.RRId,
+          RId: item?.RId,
+          ProjectId: projectId,
+          Rate: item?.Rate,
+          Unit: item?.Unit,
+          Engagement_Ratio: item?.Engagement_Ratio,
+        });
+        let data = await responseitem.save();
+        insertProjectManagerdata.push(data);
+      }
+      try {
+        let updatestaffmember = await Promise.all(
+          (roleProjectMangare || []).map(async ({RRId, RId}) => {
+            if (!RRId) return;
+
+            const staff = await StaffMember.findOne({staff_Id: RRId});
+
+            if (!staff) {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(`Staff with ID ${RRId} not found.`);
+            }
+
+            if (staff.IsActive !== "Active") {
+              await StaffMember.updateOne(
+                {staff_Id: RRId},
+                {$set: {IsActive: "Active"}}
+              );
+            }
+
+            // Send notification
+            await Notification({
+              SenderId: user?.staff_Id,
+              ReciverId: RRId, // Receiver is RRId
+              Name: user?.FirstName,
+              Pic: user?.Photos[0],
+              Description: `${staff?.FirstName}, you have been assigned to the ${Project_Name} project as a Project Manager.`,
+              IsRead: false,
+            }).save();
+          })
+        );
+
+        if (!updatestaffmember) {
+          res.status(HttpStatusCodes.NOT_FOUND);
+          throw new Error("staff Not found");
+        }
+        //  update add Project manager role
+      } catch (error) {
+        console.error("Error updating staff members:", error);
+      }
+      // Send success response
       res.status(201).json({
         message: "Project and Role Resources added successfully",
         success: true,
@@ -696,170 +831,6 @@ const managerCtr = {
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, result: fetchprojectresponse});
-    } catch (error) {
-      throw new Error(error?.message);
-    }
-  }),
-
-  addmanagerProject: asyncHandler(async (req, res) => {
-    try {
-      const {
-        Project_Name,
-        clientId,
-        Project_Type,
-        Project_Hours,
-        Start_Date,
-        End_Date,
-        Currency,
-        roleResources,
-        roleProjectMangare,
-      } = req.body;
-      console.log(req.body);
-
-      const user = await StaffMember.findById(req.user);
-      if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new error("UnAuthorized User Please Singup ");
-      }
-
-      const checkcompany = await Company?.findOne({UserId: user?.user_id});
-      if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
-      }
-      // Create the project
-      const newProject = new Project({
-        CompanyId: checkcompany.Company_Id,
-        Project_Name,
-        clientId,
-        Project_Type,
-        Project_Hours,
-        Project_Status: true,
-        Start_Date,
-        End_Date,
-        Currency,
-        createdBy: user?.staff_Id,
-      });
-
-      await newProject.save();
-
-      let responseClientId = newProject.clientId;
-
-      if (!responseClientId) {
-        return; // Exit if clientId is undefined or empty
-      } else {
-        await Client.updateOne(
-          {Client_Id: responseClientId}, // Ensure we update the correct client
-          {$set: {Client_Status: "Active"}} // Set Client_Status to Active
-        );
-      }
-
-      let responseProjectmangerid = newProject.Project_ManagersId;
-      if (!responseProjectmangerid) {
-        return;
-      } else {
-        await StaffMember.updateOne(
-          {staff_Id: responseProjectmangerid},
-          {$set: {IsActive: "Active"}}
-        );
-      }
-
-      // Retrieve the generated ProjectId
-      const projectId = createproject?.ProjectId;
-      if (!Array.isArray(roleResources) || roleResources.length === 0) return;
-
-      const roleResourceData = roleResources.map(
-        ({RRId, RId, Unit, Rate, Engagement_Ratio}) => ({
-          RRId,
-          RId,
-          ProjectId: projectId,
-          Unit,
-          Rate,
-          Engagement_Ratio,
-        })
-      );
-
-      await RoleResource.insertMany(roleResourceData);
-
-      try {
-        let updatestaffmember = await Promise.all(
-          (roleResources || []).map(async ({RRId, RId}) => {
-            if (!RRId) return; // Skip invalid entries
-
-            // Update staff member status
-            await StaffMember.updateOne(
-              {staff_Id: RRId},
-              {$set: {IsActive: "Active"}}
-            );
-
-            // Send notification
-            await Notification.create({
-              SenderId: user?.staff_Id,
-              ReciverId: RRId, // Receiver is RRId
-              Name: user?.FirstName,
-              Description: "Your role has been updated to Active",
-              IsRead: false,
-            });
-          })
-        );
-
-        if (!updatestaffmember) {
-          res.status(HttpStatusCodes.NOT_FOUND);
-          throw new Error("staff Not found");
-        }
-      } catch (error) {
-        console.error("Error updating staff members:", error);
-      }
-
-      // role resource project manager
-
-      // roleProjectMangare
-      if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
-        return;
-
-      const roleProjectMangaredata = roleProjectMangare.map(
-        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
-          RRId,
-          RId,
-          ProjectId: projectId,
-          Rate,
-          Unit,
-          Engagement_Ratio,
-        })
-      );
-      await RoleResource.insertMany(roleProjectMangaredata);
-      try {
-        let updatestaffmember = await Promise.all(
-          (roleProjectMangaredata || []).map(async ({RRId, RId}) => {
-            if (!RRId) return;
-
-            await StaffMember.updateOne(
-              {staff_Id: RRId},
-              {$set: {IsActive: "Active"}}
-            );
-            // Send notification
-            await Notification.create({
-              SenderId: user?.user_id,
-              ReciverId: RRId, // Receiver is RRId
-              Name: user?.FirstName,
-              Pic: user?.Photos,
-              Description: "Your role has been updated to Active",
-              IsRead: false,
-            });
-          })
-        );
-
-        if (!updatestaffmember) {
-          res.status(HttpStatusCodes.NOT_FOUND);
-          throw new Error("staff Not found");
-        }
-      } catch (error) {
-        console.error("Error updating staff members:", error);
-      }
-      res.status(201).json({
-        message: "Project and Role Resources added successfully",
-        success: true,
-      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1854,6 +1825,39 @@ const managerCtr = {
           totalPages: Math.ceil(totalProjects / limit),
         },
       });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchManagerTeamInformation: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          message: "Unauthorized User. Please Signup.",
+        });
+      }
+
+      // Check if company exists
+      const checkcompany = await Company.findOne({Company_Id: user?.CompanyId});
+      if (!checkcompany) {
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          message: "Company does not exist. Please create a company first.",
+        });
+      }
+
+      const {id} = req.params;
+
+      const getteam = await StaffMember.findOne({staff_Id: parseInt(id)});
+      if (!getteam) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Team Not Found");
+      }
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: getteam});
     } catch (error) {
       throw new Error(error?.message);
     }
