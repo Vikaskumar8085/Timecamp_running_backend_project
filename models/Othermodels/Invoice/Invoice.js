@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const moment = require("moment");
 
 const AutoIncrement = require("mongoose-sequence")(mongoose);
 
@@ -27,7 +28,7 @@ const InvoiceSchema = mongoose.Schema(
     isPaid: {
       type: String,
       enum: ["PAID", "UNPAID", "PARTIALLY_PAID"],
-      default: "",
+      default: "UNPAID",
     },
     rate: {
       type: Number,
@@ -41,6 +42,10 @@ const InvoiceSchema = mongoose.Schema(
       type: String,
       required: true,
       maxlength: 30,
+    },
+    createdDate: {
+      type: String,
+      default: moment().format("DD/MM/YYYY"),
     },
   },
   {

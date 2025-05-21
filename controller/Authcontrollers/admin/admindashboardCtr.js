@@ -813,6 +813,82 @@ const admindashboardCtr = {
       console.log(error?.message);
     }
   }),
+
+  fetchProjectLeaderbordDecision: asynchandler(async (req, res) => {
+    try {
+      // Check if user exists
+      const user = await User.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup",
+        });
+      }
+      // check if the compnay exists
+
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: "Company does not exist. Please create a company first.",
+        });
+      }
+
+      const fetchProject = await Project.find({
+        CompanyId: {$in: checkcompany?.Company_Id},
+      });
+
+      const response = await Promise.all(
+        fetchProject.map(async (item) => {
+          const resources = await RoleResource.find({
+            ProjectId: item?.ProjectId,
+          });
+
+          const rrids = resources.map((res) => res.RRId);
+          const staffMembers = await StaffMember.find({staff_Id: {$in: rrids}});
+
+          const findtimesheets = await TimeSheet.find({
+            Staff_Id: {$in: rrids},
+          });
+
+          // Sum TotalHours and BilledHours
+          let totalHours = 0;
+          let billedHours = 0;
+
+          findtimesheets.forEach((sheet) => {
+            totalHours += sheet.hours || 0;
+            billedHours += sheet.billed_hours || 0;
+          });
+
+          // Calculate efficiency
+          let efficiency = 0;
+          if (billedHours > 0) {
+            efficiency = (totalHours / billedHours) * 100;
+          }
+
+          // Calculate percentage per staff
+          const percentage =
+            staffMembers.length > 0
+              ? (efficiency / staffMembers.length).toFixed(2)
+              : "0.00";
+
+          return {
+            ProjectName: item?.Project_Name,
+            ProjectId: item?.ProjectId,
+            ResourcesName: staffMembers,
+            resourcesproductivity: efficiency.toFixed(2),
+            percentage: percentage,
+          };
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = admindashboardCtr;

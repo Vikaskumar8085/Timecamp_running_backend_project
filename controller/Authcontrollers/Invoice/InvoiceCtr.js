@@ -8,23 +8,22 @@ const Invoice = require("../../../models/Othermodels/Invoice/Invoice");
 const InvoiceCtr = {
   createInvoice: asyncHandler(async (req, res) => {
     try {
-      const { startData, EndData } = req.body;
-      console.log(req.body);
+      const {startData, EndData} = req.body;
 
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const checkcompany = await Company?.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
       const findTimesheetdata = await TimeSheet.findOne({
-        start_time: { $gte: new Date(startData) },
-        end_time: { $lte: new Date(EndData) },
+        start_time: {$gte: new Date(startData)},
+        end_time: {$lte: new Date(EndData)},
       });
 
       if (!findTimesheetdata) {
@@ -60,7 +59,7 @@ const InvoiceCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const checkcompany = await Company?.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -74,29 +73,30 @@ const InvoiceCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
 
+  // Invoice Payment
   InvoicePayment: asyncHandler(async (req, res) => {
     try {
-      const { id } = req.params;
+      const {id} = req.params;
       const user = await User?.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const checkcompany = await Company?.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
-      const response = await Invoice.findByIdAndUpdate(
-        id,
-        { ...req.body },
-        { new: true }
+      const response = await Invoice.findOneAndUpdate(
+        {Invoice_Id: parseInt(id)},
+        {...req.body},
+        {new: true}
       );
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -104,7 +104,7 @@ const InvoiceCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, message: "Invoice updated successfully" });
+        .json({success: true, message: "Invoice updated successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }

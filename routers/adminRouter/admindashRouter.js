@@ -73,4 +73,10 @@ admindashRouter.get(
   verifyToken,
   admindashboardCtr.fetchRecentTask
 );
+
+admindashRouter.get(
+  "/fetch-project-leaderboard-decision",
+  verifyToken,
+  admindashboardCtr.fetchProjectLeaderbordDecision
+);
 module.exports = admindashRouter;

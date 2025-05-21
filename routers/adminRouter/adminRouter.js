@@ -257,4 +257,5 @@ adminRouter.put(
 // invoice
 adminRouter.post("/create-invoice", verifyToken, InvoiceCtr.createInvoice);
 adminRouter.get("/fetch-invoice", verifyToken, InvoiceCtr.fetchInvoice);
+adminRouter.put("/update-invoice/:id", verifyToken, InvoiceCtr.InvoicePayment);
 module.exports = adminRouter;
