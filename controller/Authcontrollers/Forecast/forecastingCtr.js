@@ -27,63 +27,63 @@ const forecastingCtr = {
       const maxJoinDate = today.clone().subtract(minExp, "years").toDate();
       const minJoinDate = today.clone().subtract(maxExp, "years").toDate();
 
-      const response = await StaffMember.find({
-        Joining_Date: { $gte: minJoinDate, $lte: maxJoinDate },
-        DesignationId: { $in: 2 },
-      });
+      // const response = await StaffMember.find({
+      //   Joining_Date: { $gte: minJoinDate, $lte: maxJoinDate },
+      //   DesignationId: { $in: 2 },
+      // });
 
-      const fetchfilterprojects = await Promise.all(
-        response.map(async (item) => {
-          const resp = await RoleResource.find({
-            RRId: { $in: response.map((emp) => emp.staff_Id) },
-            RId: { $in: 2 },
-          });
+      // const fetchfilterprojects = await Promise.all(
+      //   response.map(async (item) => {
+      //     const resp = await RoleResource.find({
+      //       RRId: { $in: response.map((emp) => emp.staff_Id) },
+      //       RId: { $in: 2 },
+      //     });
 
-          const projectids = await resp.map((ids) => ids.ProjectId);
+      //     const projectids = await resp.map((ids) => ids.ProjectId);
 
-          const findProject = await Project.find({
-            ProjectId: { $in: projectids },
-          });
-          const today = moment().startOf("day");
+      //     const findProject = await Project.find({
+      //       ProjectId: { $in: projectids },
+      //     });
+      //     const today = moment().startOf("day");
 
-          const activeProjects = findProject.filter((project) => {
-            const projectEndDate = moment(project?.endDate).startOf("day");
-            return projectEndDate.isSameOrAfter(today);
-          });
+      //     const activeProjects = findProject.filter((project) => {
+      //       const projectEndDate = moment(project?.endDate).startOf("day");
+      //       return projectEndDate.isSameOrAfter(today);
+      //     });
 
-          // Step 2: Extract active Project IDs
-          const projectIds = activeProjects.map((project) => project.ProjectId);
+      //     // Step 2: Extract active Project IDs
+      //     const projectIds = activeProjects.map((project) => project.ProjectId);
 
-          // Step 3: Fetch RoleResource entries for those projects
-          const roleResources = await RoleResource.find({
-            ProjectId: { $in: projectIds },
-          });
+      //     // Step 3: Fetch RoleResource entries for those projects
+      //     const roleResources = await RoleResource.find({
+      //       ProjectId: { $in: projectIds },
+      //     });
 
-          // Step 4: Group by RRid and sum Engagement_Ratio
-          const engagementMap = {};
+      //     // Step 4: Group by RRid and sum Engagement_Ratio
+      //     const engagementMap = {};
 
-          roleResources.forEach((rr) => {
-            const rrid = rr.RRid;
-            if (!engagementMap[rrid]) {
-              engagementMap[rrid] = 0;
-            }
-            engagementMap[rrid] += rr.Engagement_Ratio;
-          });
+      //     roleResources.forEach((rr) => {
+      //       const rrid = rr.RRid;
+      //       if (!engagementMap[rrid]) {
+      //         engagementMap[rrid] = 0;
+      //       }
+      //       engagementMap[rrid] += rr.Engagement_Ratio;
+      //     });
 
-          // Step 5: Filter RRid where total ratio < 100
-          const availableRRids = Object.entries(engagementMap)
-            .filter(([_, totalRatio]) => totalRatio < 100)
-            .map(([rrid]) => rrid);
+      //     // Step 5: Filter RRid where total ratio < 100
+      //     const availableRRids = Object.entries(engagementMap)
+      //       .filter(([_, totalRatio]) => totalRatio < 100)
+      //       .map(([rrid]) => rrid);
 
-          // ✅ Result
-          console.log(availableRRids);
+      //     // ✅ Result
+      //     console.log(availableRRids);
 
-          const fetchstaff = await StaffMember.find({
-            staff_Id: { $in: availableRRids },
-          });
-          return fetchstaff;
-        })
-      );
+      //     const fetchstaff = await StaffMember.find({
+      //       staff_Id: { $in: availableRRids },
+      //     });
+      //     return fetchstaff;
+      //   })
+      // );
 
       // const projectResponse = await Project.find({
       //   ProjectId: { $in: resp.map((emp) => emp.ProjectId) },
@@ -115,11 +115,82 @@ const forecastingCtr = {
       //     experienceYears: years,
       //   };
       // });
+      const fetchfilterprojects = await StaffMember.aggregate([
+        {
+          $match: {
+            Joining_Date: { $gte: minJoinDate, $lte: maxJoinDate },
+            DesignationId: { $in: [2] },
+          },
+        },
+        {
+          $lookup: {
+            from: "roleresources",
+            localField: "staff_Id",
+            foreignField: "RRid",
+            as: "roleResources",
+          },
+        },
+        {
+          $unwind: "$roleResources",
+        },
+        {
+          $match: {
+            "roleResources.RId": { $in: [2] }, // filter only desired roles
+          },
+        },
+        {
+          $lookup: {
+            from: "projects",
+            localField: "roleResources.ProjectId",
+            foreignField: "ProjectId",
+            as: "project",
+          },
+        },
+        {
+          $unwind: "$project",
+        },
+        {
+          $addFields: {
+            projectEndDate: {
+              $cond: [
+                { $isDate: "$project.endDate" },
+                "$project.endDate",
+                { $dateFromString: { dateString: "$project.endDate" } },
+              ],
+            },
+            today: new Date(),
+          },
+        },
+        {
+          $match: {
+            $expr: {
+              $gte: [
+                { $dateTrunc: { date: "$projectEndDate", unit: "day" } },
+                { $dateTrunc: { date: "$today", unit: "day" } },
+              ],
+            },
+          },
+        },
+        // Now group by staff to sum only active project Engagement_Ratio
+        {
+          $group: {
+            _id: "$staff_Id",
+            totalEngagement: { $sum: "$roleResources.Engagement_Ratio" },
+            staffDetails: { $first: "$$ROOT" },
+            activeProjects: { $addToSet: "$project.ProjectId" },
+          },
+        },
+        {
+          $match: {
+            totalEngagement: { $lt: 100 }, // Only available staff
+          },
+        },
+      ]);
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,
         message: "Forecasting report",
-        data: fetchfilterprojects,
+        data: [],
       });
     } catch (error) {
       throw new Error(error?.message);
