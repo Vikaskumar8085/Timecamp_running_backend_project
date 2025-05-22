@@ -1970,6 +1970,7 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
+  
 };
 
 module.exports = managerCtr;
