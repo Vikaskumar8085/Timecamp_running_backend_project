@@ -19,8 +19,9 @@ const RoleResourceSchema = mongoose.Schema(
     ProjectId: {
       type: Number,
     },
-    Enable: {
+    billable: {
       type: Boolean,
+      deafult: false,
     },
 
     Rate: {
@@ -34,7 +35,7 @@ const RoleResourceSchema = mongoose.Schema(
     },
     IsProjectManager: {
       type: Boolean,
-      default: true,
+      default: false,
     },
     Engagement_Ratio: {
       type: Number,

@@ -37,13 +37,11 @@ const projectCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User");
       }
-
       const checkcompany = await Company?.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
-
       // Create the project
       const newProject = await new Project({
         CompanyId: checkcompany.Company_Id,
@@ -99,25 +97,6 @@ const projectCtr = {
         }).save();
       }
 
-      // let responseProjectmangerid = newProject.Project_ManagersId;
-      // if (!responseProjectmangerid) {
-      //   return;
-      // } else {
-      //   await StaffMember.updateOne(
-      //     {staff_Id: responseProjectmangerid},
-      //     {$set: {IsActive: "Active"}}
-      //   );
-
-      //   await Notification({
-      //     SenderId: user?.user_id,
-      //     ReciverId: newProject?.responseProjectmangerid,
-      //     Name: user?.FirstName,
-      //     Pic: user?.Photo,
-      //     Description: `You have been assigned to the ${Project_Name} project as a new projectmanager by the admin.`,
-      //     IsRead: false,
-      //   }).save();
-      // }
-
       // Retrieve the generated ProjectId
       const projectId = newProject?.ProjectId;
 
@@ -125,26 +104,39 @@ const projectCtr = {
       if (!Array.isArray(roleProjectMangare) || roleProjectMangare.length == 0)
         return;
 
-      const roleProjectMangaredata = roleProjectMangare.map(
-        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
-          RRId,
-          RId,
+      let insertProjectManagerdata = [];
+      for (let item of roleProjectMangare) {
+        const responseitem = new RoleResource({
+          RRId: item?.RRId,
+          RId: item?.RId,
           ProjectId: projectId,
-          Rate,
-          Unit,
-          Engagement_Ratio,
-        })
-      );
-      await RoleResource.insertMany(roleProjectMangaredata);
+          IsProjectManager: true,
+          Rate: item?.Rate,
+          billable: item?.billable,
+          Unit: item?.Unit,
+          Engagement_Ratio: item?.Engagement_Ratio,
+        });
+        let data = await responseitem.save();
+        insertProjectManagerdata.push(data);
+      }
       try {
         let updatestaffmember = await Promise.all(
-          (roleProjectMangaredata || []).map(async ({RRId, RId}) => {
+          (roleProjectMangare || []).map(async ({RRId, RId}) => {
             if (!RRId) return;
 
-            await StaffMember.updateOne(
-              {staff_Id: RRId},
-              {$set: {IsActive: "Active"}}
-            );
+            const staff = await StaffMember.findOne({staff_Id: RRId});
+
+            if (!staff) {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(`Staff with ID ${RRId} not found.`);
+            }
+
+            if (staff.IsActive !== "Active") {
+              await StaffMember.updateOne(
+                {staff_Id: RRId},
+                {$set: {IsActive: "Active"}}
+              );
+            }
             // Send notification
             await Notification.create({
               SenderId: user?.user_id,
@@ -171,29 +163,36 @@ const projectCtr = {
       // Exit early if roleResources is not a valid array or is empty
       if (!Array.isArray(roleResources) || roleResources.length === 0) return;
 
-      const roleResourceData = roleResources.map(
-        ({RRId, RId, Rate, Unit, Engagement_Ratio}) => ({
-          RRId,
-          RId,
+      for (let roleitem of roleResources) {
+        await new RoleResource({
+          RRId: roleitem?.RRId,
+          RId: roleitem?.RId,
           ProjectId: projectId,
-          Rate,
-          Unit,
-          Engagement_Ratio,
-        })
-      );
-
-      await RoleResource.insertMany(roleResourceData);
+          billable: roleitem?.billable,
+          Rate: roleitem?.Rate,
+          Unit: roleitem?.Unit,
+          Engagement_Ratio: roleitem?.Engagement_Ratio,
+        }).save();
+      }
 
       try {
         let updatestaffmember = await Promise.all(
           (roleResources || []).map(async ({RRId, RId}) => {
             if (!RRId) return; // Skip invalid entries
             // Update staff member status
-            await StaffMember.updateOne(
-              {staff_Id: RRId},
-              {$set: {IsActive: "Active"}}
-            );
+            const staff = await StaffMember.findOne({staff_Id: RRId});
 
+            if (!staff) {
+              res.status(HttpStatusCodes.NOT_FOUND);
+              throw new Error(`Staff with ID ${RRId} not found.`);
+            }
+
+            if (staff.IsActive !== "Active") {
+              await StaffMember.updateOne(
+                {staff_Id: RRId},
+                {$set: {IsActive: "Active"}}
+              );
+            }
             // Send notification
             await Notification.create({
               SenderId: user?.user_id,
@@ -227,36 +226,175 @@ const projectCtr = {
 
   Edit_Projects: asyncHandler(async (req, res) => {
     try {
+      const {ProjectId} = req.params;
       const {
+        // Required to identify the project to update
         Project_Name,
         clientId,
         Project_Type,
         Project_Hours,
+        currency,
+        Start_Date,
+        End_Date,
         bucket,
         roleResources,
         roleProjectMangare,
       } = req.body;
 
-      console.log(req?.body, "request body");
       // Authenticate
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Un Authorized User");
+        throw new Error("Unauthorized user");
       }
-      // check company
-      const checkcompany = await Company?.findOne({UserId: user?.user_id});
+
+      const checkcompany = await Company.findOne({UserId: user.user_id});
       if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
-      }
-      const findProject = await Project.findOne({
-        projectId: parseInt(req.params.id),
-      });
-      if (!findProject) {
         res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Project Not Found");
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
+
+      const project = await Project.findOne({ProjectId: ProjectId});
+      if (!project) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Project not found");
+      }
+
+      project.Project_Name = Project_Name;
+      project.clientId = clientId;
+      project.Project_Type = Project_Type;
+      project.Project_Hours = Project_Hours;
+      project.currency = currency;
+      project.Start_Date = moment(Start_Date).format("DD/MM/YYYY");
+      project.End_Date = moment(End_Date).format("DD/MM/YYYY");
+
+      await project.save();
+
+      if (Project_Type !== "Bucket" && (!bucket || bucket.length === 0)) {
+        // Delete existing buckets
+        await Bucket.deleteMany({ProjectId: ProjectId});
+      } else {
+        if (!Array.isArray(bucket)) {
+          return res.status(400).json({
+            message: "bucket data should be an array.",
+          });
+        }
+
+        await Bucket.deleteMany({ProjectId: ProjectId});
+
+        for (const item of bucket) {
+          await new Bucket({
+            ProjectId: ProjectId,
+            bucketHourly: item.bucketHourly,
+            bucketHourlyRate: item.bucketHourlyRate,
+          }).save();
+        }
+      }
+
+      // Activate client if exists
+      if (clientId) {
+        await Client.updateOne(
+          {Client_Id: clientId},
+          {$set: {Client_Status: "Active"}}
+        );
+
+        await Notification.create({
+          SenderId: user.user_id,
+          ReciverId: clientId,
+          Name: user.FirstName,
+          Pic: user.Photo,
+          Description: `Your assigned project (${Project_Name}) has been updated.`,
+          IsRead: false,
+        });
+      }
+
+      // Role Resources
+
+      await RoleResource.deleteMany({
+        ProjectId: ProjectId,
+        IsProjectManager: true,
+      });
+
+      if (Array.isArray(roleProjectMangare)) {
+        for (let item of roleProjectMangare) {
+          await new RoleResource({
+            RRId: item.RRId,
+            RId: item.RId,
+            ProjectId: ProjectId,
+            IsProjectManager: true,
+            Rate: item.Rate,
+            billable: item.billable,
+            Unit: item.Unit,
+            Engagement_Ratio: item.Engagement_Ratio,
+          }).save();
+
+          // Activate staff
+          const staff = await StaffMember.findOne({staff_Id: item.RRId});
+          if (staff && staff.IsActive !== "Active") {
+            await StaffMember.updateOne(
+              {staff_Id: item.RRId},
+              {$set: {IsActive: "Active"}}
+            );
+          }
+
+          await Notification.create({
+            SenderId: user.user_id,
+            ReciverId: item.RRId,
+            Name: user.FirstName,
+            Pic: user.Photo,
+            Description: "Your role as Project Manager has been updated",
+            IsRead: false,
+          });
+        }
+      }
+
+      //Role Resources
+
+      // Project Manager
+
+      // Clean up and insert regular roleResources
+      await RoleResource.deleteMany({
+        ProjectId: ProjectId,
+        IsProjectManager: {$ne: true},
+      });
+
+      if (Array.isArray(roleResources)) {
+        for (let item of roleResources) {
+          await new RoleResource({
+            RRId: item.RRId,
+            RId: item.RId,
+            ProjectId: ProjectId,
+            billable: item.billable,
+            Rate: item.Rate,
+            Unit: item.Unit,
+            Engagement_Ratio: item.Engagement_Ratio,
+          }).save();
+
+          const staff = await StaffMember.findOne({staff_Id: item.RRId});
+          if (staff && staff.IsActive !== "Active") {
+            await StaffMember.updateOne(
+              {staff_Id: item.RRId},
+              {$set: {IsActive: "Active"}}
+            );
+          }
+
+          await Notification.create({
+            SenderId: user.user_id,
+            ReciverId: item.RRId,
+            Name: user.FirstName,
+            Pic: user.Photo,
+            Description: "Your project role has been updated",
+            IsRead: false,
+          });
+        }
+      }
+
+      res.status(200).json({
+        message: "Project updated successfully",
+        success: true,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -361,14 +499,19 @@ const projectCtr = {
       const projectsWithDetails = await Promise.all(
         projects.map(async (project) => {
           const roleResources = await RoleResource.find({
-            ProjectId: project.ProjectId,
+            ProjectId: {$in: project.ProjectId},
+            IsProjectManager: false,
           });
-          const rIds = roleResources.map((rr) => rr.RId);
-          const rrid = roleResources.map((rr) => rr.RRId);
-          const roles = await Role.find({RoleId: {$in: rIds}});
-          const staffMember = await StaffMember.find({staff_Id: {$in: rrid}});
 
-          return {...project, roles, staffMember};
+          const roleProjectMangare = await RoleResource.find({
+            ProjectId: project.ProjectId,
+            IsProjectManager: true,
+          });
+          return {
+            ...project,
+            roleProjectMangare: roleProjectMangare,
+            roleResources: roleResources,
+          };
         })
       );
 

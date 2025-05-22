@@ -62,7 +62,7 @@ adminRouter.get(
 // create project
 
 adminRouter.post("/create-projects", verifyToken, projectCtr.create_Project);
-adminRouter.put("/edit-projects/:id", verifyToken, projectCtr.Edit_Projects);
+adminRouter.put("/edit-projects/:ProjectId", verifyToken, projectCtr.Edit_Projects);
 adminRouter.delete(
   "/remove-project/:id",
   verifyToken,
