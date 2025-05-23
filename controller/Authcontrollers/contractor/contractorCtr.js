@@ -253,10 +253,10 @@ const contractorCtr = {
       } else {
         await Notification({
           SenderId: user?.user_id,
-          ReciverId: response?.staff_Id,
+          ReciverId: updatedContractor?.staff_Id,
           Pic: user?.Photos,
           Name: user?.Role.concat(" ", user?.FirstName),
-          Description: `Dear ${response?.FirstName}, your account has been successfully updated!`,
+          Description: `Dear ${updatedContractor?.FirstName}, your account has been successfully updated!`,
         }).save();
       }
 

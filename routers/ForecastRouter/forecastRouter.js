@@ -6,5 +6,8 @@ const forecastRouter = express.Router();
 
 forecastRouter.use(verifyToken);
 forecastRouter.get("/TeamForecast", forecastingCtr.TeamforecastReports);
-
+forecastRouter.post(
+  "/ProjectForecast",
+  forecastingCtr.projectforecastingReports
+);
 module.exports = forecastRouter;

@@ -33,7 +33,7 @@ const managerdashctr = {
       //   });
       let projectids = await countproject.map((proj) => proj.ProjectId);
       const approvedTimesheets = await TimeSheet.find({
-        project: { $in: projectids },
+        project: {$in: projectids},
         approval_status: "APPROVED",
       });
 
@@ -42,7 +42,7 @@ const managerdashctr = {
         0
       );
 
-      const totalTask = await TimeSheet.find({ project: { $in: projectids } });
+      const totalTask = await TimeSheet.find({project: {$in: projectids}});
       //   console.log("Total Approved Work Hours:", totalHours);
 
       // const
@@ -53,9 +53,7 @@ const managerdashctr = {
         totalHours: totalHours,
       };
 
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({ success: true, result: resp });
+      return res.status(HttpStatusCodes.OK).json({success: true, result: resp});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -81,7 +79,7 @@ const managerdashctr = {
       const staffIds = staffMembers.map((staff) => staff.staff_Id);
 
       // Fetch timesheets for all staff members
-      const timesheets = await TimeSheet.find({ Staff_Id: { $in: staffIds } });
+      const timesheets = await TimeSheet.find({Staff_Id: {$in: staffIds}});
 
       if (!timesheets.length) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -145,7 +143,7 @@ const managerdashctr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const fetchstaff = await StaffMember.find({ ManagerId: user?.staff_Id });
+      const fetchstaff = await StaffMember.find({ManagerId: user?.staff_Id});
       if (!fetchstaff || fetchstaff.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Manager Team Not Found");
@@ -154,7 +152,7 @@ const managerdashctr = {
         return staff.staff_Id;
       });
 
-      const staffTimesheets = await TimeSheet.find({ Staff_Id: staffIds });
+      const staffTimesheets = await TimeSheet.find({Staff_Id: staffIds});
       console.log(staffTimesheets);
       if (!staffTimesheets || staffTimesheets.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -167,7 +165,7 @@ const managerdashctr = {
         totalHours: staffTimesheets.map((sheet) => sheet.hours),
       };
 
-      return res.status(HttpStatusCodes.OK).json({ success: true, result });
+      return res.status(HttpStatusCodes.OK).json({success: true, result});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -187,7 +185,7 @@ const managerdashctr = {
       if (!checkprojects.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Project Not Found" });
+          .json({message: "Project Not Found"});
       }
       console.log(checkprojects, "proejcts");
       // Extract all project IDs
@@ -195,13 +193,13 @@ const managerdashctr = {
 
       // Find all timesheets for the projects
       const findtimesheets = await TimeSheet.find({
-        project: { $in: projectIds },
+        project: {$in: projectIds},
       });
 
       if (!findtimesheets.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Timesheet not found" });
+          .json({message: "Timesheet not found"});
       }
 
       // Calculate total billed hours
@@ -235,7 +233,7 @@ const managerdashctr = {
       if (!checkprojects.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Project Not Found" });
+          .json({message: "Project Not Found"});
       }
       console.log(checkprojects, "proejcts");
       // Extract all project IDs
@@ -243,7 +241,7 @@ const managerdashctr = {
 
       // Find all timesheets for the projects
       const findtimesheet = await TimeSheet.find({
-        project: { $in: projectIds },
+        project: {$in: projectIds},
       });
 
       const totalOkHours = findtimesheet.reduce(
@@ -289,26 +287,26 @@ const managerdashctr = {
       if (!checkprojects.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Project Not Found" });
+          .json({message: "Project Not Found"});
       }
       // Extract all project IDs
       let projectids = await checkprojects.map((proj) => proj.ProjectId);
       console.log(projectids, "<L>projectids");
       // Fetch all billed and not billed timesheets for the company
       const billedTimesheets = await TimeSheet.find({
-        project: { $in: projectids },
+        project: {$in: projectids},
         billing_status: "BILLED",
       });
 
       const notBilledTimesheets = await TimeSheet.find({
-        project: { $in: projectids },
+        project: {$in: projectids},
         billing_status: "NOT_BILLED",
       });
 
       if (!billedTimesheets.length && !notBilledTimesheets.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "No timesheets found." });
+          .json({message: "No timesheets found."});
       }
       console.log(billedTimesheets.length, notBilledTimesheets.length);
       // const projectIds = [
@@ -346,7 +344,7 @@ const managerdashctr = {
         NOT_BILLED: notBilledTimesheets.length,
       };
 
-      res.status(200).json({ success: true, data: result });
+      res.status(200).json({success: true, data: result});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -366,12 +364,12 @@ const managerdashctr = {
       if (!checkprojects.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Project Not Found" });
+          .json({message: "Project Not Found"});
       }
       // Extract all project IDs
       let projectids = await checkprojects.map((proj) => proj.ProjectId);
       const findtimesheet = await TimeSheet.find({
-        project: { $in: projectids },
+        project: {$in: projectids},
       });
       if (!findtimesheet) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -380,7 +378,7 @@ const managerdashctr = {
       if (!findtimesheet.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Timesheet not found" });
+          .json({message: "Timesheet not found"});
       }
 
       const dayWiseHours = findtimesheet.reduce((acc, entry) => {
@@ -412,24 +410,24 @@ const managerdashctr = {
       if (!checkprojects.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Project Not Found" });
+          .json({message: "Project Not Found"});
       }
       // Extract all project IDs
       let projectids = await checkprojects.map((proj) => proj.ProjectId);
 
       const findtimesheet = await TimeSheet.find({
-        project: { $in: projectids },
+        project: {$in: projectids},
       });
       if (!findtimesheet || !findtimesheet.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Timesheet not found" });
+          .json({message: "Timesheet not found"});
       }
 
       // Calculate total hours and billed hours per day
       const dayWiseData = findtimesheet.reduce((acc, entry) => {
         const day = entry.day; // Assuming `date` field stores day-wise data
-        acc[day] = acc[day] || { total_hours: 0, billed_hours: 0 };
+        acc[day] = acc[day] || {total_hours: 0, billed_hours: 0};
         acc[day].total_hours += Number(entry.hours) || 0;
         acc[day].billed_hours += Number(entry.billed_hours) || 0; // Assuming `billed_hours` field exists
         return acc;
@@ -459,20 +457,20 @@ const managerdashctr = {
       if (!checkprojects.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Project Not Found" });
+          .json({message: "Project Not Found"});
       }
       // Extract all project IDs
       let projectids = await checkprojects.map((proj) => proj.ProjectId);
 
       // Find all timesheets for the projects
       const findtimesheets = await TimeSheet.find({
-        project: { $in: projectids },
+        project: {$in: projectids},
       });
 
       if (!findtimesheets.length) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({ message: "Timesheet not found" });
+          .json({message: "Timesheet not found"});
       }
 
       // Calculate total billed hours
@@ -502,75 +500,88 @@ const managerdashctr = {
     }
   }),
 
-  // managerprojectLeaderboard: asyncHandler(async (req, res) => {
-  //   try {
-  //     // Check if user exists
-  //     const user = await StaffMember.findById(req.user);
-  //     if (!user) {
-  //       return res.status(HttpStatusCodes.UNAUTHORIZED).json({
-  //         success: false,
-  //         message: "Unauthorized User. Please Signup",
-  //       });
-  //     }
-  //     // check if the compnay exists
+  managerprojectLeaderboard: asyncHandler(async (req, res) => {
+    try {
+      // Check if user exists
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        return res.status(HttpStatusCodes.UNAUTHORIZED).json({
+          success: false,
+          message: "Unauthorized User. Please Signup",
+        });
+      }
+      // check if the compnay exists
 
-  //     const fetchProject = await Project.find({
-  //       CompanyId: { $in: checkcompany?.Company_Id },
-  //     });
+      const staffMembers = await StaffMember.find({
+        ManagerId: user.staff_Id,
+      });
 
-  //     const response = await Promise.all(
-  //       fetchProject.map(async (item) => {
-  //         const resources = await RoleResource.find({
-  //           ProjectId: item?.ProjectId,
-  //         });
+      if (!staffMembers.length) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("No staff members found.");
+      }
 
-  //         const rrids = resources.map((res) => res.RRId);
-  //         const staffMembers = await StaffMember.find({
-  //           staff_Id: { $in: rrids },
-  //         });
+      const findRolesResource = await RoleResource.find({
+        RRId: {$in: staffMembers.map((staff) => staff.staff_Id)},
+      });
 
-  //         const findtimesheets = await TimeSheet.find({
-  //           Staff_Id: { $in: rrids },
-  //         });
+      const fetchProject = await Project.find({
+        CompanyId: {$in: findRolesResource?.map((item) => item.ProjectId)},
+      });
 
-  //         // Sum TotalHours and BilledHours
-  //         let totalHours = 0;
-  //         let billedHours = 0;
+      const response = await Promise.all(
+        fetchProject.map(async (item) => {
+          const resources = await RoleResource.find({
+            ProjectId: item?.ProjectId,
+          });
 
-  //         findtimesheets.forEach((sheet) => {
-  //           totalHours += sheet.hours || 0;
-  //           billedHours += sheet.billed_hours || 0;
-  //         });
+          const rrids = resources.map((res) => res.RRId);
+          const staffMembers = await StaffMember.find({
+            staff_Id: {$in: rrids},
+          });
 
-  //         // Calculate efficiency
-  //         let efficiency = 0;
-  //         if (billedHours > 0) {
-  //           efficiency = (totalHours / billedHours) * 100;
-  //         }
+          const findtimesheets = await TimeSheet.find({
+            Staff_Id: {$in: rrids},
+          });
 
-  //         // Calculate percentage per staff
-  //         const percentage =
-  //           staffMembers.length > 0
-  //             ? (efficiency / staffMembers.length).toFixed(2)
-  //             : "0.00";
+          // Sum TotalHours and BilledHours
+          let totalHours = 0;
+          let billedHours = 0;
 
-  //         return {
-  //           ProjectName: item?.Project_Name,
-  //           ProjectId: item?.ProjectId,
-  //           ResourcesName: staffMembers,
-  //           resourcesproductivity: efficiency.toFixed(2),
-  //           percentage: percentage,
-  //         };
-  //       })
-  //     );
+          findtimesheets.forEach((sheet) => {
+            totalHours += sheet.hours || 0;
+            billedHours += sheet.billed_hours || 0;
+          });
 
-  //     return res
-  //       .status(HttpStatusCodes.OK)
-  //       .json({ success: true, result: response });
-  //   } catch (error) {
-  //     throw new Error(error?.message);
-  //   }
-  // }),
+          // Calculate efficiency
+          let efficiency = 0;
+          if (billedHours > 0) {
+            efficiency = (totalHours / billedHours) * 100;
+          }
+
+          // Calculate percentage per staff
+          const percentage =
+            staffMembers.length > 0
+              ? (efficiency / staffMembers.length).toFixed(2)
+              : "0.00";
+
+          return {
+            ProjectName: item?.Project_Name,
+            ProjectId: item?.ProjectId,
+            ResourcesName: staffMembers,
+            resourcesproductivity: efficiency.toFixed(2),
+            percentage: percentage,
+          };
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = managerdashctr;

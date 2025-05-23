@@ -5,6 +5,7 @@ const Company = require("../../../models/Othermodels/Companymodels/Company");
 const moment = require("moment");
 const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 const RoleResource = require("../../../models/Othermodels/Projectmodels/RoleResources");
+const Project = require("../../../models/Othermodels/Projectmodels/Project");
 
 const forecastingCtr = {
   TeamforecastReports: asynchandler(async (req, res) => {
@@ -14,7 +15,7 @@ const forecastingCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("UnAuthorized user please login");
       }
-      const checkcompany = await Company.findOne({ UserId: user.user_Id });
+      const checkcompany = await Company.findOne({UserId: user.user_Id});
       if (checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not found");
@@ -118,8 +119,8 @@ const forecastingCtr = {
       const fetchfilterprojects = await StaffMember.aggregate([
         {
           $match: {
-            Joining_Date: { $gte: minJoinDate, $lte: maxJoinDate },
-            DesignationId: { $in: [2] },
+            Joining_Date: {$gte: minJoinDate, $lte: maxJoinDate},
+            DesignationId: {$in: [2]},
           },
         },
         {
@@ -135,7 +136,7 @@ const forecastingCtr = {
         },
         {
           $match: {
-            "roleResources.RId": { $in: [2] }, // filter only desired roles
+            "roleResources.RId": {$in: [2]}, // filter only desired roles
           },
         },
         {
@@ -153,9 +154,9 @@ const forecastingCtr = {
           $addFields: {
             projectEndDate: {
               $cond: [
-                { $isDate: "$project.endDate" },
+                {$isDate: "$project.endDate"},
                 "$project.endDate",
-                { $dateFromString: { dateString: "$project.endDate" } },
+                {$dateFromString: {dateString: "$project.endDate"}},
               ],
             },
             today: new Date(),
@@ -165,8 +166,8 @@ const forecastingCtr = {
           $match: {
             $expr: {
               $gte: [
-                { $dateTrunc: { date: "$projectEndDate", unit: "day" } },
-                { $dateTrunc: { date: "$today", unit: "day" } },
+                {$dateTrunc: {date: "$projectEndDate", unit: "day"}},
+                {$dateTrunc: {date: "$today", unit: "day"}},
               ],
             },
           },
@@ -175,14 +176,14 @@ const forecastingCtr = {
         {
           $group: {
             _id: "$staff_Id",
-            totalEngagement: { $sum: "$roleResources.Engagement_Ratio" },
-            staffDetails: { $first: "$$ROOT" },
-            activeProjects: { $addToSet: "$project.ProjectId" },
+            totalEngagement: {$sum: "$roleResources.Engagement_Ratio"},
+            staffDetails: {$first: "$$ROOT"},
+            activeProjects: {$addToSet: "$project.ProjectId"},
           },
         },
         {
           $match: {
-            totalEngagement: { $lt: 100 }, // Only available staff
+            totalEngagement: {$lt: 100}, // Only available staff
           },
         },
       ]);
@@ -203,11 +204,59 @@ const forecastingCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("UnAuthorized user please login");
       }
-      const checkcompany = await Company.findOne({ UserId: user.user_Id });
+      const checkcompany = await Company.findOne({UserId: user.user_Id});
       if (checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not found");
       }
+
+      const {startDate, endDate} = req.body;
+
+      const start = new Date(startDate); // e.g. "2025-04-01"
+      const end = new Date(endDate); // e.g. "2025-06-30"
+
+      const activeProjects = await Project.find({
+        Start_Date: {$lte: end},
+        $or: [{End_Date: {$gte: start}}, {End_Date: null}],
+      }).select("_id");
+      const projectIds = activeProjects.map((p) => p.ProjectId);
+
+      // 2. Get engaged employee IDs from RoleResource
+      const engagedEmployeeIds = await RoleResource.distinct("RRId", {
+        ProjectId: {$in: projectIds},
+      });
+
+      // 3. Fetch all employees
+      const allEmployees = await StaffMember.find().select(
+        "staff_Id FirstName"
+      );
+
+      const engagedSet = new Set(
+        engagedEmployeeIds.map((RRId) => RRId.toString())
+      );
+
+      // 4. Classify employees
+      const engagedEmployees = [];
+      const freeEmployees = [];
+
+      allEmployees.forEach((emp) => {
+        if (engagedSet.has(emp.staff_Id.toString())) {
+          engagedEmployees.push(emp);
+        } else {
+          freeEmployees.push(emp);
+        }
+      });
+
+      const engagementRatio =
+        (engagedEmployees.length / allEmployees.length) * 100;
+      return res.status(200).json({
+        totalEmployees: allEmployees.length,
+        engaged: engagedEmployees.length,
+        free: freeEmployees.length,
+        engagementRatio: engagementRatio.toFixed(2), // e.g. "60.00"
+        engagedEmployees,
+        freeEmployees,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }

@@ -161,6 +161,41 @@ const adminCtr = {
     }
   }),
   // fetch admin
+
+  edit_admin: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(StatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+      console.log("req.params.id", req.body);
+
+      const response = await User.findOne({user_id: parseInt(req.params.id)});
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("User not found");
+      } else {
+        await User.updateOne(
+          {user_id: parseInt(req.params.id)},
+          {$set: req.body},
+          {new: true, runValidators: true}
+        );
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({mesage: "admin dta updated successfully", success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
   getalladmin: asynchandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);

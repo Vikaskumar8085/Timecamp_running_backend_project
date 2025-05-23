@@ -14,6 +14,7 @@ const InvoiceCtr = require("../../controller/Authcontrollers/Invoice/InvoiceCtr"
 const adminRouter = express.Router();
 // admin create
 adminRouter.post("/create-admin", verifyToken, adminCtr.create_admin);
+adminRouter.put("/update-admin/:id", verifyToken, adminCtr.edit_admin);
 adminRouter.get("/fetch-admin", verifyToken, adminCtr.getalladmin);
 adminRouter.get("/fetch-staffmembers", verifyToken, employeeCtr.fetch_staff);
 
@@ -62,7 +63,11 @@ adminRouter.get(
 // create project
 
 adminRouter.post("/create-projects", verifyToken, projectCtr.create_Project);
-adminRouter.put("/edit-projects/:ProjectId", verifyToken, projectCtr.Edit_Projects);
+adminRouter.put(
+  "/edit-projects/:ProjectId",
+  verifyToken,
+  projectCtr.Edit_Projects
+);
 adminRouter.delete(
   "/remove-project/:id",
   verifyToken,
@@ -120,7 +125,7 @@ adminRouter.post(
 adminRouter.put(
   "/edit-employee/:id",
   verifyToken,
-  upload.single("Profile"),
+  upload.single("profileImage"),
   employeeCtr.update_employee
 );
 adminRouter.get("/fetch-employee", verifyToken, employeeCtr.fetch_employee);
@@ -258,4 +263,5 @@ adminRouter.put(
 adminRouter.post("/create-invoice", verifyToken, InvoiceCtr.createInvoice);
 adminRouter.get("/fetch-invoice", verifyToken, InvoiceCtr.fetchInvoice);
 adminRouter.put("/update-invoice/:id", verifyToken, InvoiceCtr.InvoicePayment);
+
 module.exports = adminRouter;
