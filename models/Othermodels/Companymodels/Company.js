@@ -8,24 +8,28 @@ const CompanySchema = mongoose.Schema({
   },
   Company_Name: {
     type: String,
-    required: true,
   },
   Company_Email: {
     type: String,
-    required: true,
     unique: true,
+  },
+  Person_Phones: {
+    type: Number,
+  },
+  Person_Name: {
+    type: String,
+  },
+  Person_Email: {
+    type: String,
   },
   Address: {
     type: String,
-    required: true,
   },
   Postal_Code: {
     type: String,
-    required: true,
   },
   Phone: {
     type: Number,
-    required: true,
   },
   Company_Logo: {
     type: String,
@@ -33,7 +37,6 @@ const CompanySchema = mongoose.Schema({
   },
   Employee_No: {
     type: Number,
-    required: true,
     default: "",
   },
   Established_date: {
@@ -42,11 +45,9 @@ const CompanySchema = mongoose.Schema({
   },
   CompanyWesite: {
     type: String,
-    required: true,
   },
   Tex_Number: {
     type: String,
-    required: true,
   },
   UserId: [
     {

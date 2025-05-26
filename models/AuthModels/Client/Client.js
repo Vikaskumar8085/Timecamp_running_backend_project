@@ -26,6 +26,7 @@ const ClientRegistrationSchema = mongoose.Schema(
     Client_Email: {
       type: String,
       trim: true,
+      unique: true,
       required: false,
     },
     Client_Phone: {

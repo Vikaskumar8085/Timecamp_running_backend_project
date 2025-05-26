@@ -6,9 +6,8 @@ const Notification = require("../../../models/Othermodels/Notification/Notificat
 const TimeSheet = require("../../../models/Othermodels/Timesheet/Timesheet");
 const sendEmail = require("../../../utils/SendMail/SendMail");
 const moment = require("moment");
-const Client = require("../../../models/AuthModels/Client/Client");
-const StaffMember = require("../../../models/AuthModels/StaffMembers/StaffMembers");
 const bcrypt = require("bcryptjs");
+const path = require("path");
 const adminCtr = {
   // create admin ctr
   create_admin: asynchandler(async (req, res) => {
@@ -24,34 +23,47 @@ const adminCtr = {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
-      // check client
-      const checkinclient = await Client.findOne({
-        Client_Email: req.body.Email,
-      });
-      if (checkinclient) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error(
-          "This email is already used. Please provide a different email address."
-        );
-      }
-      // check client
+      if (req.file) {
+        let attachmentPath = req.file ? req.file.filename : "Photos";
 
-      // staff member
-      const checkinstaffMembers = await StaffMember.findOne({
-        Email: req.body.Email,
-      });
-      if (checkinstaffMembers) {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error(
-          "This email is already used. Please provide a different email address."
-        );
+        let uploadPath = "uploads/";
+
+        // Get file extension
+        const fileExt = path
+          .extname(req.file.originalname || null)
+          .toLowerCase();
+        // console.log(fileExt, "reqogsdfisdfl");
+
+        // Define subfolders based on file type
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/"; // Fallback folder
+        }
+
+        var adminphoto = attachmentPath
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}/${attachmentPath}`
+          : null;
       }
-      // staff member
       const genhash = await bcrypt.genSalt(12);
       const hashpassword = await bcrypt.hash(req.body.Password, genhash);
       req.body.Password = await hashpassword;
       req.body.Term = await true;
-      const createuser = await User(req.body);
+      const createuser = await User({
+        FirstName: req.body.FirstName,
+        LastName: req.body.LastName,
+        Email: req.body.Email,
+        Photo: adminphoto,
+        ...req.body,
+      });
       if (!createuser) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("User not found");
@@ -190,7 +202,7 @@ const adminCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({mesage: "admin dta updated successfully", success: true});
+        .json({message: "admin updated successfully", success: true});
     } catch (error) {
       throw new Error(error?.message);
     }

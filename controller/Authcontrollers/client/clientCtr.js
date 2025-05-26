@@ -98,6 +98,7 @@ const clientCtr = {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Bad Request");
       }
+      console.log(req.body.Password, hashpassword);
 
       const addItem = await Client({
         Company_Name: req.body.Company_Name,
@@ -238,11 +239,12 @@ const clientCtr = {
       //     `You cannot update the client because their status is ${client.Client_Status}.`
       //   );
       // }
-      if (req.body.Password) {
-        const salt = await bcrypt.genSalt(12);
-        updateData.Password = await bcrypt.hash(req.body.Password, salt);
-      }
+      // if (req.body.Password) {
+      //   const salt = await bcrypt.genSalt(12);
+      //   updateData.Password = await bcrypt.hash(req.body.Password, salt);
+      // }
 
+      updateData.Password = await client.Password;
       // upload edit pic of client
       if (req.file) {
         let attachmentPath = req.file ? req.file.filename : "Photos";
@@ -288,7 +290,10 @@ const clientCtr = {
           Description: `Dear ${client.Client_Name}, your account has been updated By Admin`,
         }).save();
 
-        await client.updateOne({$set: {...updateData}});
+        await client.updateOne(
+          {$set: {...updateData}},
+          {runValidators: true, new: true}
+        );
       }
 
       return res.status(HttpStatusCodes.OK).json({

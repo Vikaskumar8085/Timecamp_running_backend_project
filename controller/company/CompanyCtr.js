@@ -2,6 +2,7 @@ const asynchandler = require("express-async-handler");
 const Company = require("../../models/Othermodels/Companymodels/Company");
 const HttpStatusCodes = require("../../utils/StatusCodes/statusCodes");
 const User = require("../../models/AuthModels/User/User");
+const Notification = require("../../models/Othermodels/Notification/Notification");
 const path = require("path");
 
 const companyCtr = {
@@ -50,6 +51,9 @@ const companyCtr = {
         Established_date: req.body.Established_date,
         CompanyWesite: req.body.CompanyWesite,
         Tex_Number: req.body.Tex_Number,
+        Person_Name: req.body.Person_Name,
+        Person_Email: req.body.Person_Email,
+        Person_Phones: req.body.Person_Phones,
         UserId: user?.user_id,
       });
       if (!response) {
@@ -57,6 +61,14 @@ const companyCtr = {
         throw new Error("bad requests");
       } else {
         await response.save();
+
+        await Notification({
+          SenderId: user?.user_id,
+          ReciverId: user.user_id,
+          Name: user?.Role.concat(" ", user?.FirstName),
+          Pic: user?.Photo,
+          Description: `Dear ${user?.FirstName}, your company has been successfully created. Welcome aboard!`,
+        }).save();
       }
       return res.status(HttpStatusCodes.CREATED).json({
         success: true,
@@ -96,43 +108,78 @@ const companyCtr = {
 
   editcompany: asynchandler(async (req, res) => {
     try {
-      const {id} = req.params;
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User please login first");
       }
-      const company = await Company.findOne({UserId: user.user_id});
-      if (!company) {
+      const ischecked = await Company.findOne({UserId: user.user_id});
+      if (!ischecked) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("bad requests");
       }
-      if (company.UserId.toString() !== user.user_id.toString()) {
-        return res.status(HttpStatusCodes.FORBIDDEN).json({
-          message: "You are not authorized to edit this company",
-        });
+
+      console.log(req.body, "data");
+
+      let attachmentPath = req.file ? req.file.filename : null;
+      let uploadPath = "uploads/";
+
+      if (req.file) {
+        const fileExt = path.extname(req.file.originalname).toLowerCase();
+
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (req.file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/";
+        }
       }
 
-      // Update fields only if provided
+      const companyLogo = attachmentPath
+        ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
+        : null; // Keep existing if no new file
+
       const updatedCompany = await Company.findOneAndUpdate(
-        {Company_Id: parseInt(id)},
+        {Company_Id: parseInt(req.params.id)},
         {
-          $set: {
-            Company_Name: req.body.Company_Name || company.Company_Name,
-            Company_Email: req.body.Company_Email || company.Company_Email,
-            Address: req.body.Address || company.Address,
-            Postal_Code: req.body.Postal_Code || company.Postal_Code,
-            Phone: req.body.Phone || company.Phone,
-            Company_Logo: req.body.Company_Logo || company.Company_Logo,
-            Employee_No: req.body.Employee_No || company.Employee_No,
-            Established_date:
-              req.body.Established_date || company.Established_date,
-            CompanyWesite: req.body.CompanyWesite || company.CompanyWesite,
-            Tex_Number: req.body.Tex_Number || company.Tex_Number,
-          },
+          Company_Name: req.body.Company_Name,
+          Company_Email: req.body.Company_Email,
+          Address: req.body.Address,
+          Postal_Code: req.body.Postal_Code,
+          Phone: req.body.Phone,
+          Company_Logo: companyLogo, // always set new logo or keep existing
+          Employee_No: req.body.Employee_No,
+          Established_date: req.body.Established_date,
+          CompanyWesite: req.body.CompanyWesite,
+          Tex_Number: req.body.Tex_Number,
+          Person_Name: req.body.Person_Name,
+          Person_Email: req.body.Person_Email,
+          Person_Phones: req.body.Person_Phones,
         },
-        {new: true, runValidators: true} // Return the updated document
+        {
+          new: true, // return updated doc
+          runValidators: true, // enforce schema validations
+        }
       );
+
+      if (!updatedCompany) {
+        return res
+          .status(404)
+          .json({success: false, message: "Company not found"});
+      }
+
+      await Notification({
+        SenderId: user?.user_id,
+        ReciverId: user.user_id,
+        Name: user?.Role.concat(" ", user?.FirstName),
+        Pic: user?.Photo,
+        Description: `Dear ${user?.FirstName}, your company details have been successfully updated.`,
+      }).save();
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,

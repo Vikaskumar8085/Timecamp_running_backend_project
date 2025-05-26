@@ -216,7 +216,7 @@ const userCtr = {
       // User exists, check if password is correct
       const passwordIsCorrect = await bcrypt.compare(
         req.body.Password,
-        user.Password
+        user?.Password
       );
 
       if (!passwordIsCorrect) {
