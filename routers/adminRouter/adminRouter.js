@@ -12,7 +12,6 @@ const upload = require("../../utils/FileUpload/fileUpload");
 const InvoiceCtr = require("../../controller/Authcontrollers/Invoice/InvoiceCtr");
 
 const adminRouter = express.Router();
-// admin create
 adminRouter.post("/create-admin", verifyToken, adminCtr.create_admin);
 adminRouter.put("/update-admin/:id", verifyToken, adminCtr.edit_admin);
 adminRouter.get("/fetch-admin", verifyToken, adminCtr.getalladmin);
