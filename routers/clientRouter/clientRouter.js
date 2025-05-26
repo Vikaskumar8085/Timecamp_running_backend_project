@@ -2,6 +2,8 @@ const express = require("express");
 const ClientCtr = require("../../controller/ClientCtr/ClientCtr");
 const verifyToken = require("../../Auth/verifyAuth");
 const clientdashctr = require("../../controller/ClientCtr/clientdashboardCtr");
+const clientCtr = require("../../controller/Authcontrollers/client/clientCtr");
+const upload = require("../../utils/FileUpload/fileUpload");
 
 const clientRouter = express.Router();
 
@@ -89,5 +91,11 @@ clientRouter.get(
 clientRouter.get(
   "/fetch-client-approvel-billing-status-distribution",
   clientdashctr.clientapprovelandbillingovertime
+);
+
+clientRouter.put(
+  "/update-client-profile/:id",
+  upload.single("profileImage"),
+  ClientCtr.updateclientprofile
 );
 module.exports = clientRouter;

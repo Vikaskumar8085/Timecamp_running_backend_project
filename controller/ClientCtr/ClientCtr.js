@@ -6,6 +6,7 @@ const TimeSheet = require("../../models/Othermodels/Timesheet/Timesheet");
 const Task = require("../../models/Othermodels/Task/Task");
 const moment = require("moment");
 const Notification = require("../../models/Othermodels/Notification/Notification");
+const path = require("path");
 const ClientCtr = {
   // Client Project
   fetchClientprojects: asyncHandler(async (req, res) => {
@@ -763,6 +764,78 @@ const ClientCtr = {
         totalProjects,
         result,
       });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  //  update client profile
+  updateclientprofile: asyncHandler(async (req, res) => {
+    try {
+      const user = await Client.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized User, please Signup");
+      }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+
+      if (req.file) {
+        let attachmentPath = req.file ? req.file.filename : "Photos";
+
+        let uploadPath = "uploads/";
+
+        // Get file extension
+        const fileExt = path
+          .extname(req.file.originalname || null)
+          .toLowerCase();
+        // console.log(fileExt, "reqogsdfisdfl");
+
+        // Define subfolders based on file type
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/"; // Fallback folder
+        }
+
+        var clientphotos = attachmentPath
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}/${attachmentPath}`
+          : null;
+      }
+
+      const findClient = await Client.findOne({
+        Client_Id: parseInt(req.params.id),
+      });
+
+      if (findClient) {
+        await findClient.updateOne(
+          {
+            $set: {
+              ...req.body,
+              Client_Photo: clientphotos,
+              Password: req.body.Password,
+              GstNumber: req.body.GstNumber,
+            },
+          },
+          {runValidators: true, new: true}
+        );
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, message: "Client profile updated successfully."});
     } catch (error) {
       throw new Error(error?.message);
     }

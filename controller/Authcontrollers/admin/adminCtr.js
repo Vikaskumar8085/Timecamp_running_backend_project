@@ -187,7 +187,6 @@ const adminCtr = {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
-      console.log("req.params.id", req.body);
 
       const response = await User.findOne({user_id: parseInt(req.params.id)});
       if (!response) {
