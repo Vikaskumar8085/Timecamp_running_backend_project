@@ -555,6 +555,72 @@ const clientdashctr = {
       throw new Error(error?.message);
     }
   }),
+
+  // fetch client single project chart
+
+  clientprojectchart: asyncHandler(async (req, res) => {
+    try {
+      const user = await Client.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized User Please Signup");
+      }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+
+      const response = await RoleResource.aggregate([
+        {
+          $match: {RRId: parseInt(req.params.id)},
+        },
+        {
+          $lookup: {
+            from: "timesheets",
+            localField: "RRId",
+            foreignField: "Staff_Id",
+            as: "timesheetdata",
+          },
+        },
+        {$unwind: "$timesheetdata"},
+        {
+          $lookup: {
+            from: "staffmembers",
+            localField: "RRId",
+            foreignField: "staff_Id",
+            as: "staffdata",
+          },
+        },
+        {$unwind: "$staffdata"},
+        {
+          $group: {
+            _id: "$RRId",
+            totalBilledHours: {$sum: "$timesheetdata.BilledHours"},
+            totalTimeHours: {$sum: "$timesheetdata.TimeHours"},
+            firstName: {$first: "$staffdata.FirstName"},
+          },
+        },
+        {
+          $project: {
+            _id: 0,
+            RRId: "$_id",
+            totalBilledHours: 1,
+            totalTimeHours: 1,
+            firstName: 1,
+          },
+        },
+      ]);
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = clientdashctr;

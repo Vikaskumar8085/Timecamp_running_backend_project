@@ -98,4 +98,15 @@ clientRouter.put(
   upload.single("profileImage"),
   ClientCtr.updateclientprofile
 );
+clientRouter.get("/client-task-info/:id", ClientCtr.fetchClientTaskInfo);
+
+// client poject chart show data
+
+clientRouter.get(
+  "/client-project-chart-data/:id",
+  clientdashctr.clientprojectchart
+);
+
+clientRouter.get("/allotted-task-memebers/:id", ClientCtr.fetchTaskAllotted);
+
 module.exports = clientRouter;

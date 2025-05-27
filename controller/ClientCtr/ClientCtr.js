@@ -7,6 +7,8 @@ const Task = require("../../models/Othermodels/Task/Task");
 const moment = require("moment");
 const Notification = require("../../models/Othermodels/Notification/Notification");
 const path = require("path");
+const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
+const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
 const ClientCtr = {
   // Client Project
   fetchClientprojects: asyncHandler(async (req, res) => {
@@ -248,7 +250,7 @@ const ClientCtr = {
     }
   }),
 
-  // Task
+  // Task client-project-task
   fetchclientprojecttask: asyncHandler(async (req, res) => {
     try {
       const user = await Client.findById(req.user);
@@ -275,22 +277,13 @@ const ClientCtr = {
         throw new Error("Project Not Found");
       }
 
-      const projecttask = await Promise.all(
-        findProject.map(async (item) => {
-          let fetchtasks = await Task.find({
-            ProjectId: item.ProjectId,
-          });
-
-          return {
-            ...item.toObject(),
-            fetchtasks,
-          };
-        })
-      );
+      const projectIds = findProject.map((item) => item.ProjectId);
+      const response = await Task.find({ProjectId: {$in: projectIds}});
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,
-        result: projecttask,
+        result: response,
+        message: "project task data",
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -820,13 +813,13 @@ const ClientCtr = {
         Client_Id: parseInt(req.params.id),
       });
 
+      console.log(req.body.Password, "client info");
       if (findClient) {
         await findClient.updateOne(
           {
             $set: {
               ...req.body,
               Client_Photo: clientphotos,
-              Password: req.body.Password,
               GstNumber: req.body.GstNumber,
             },
           },
@@ -836,6 +829,69 @@ const ClientCtr = {
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, message: "Client profile updated successfully."});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchClientTaskInfo: asyncHandler(async (req, res) => {
+    try {
+      const user = await Client.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized User, please Signup");
+      }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+
+      const response = await Task.findOne({task_Id: parseInt(req.params.id)});
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Task Not Found");
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: response,
+        message: "Task fetched successfully.",
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchTaskAllotted: asyncHandler(async (req, res) => {
+    try {
+      const user = await Client.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized User, please Signup");
+      }
+
+      // auth client system access
+      if (user.System_Access === false) {
+        return res
+          .status(HttpStatusCodes.NOT_FOUND)
+          .json({redirect: "/login", success: false});
+      }
+
+      const fetchproject = await RoleResource.find({
+        ProjectId: {$in: parseInt(req.params.id)},
+      });
+
+      const rrids = await fetchproject.map((item) => item.RRId);
+
+      const response = await StaffMember.find({staff_Id: {$in: rrids}}).select(
+        "FirstName LastName Photos"
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: response, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
