@@ -18,7 +18,7 @@ const adminCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -70,8 +70,8 @@ const adminCtr = {
       } else {
         await createuser.save();
         await Company.updateOne(
-          {Company_Id: checkcompany?.Company_Id},
-          {$push: {UserId: createuser.user_id}}
+          { Company_Id: checkcompany?.Company_Id },
+          { $push: { UserId: createuser.user_id } }
         );
       }
 
@@ -167,7 +167,7 @@ const adminCtr = {
       }
       return res
         .status(HttpStatusCodes.CREATED)
-        .json({success: true, message: "admin created successfully"});
+        .json({ success: true, message: "admin created successfully" });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -176,32 +176,78 @@ const adminCtr = {
 
   edit_admin: asynchandler(async (req, res) => {
     try {
+      console.log(req.body, "req.body");
       const user = await User.findById(req.user);
       if (!user) {
         res.status(StatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
-      const response = await User.findOne({user_id: parseInt(req.params.id)});
+      if (req.file) {
+        let attachmentPath = req.file ? req.file.filename : "Photos";
+
+        let uploadPath = "uploads/";
+
+        // Get file extension
+        const fileExt = path
+          .extname(req.file.originalname || null)
+          .toLowerCase();
+        // console.log(fileExt, "reqogsdfisdfl");
+
+        // Define subfolders based on file type
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/"; // Fallback folder
+        }
+
+        var adminphoto = attachmentPath
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}/${attachmentPath}`
+          : null;
+      }
+      const response = await User.findOne({ user_id: parseInt(req.params.id) });
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("User not found");
       } else {
+        const { Password, ...rest } = req.body;
+
         await User.updateOne(
-          {user_id: parseInt(req.params.id)},
-          {$set: req.body},
-          {new: true, runValidators: true}
+          { user_id: parseInt(req.params.id) },
+          {
+            $set: {
+              Photo: adminphoto,
+              ...rest, // Only include fields other than password
+            },
+          },
+          { new: true, runValidators: true }
         );
+        await Notification({
+          SenderId: user?.user_id,
+          ReciverId: user?.user_id,
+          Name: user?.FirstName,
+          Pic: user?.Photo,
+          Description: `Dear ${user?.FirstName}, you Profile has been updated by Admin ${user?.FirstName} in ${checkcompany?.Company_Name} company. Welcome aboard!`,
+          IsRead: false,
+        }).save();
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({message: "admin updated successfully", success: true});
+        .json({ message: "admin updated successfully", success: true });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -214,7 +260,7 @@ const adminCtr = {
         res.status(StatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const getAdminuser = await Company.findOne({UserId: user?.user_id});
+      const getAdminuser = await Company.findOne({ UserId: user?.user_id });
       if (!getAdminuser && getAdminuser.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("admin Not found");
@@ -249,7 +295,7 @@ const adminCtr = {
       // ]);
 
       let QueryObj = {};
-      QueryObj = {user_id: getAdminuser.UserId};
+      QueryObj = { user_id: getAdminuser.UserId };
       const result = await User.find(QueryObj).lean().exec();
 
       return res.status(200).json({
@@ -271,13 +317,15 @@ const adminCtr = {
         throw new Error("Unauthorized use please login");
       }
 
-      const checkCompany = await Company.findOne({UserId: user.user_id}).lean();
+      const checkCompany = await Company.findOne({
+        UserId: user.user_id,
+      }).lean();
       if (!checkCompany) {
         res.status(HttpStatusCodes?.NOT_FOUND);
         throw new Error("Company not found");
       }
 
-      const findTimesheet = await TimeSheet.findOne({project: req.params.id});
+      const findTimesheet = await TimeSheet.findOne({ project: req.params.id });
       if (!findTimesheet) {
         res.status(HttpStatusCodes?.NOT_FOUND);
         throw new Error("Timesheet not found");
@@ -289,7 +337,7 @@ const adminCtr = {
       // }
       // Update all timesheets in one query
       const updatedTimesheets = await TimeSheet.updateMany(
-        {Timesheet_Id: {$in: approveIds}, approval_status: "PENDING"},
+        { Timesheet_Id: { $in: approveIds }, approval_status: "PENDING" },
         {
           $set: {
             approval_status: "APPROVED",
@@ -306,7 +354,7 @@ const adminCtr = {
 
       res
         .status(200)
-        .json({success: true, message: "Timesheets approved successfully."});
+        .json({ success: true, message: "Timesheets approved successfully." });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -320,13 +368,15 @@ const adminCtr = {
         throw new Error("Unauthorized use please login");
       }
 
-      const checkCompany = await Company.findOne({UserId: user.user_id}).lean();
+      const checkCompany = await Company.findOne({
+        UserId: user.user_id,
+      }).lean();
       if (!checkCompany) {
         res.status(HttpStatusCodes?.NOT_FOUND);
         throw new Error("Company not found");
       }
 
-      const findTimesheet = await TimeSheet.findOne({project: req.params.id});
+      const findTimesheet = await TimeSheet.findOne({ project: req.params.id });
       if (!findTimesheet) {
         res.status(HttpStatusCodes?.NOT_FOUND);
         throw new Error("Timesheet not found");
@@ -338,7 +388,7 @@ const adminCtr = {
       // }
       // Update all timesheets in one query
       const updatedTimesheets = await TimeSheet.updateMany(
-        {Timesheet_Id: {$in: approveIds}, approval_status: "PENDING"},
+        { Timesheet_Id: { $in: approveIds }, approval_status: "PENDING" },
         {
           $set: {
             approval_status: "DISAPPROVED",
@@ -353,9 +403,10 @@ const adminCtr = {
         throw new Error("No timesheets were updated.");
       }
 
-      res
-        .status(200)
-        .json({success: true, message: "Timesheets disapproved successfully."});
+      res.status(200).json({
+        success: true,
+        message: "Timesheets disapproved successfully.",
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -370,13 +421,15 @@ const adminCtr = {
         throw new Error("Unauthorized use please login");
       }
 
-      const checkCompany = await Company.findOne({UserId: user.user_id}).lean();
+      const checkCompany = await Company.findOne({
+        UserId: user.user_id,
+      }).lean();
       if (!checkCompany) {
         res.status(HttpStatusCodes?.NOT_FOUND);
         throw new Error("Company not found");
       }
 
-      const findTimesheet = await TimeSheet.findOne({project: req.params.id});
+      const findTimesheet = await TimeSheet.findOne({ project: req.params.id });
       if (!findTimesheet) {
         res.status(HttpStatusCodes?.NOT_FOUND);
         throw new Error("Timesheet not found");
@@ -388,8 +441,8 @@ const adminCtr = {
       }
       // Update all timesheets in one query
       const updatedTimesheets = await TimeSheet.updateMany(
-        {Timesheet_Id: {$in: approveIds}, billing_status: "NOT_BILLED"},
-        {$set: {billing_status: "BILLED"}}
+        { Timesheet_Id: { $in: approveIds }, billing_status: "NOT_BILLED" },
+        { $set: { billing_status: "BILLED" } }
       );
 
       if (updatedTimesheets.modifiedCount === 0) {
@@ -399,7 +452,7 @@ const adminCtr = {
 
       res
         .status(200)
-        .json({success: true, message: "Timesheets Billed successfully."});
+        .json({ success: true, message: "Timesheets Billed successfully." });
     } catch (error) {
       throw new Error(error?.message);
     }
