@@ -11,41 +11,62 @@ const clientdashctr = {
     try {
       const user = await Client.findById(req.user).lean().exec();
       if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Un Authorized User !Please Sign up");
+        return res
+          .status(HttpStatusCodes.UNAUTHORIZED)
+          .json({
+            success: false,
+            message: "Unauthorized user. Please sign up.",
+          });
       }
 
-      // auth client system access
-      if (user.System_Access === false) {
+      if (!user.System_Access) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
           .json({redirect: "/login", success: false});
       }
-      // auth client system access
 
-      const projectcount = await Project.find({
-        clientId: user?.Client_Id,
-      });
-      const projectids = await projectcount.map((item) => item.ProjectId);
+      const projects = await Project.find({clientId: user.Client_Id}).lean();
+      const projectIds = projects.map((item) => item.ProjectId);
 
       const approvedTimesheets = await TimeSheet.find({
-        project: {$in: projectids},
+        project: {$in: projectIds},
         approval_status: "APPROVED",
+      }).lean();
+
+      // Calculate total hours per project
+      const projectHoursMap = {};
+      approvedTimesheets.forEach((entry) => {
+        const projectId = entry.project;
+        const hours = parseFloat(entry.hours) || 0;
+        projectHoursMap[projectId] = (projectHoursMap[projectId] || 0) + hours;
       });
 
-      const totalHours = approvedTimesheets.reduce(
-        (sum, entry) => sum + (parseInt(entry.hours) || 0),
+      // Build chartData
+      const chartData = projects.map((project) => ({
+        name: project.ProjectName || project.ProjectId,
+        hours: projectHoursMap[project.ProjectId] || 0,
+      }));
+
+      const totalHours = Object.values(projectHoursMap).reduce(
+        (a, b) => a + b,
         0
       );
-      const result = {
-        totalproject: projectcount.length,
-        totalHours: totalHours,
-      };
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, result: result});
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: {
+          totalProjects: projects.length,
+          totalHours,
+          chartData, // [{ name: 'Project A', hours: 40 }, ...]
+          trendDown: false,
+          percentage: 12,
+        },
+      });
     } catch (error) {
-      throw new Error(error?.message);
+      console.error("Error in clientdashcounter:", error);
+      return res
+        .status(HttpStatusCodes.INTERNAL_SERVER_ERROR)
+        .json({success: false, message: error.message});
     }
   }),
   clientdashboardRecentProject: asyncHandler(async (req, res) => {
