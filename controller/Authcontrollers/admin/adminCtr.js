@@ -457,5 +457,75 @@ const adminCtr = {
       throw new Error(error?.message);
     }
   }),
+  updateadminprofile: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+
+      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      if (req.file) {
+        let attachmentPath = req.file ? req.file.filename : null;
+        let uploadPath = "uploads/";
+
+        // Get file extension
+        const fileExt = path.extname(req.file.originalname).toLowerCase();
+        console.log(fileExt, "reqogsdfisdfl");
+
+        // Define subfolders based on file type
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/"; // Fallback folder
+        }
+
+        // console.log(uploadPath, "upload path");
+
+        var photos = attachmentPath
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}/${attachmentPath}`
+          : null;
+      }
+
+      const response = await User.findOne({ user_id: parseInt(req.params.id) });
+      if (!response) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("User not found");
+      } else {
+        const { Password, ...rest } = req.body;
+        await User.updateOne(
+          { user_id: parseInt(req.params.id) },
+          {
+            $set: {
+              ...rest,
+              Photo: photos,
+            },
+          },
+          { new: true, runValidators: true }
+        );
+      }
+      return res.status(HttpStatusCodes.OK).json({
+        message: "Proile  updated successfully",
+        success: true,
+        result: response,
+      });
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 module.exports = adminCtr;

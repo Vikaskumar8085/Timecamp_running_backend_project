@@ -24,6 +24,12 @@ adminRouter.put(
   verifyToken,
   adminCtr.edit_admin
 );
+adminRouter.put(
+  "/update-admin-profile/:id",
+  upload.single("Photo"),
+  verifyToken,
+  adminCtr.updateadminprofile
+);
 adminRouter.get("/fetch-admin", verifyToken, adminCtr.getalladmin);
 adminRouter.get("/fetch-staffmembers", verifyToken, employeeCtr.fetch_staff);
 
