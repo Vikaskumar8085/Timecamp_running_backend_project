@@ -168,31 +168,53 @@ const TaskCtr = {
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
-      }
-      // check company
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
-      if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+        throw new Error("Unauthorized User Please Signup");
       }
 
-      let queryObj = {};
-      queryObj = {
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist, please create a company first"
+        );
+      }
+
+      // Pagination params (default page=1, limit=10)
+      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 10;
+      const skip = (page - 1) * limit;
+
+      // Search param
+      const search = req.query.search || "";
+
+      // Build query object
+      let queryObj = {
         ProjectId: req.params.id,
         Company_Id: checkcompany.Company_Id,
       };
 
-      const response = await Task.find(queryObj).lean().exec();
+      if (search) {
+        // Adjust field as per your schema - here assuming Task_Name exists
+        queryObj.Task_Name = {$regex: search, $options: "i"}; // case-insensitive search
+      }
 
+      // Get total count for pagination metadata
+      const totalCount = await Task.countDocuments(queryObj);
+
+      // Fetch paginated tasks
+      const tasks = await Task.find(queryObj)
+        .skip(skip)
+        .limit(limit)
+        .lean()
+        .exec();
+
+      // Enrich tasks with project/resource/milestone names
       const projectsdata = await Promise.all(
-        response.map(async (item) => {
+        tasks.map(async (item) => {
           const fetchproject = await Project.find({ProjectId: item?.ProjectId});
-
           const fetchResourcesName = await StaffMember.find({
             staff_Id: item.Resource_Id,
           });
-
           const fetchMilestone = await Milestone.find({
             Milestone_id: item.MilestoneId,
           });
@@ -210,13 +232,19 @@ const TaskCtr = {
         })
       );
 
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, result: projectsdata});
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        page,
+        limit,
+        totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+        result: projectsdata,
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
+
   fetchTasks: asynchandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
@@ -400,6 +428,56 @@ const TaskCtr = {
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, result: result});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  // fetch recent activities
+
+  fetchRecentActivities: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unautorized User Please Singup");
+      }
+      const checkcompany = await Company?.findOne({UserId: user?.user_id});
+      if (!checkcompany) {
+        res.status(HttpStatusCodes?.BAD_REQUEST);
+        throw new Error("company not exists please create first company");
+      }
+
+      const fetchtask = await Task.find({
+        ProjectId: parseInt(req.params.id),
+        Status: "COMPLETED",
+      });
+      if (!fetchtask) {
+        res.status(HttpStatusCodes.NOT_FOUND).json({error: "Task not found"});
+        return;
+      }
+
+      const response = await Promise.all(
+        fetchtask.map(async (item) => {
+          const fetchresource = await StaffMember.find({
+            staff_Id: item?.Resource_Id,
+          });
+
+          const names = fetchresource
+            .map((res) => `${res.FirstName} ${res.LastName}`)
+            .join(", ");
+
+          return {
+            ...item.toObject(), // convert Mongoose doc to plain object
+            Photos: fetchresource.map((res) => res.Photos?.[0]),
+            Message: `${names} has completed the task ${item?.Task_Name}`,
+          };
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }

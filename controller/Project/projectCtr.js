@@ -12,6 +12,7 @@ const Notification = require("../../models/Othermodels/Notification/Notification
 const moment = require("moment");
 const Task = require("../../models/Othermodels/Task/Task");
 const Bucket = require("../../models/Othermodels/Bucket/Bucket");
+const Designation = require("../../models/MasterModels/Designation/Designation");
 const generateProjectCode = async () => {
   const lastProject = await Project.findOne().sort({ProjectId: -1});
   const lastId = lastProject ? lastProject.ProjectId : 0;
@@ -963,35 +964,31 @@ const projectCtr = {
         throw new Error("company not exists please create first company");
       }
 
-      const response = await Task.aggregate([
-        {$match: {ProjectId: parseInt(req.params.id)}},
-        {
-          $lookup: {
-            from: "staffmembers",
-            localField: "Resource_Id",
-            foreignField: "staff_Id",
-            as: "detailsofresponse",
-          },
-        },
-        {
-          $unwind: "$detailsofresponse",
-        },
-        {
-          $group: {
-            _id: "$detailsofresponse.FirstName", // group by FirstName to remove duplicates
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            FirstName: "$_id",
-          },
-        },
-      ]);
+      const fetchproject = await RoleResource.find({
+        ProjectId: {$in: parseInt(req.params.id)},
+      });
 
+      const rrids = await fetchproject.map((item) => item.RRId);
+
+      const staffMembers = await StaffMember.find({
+        staff_Id: {$in: rrids},
+      }).select("FirstName LastName Photos DesignationId");
+
+      const responseData = await Promise.all(
+        staffMembers.map(async (staff) => {
+          const designation = await Designation.findOne({
+            Designation_Id: staff.DesignationId,
+          });
+
+          return {
+            ...staff.toObject(),
+            DesignationName: designation?.Designation_Name || null,
+          };
+        })
+      );
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({success: true, result: responseData});
     } catch (error) {
       throw new Error(error?.message);
     }

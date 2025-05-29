@@ -244,6 +244,7 @@ adminRouter.get(
   verifyToken,
   TaskCtr.fetchProjectwithmilestones
 );
+adminRouter.get("/fetch-recent-activities/:id",verifyToken,TaskCtr.fetchRecentActivities)
 // timesheet
 
 adminRouter.get("/fetch-timesheet", verifyToken, TimesheetCtr.fetch_timesheet);
