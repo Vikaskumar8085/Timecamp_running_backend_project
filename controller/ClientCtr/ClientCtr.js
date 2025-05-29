@@ -9,6 +9,7 @@ const Notification = require("../../models/Othermodels/Notification/Notification
 const path = require("path");
 const RoleResource = require("../../models/Othermodels/Projectmodels/RoleResources");
 const StaffMember = require("../../models/AuthModels/StaffMembers/StaffMembers");
+const Designation =require("../../models/MasterModels/Designation/Designation")
 const ClientCtr = {
   // Client Project
   fetchClientprojects: asyncHandler(async (req, res) => {
@@ -21,11 +22,11 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
 
       // Extract query parameters for pagination and search
-      let {page = 1, limit = 10, search = ""} = req.query;
+      let { page = 1, limit = 10, search = "" } = req.query;
       page = parseInt(page, 10);
       limit = parseInt(limit, 10);
 
@@ -40,7 +41,7 @@ const ClientCtr = {
 
       // Apply search filter if provided
       if (search.trim()) {
-        queryObj.Project_Name = {$regex: search, $options: "i"}; // Search by Project Name (case-insensitive)
+        queryObj.Project_Name = { $regex: search, $options: "i" }; // Search by Project Name (case-insensitive)
       }
 
       // Fetch total count of projects for pagination
@@ -86,11 +87,11 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
 
       // Extract query parameters for pagination and searching
-      let {page = 1, limit = 10, search = ""} = req.query;
+      let { page = 1, limit = 10, search = "" } = req.query;
       page = parseInt(page, 10); // Page number
       limit = parseInt(limit, 10); // Limit per page
 
@@ -102,7 +103,7 @@ const ClientCtr = {
 
       // Apply search filter (case-insensitive search for ProjectName)
       if (search) {
-        queryObj.Project_Name = {$regex: search, $options: "i"}; // Search by project name
+        queryObj.Project_Name = { $regex: search, $options: "i" }; // Search by project name
       }
 
       // Count total number of projects to calculate pagination
@@ -144,11 +145,11 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
 
       // Extract query parameters for pagination and searching
-      let {page = 1, limit = 10, search = ""} = req.query;
+      let { page = 1, limit = 10, search = "" } = req.query;
       page = parseInt(page, 10); // Page number
       limit = parseInt(limit, 10); // Limit per page
 
@@ -161,8 +162,8 @@ const ClientCtr = {
       // Apply search filter (case-insensitive search for ProjectName)
       if (search.trim()) {
         queryObj.$or = [
-          {Project_Name: {$regex: search, $options: "i"}}, // Search by project name
-          {Project_Code: {$regex: search, $options: "i"}}, // Search by project code
+          { Project_Name: { $regex: search, $options: "i" } }, // Search by project name
+          { Project_Code: { $regex: search, $options: "i" } }, // Search by project code
         ];
       }
       // Count total number of projects to calculate pagination
@@ -207,7 +208,7 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
 
       // Query object for finding projects
@@ -221,7 +222,7 @@ const ClientCtr = {
       if (!findProject || findProject.length === 0) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({success: false, message: "Project Not Found"});
+          .json({ success: false, message: "Project Not Found" });
       }
 
       // Pagination setup for timesheets
@@ -238,13 +239,13 @@ const ClientCtr = {
             .skip(skip)
             .limit(limit);
 
-          return {...item.toObject(), timesheets: findtimesheet};
+          return { ...item.toObject(), timesheets: findtimesheet };
         })
       );
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: projectData, page, limit});
+        .json({ success: true, result: projectData, page, limit });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -262,7 +263,7 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
       // fetch client project task
       let queryObj = {};
@@ -278,7 +279,7 @@ const ClientCtr = {
       }
 
       const projectIds = findProject.map((item) => item.ProjectId);
-      const response = await Task.find({ProjectId: {$in: projectIds}});
+      const response = await Task.find({ ProjectId: { $in: projectIds } });
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,
@@ -301,7 +302,7 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
       // auth client system access
       let queryObj = {};
@@ -336,7 +337,7 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
       // auth client system access
 
@@ -349,7 +350,7 @@ const ClientCtr = {
       const statusFilter = req.query.status || "";
       const priorityFilter = req.query.priority || "";
 
-      let queryObj = {clientId: user?.Client_Id};
+      let queryObj = { clientId: user?.Client_Id };
 
       // Find projects associated with the client
       const projects = await Project.find(queryObj);
@@ -361,13 +362,13 @@ const ClientCtr = {
       const projectIds = projects.map((item) => item.ProjectId);
 
       // Task Query
-      let taskQuery = {ProjectId: {$in: projectIds}};
+      let taskQuery = { ProjectId: { $in: projectIds } };
 
       // Search by task name or description
       if (search) {
         taskQuery.$or = [
-          {name: {$regex: search, $options: "i"}},
-          {description: {$regex: search, $options: "i"}},
+          { name: { $regex: search, $options: "i" } },
+          { description: { $regex: search, $options: "i" } },
         ];
       }
 
@@ -383,7 +384,7 @@ const ClientCtr = {
       const tasks = await Task.find(taskQuery)
         .skip(skip)
         .limit(limit)
-        .sort({createdAt: -1}); // Sort by newest
+        .sort({ createdAt: -1 }); // Sort by newest
 
       const totalTasks = await Task.countDocuments(taskQuery);
 
@@ -415,7 +416,7 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
       // auth client system access
 
@@ -434,7 +435,7 @@ const ClientCtr = {
 
       const projectids = findProject.map((item) => item.ProjectId);
       const projectTimesheet = await TimeSheet.find({
-        project: {$in: projectids},
+        project: { $in: projectids },
       });
       if (!projectTimesheet?.length) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -467,7 +468,7 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
       // auth client system access
 
@@ -487,7 +488,7 @@ const ClientCtr = {
         await Promise.all(
           approveIds.map(async (item) => {
             // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
+            const timesheet = await TimeSheet.findOne({ Timesheet_Id: item });
 
             // Check if the timesheet exists and if the status is "PENDING"
             if (!timesheet) {
@@ -504,7 +505,7 @@ const ClientCtr = {
 
             // Proceed with the update if it's 'PENDING'
             const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              {Timesheet_Id: item},
+              { Timesheet_Id: item },
               {
                 $set: {
                   approval_status: "APPROVED",
@@ -512,7 +513,7 @@ const ClientCtr = {
                   approved_date: moment().format("DD/MM/YYYY"),
                 },
               },
-              {new: true, runValidators: true}
+              { new: true, runValidators: true }
             );
 
             if (!updatedTimesheet) {
@@ -566,7 +567,7 @@ const ClientCtr = {
         await Promise.all(
           approveIds.map(async (item) => {
             // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
+            const timesheet = await TimeSheet.findOne({ Timesheet_Id: item });
 
             // Check if the timesheet exists and if the status is "PENDING"
             if (!timesheet) {
@@ -583,7 +584,7 @@ const ClientCtr = {
 
             // Proceed with the update if it's 'PENDING'
             const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              {Timesheet_Id: item},
+              { Timesheet_Id: item },
               {
                 $set: {
                   approval_status: "DISAPPROVED",
@@ -591,7 +592,7 @@ const ClientCtr = {
                   approved_date: moment().format("DD/MM/YYYY"),
                 },
               },
-              {new: true, runValidators: true}
+              { new: true, runValidators: true }
             );
 
             if (!updatedTimesheet) {
@@ -627,20 +628,20 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
       // auth client system access
 
       const response = await Notification.find({
         ReciverId: user?.staff_Id,
-      }).sort({createdAt: -1});
+      }).sort({ createdAt: -1 });
       if (!response) {
         res.status(HttpStatusCodes?.NOT_FOUND);
         throw new Error("Client Not Found");
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -667,11 +668,11 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
       // auth client system access
 
-      let {page = 1, limit = 10, search = ""} = req.query;
+      let { page = 1, limit = 10, search = "" } = req.query;
       page = parseInt(page);
       limit = parseInt(limit);
 
@@ -683,20 +684,20 @@ const ClientCtr = {
       const searchFilter = search
         ? {
             $or: [
-              {Project_Name: {$regex: search, $options: "i"}},
-              {Project_Code: {$regex: search, $options: "i"}},
+              { Project_Name: { $regex: search, $options: "i" } },
+              { Project_Code: { $regex: search, $options: "i" } },
             ],
           }
         : {};
 
-      const projects = await Project.find({...queryObj, ...searchFilter})
+      const projects = await Project.find({ ...queryObj, ...searchFilter })
         .skip((page - 1) * limit)
         .limit(limit);
 
       if (!projects || projects.length === 0) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({message: "No projects found"});
+          .json({ message: "No projects found" });
       }
 
       // Extract project IDs
@@ -706,16 +707,16 @@ const ClientCtr = {
       const timesheetData = await TimeSheet.aggregate([
         {
           $match: {
-            project: {$in: projectIds},
+            project: { $in: projectIds },
           },
         },
         {
           $group: {
             _id: "$project",
-            totalHours: {$sum: {$toDouble: "$hours"}},
-            okHours: {$sum: {$toDouble: "$ok_hours"}},
-            billedHours: {$sum: {$toDouble: "$billed_hours"}},
-            totalEntries: {$sum: 1}, // Count total entries for this project
+            totalHours: { $sum: { $toDouble: "$hours" } },
+            okHours: { $sum: { $toDouble: "$ok_hours" } },
+            billedHours: { $sum: { $toDouble: "$billed_hours" } },
+            totalEntries: { $sum: 1 }, // Count total entries for this project
           },
         },
       ]);
@@ -775,7 +776,7 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
 
       if (req.file) {
@@ -823,12 +824,13 @@ const ClientCtr = {
               GstNumber: req.body.GstNumber,
             },
           },
-          {runValidators: true, new: true}
+          { runValidators: true, new: true }
         );
       }
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, message: "Client profile updated successfully."});
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        message: "Client profile updated successfully.",
+      });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -846,10 +848,10 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
 
-      const response = await Task.findOne({task_Id: parseInt(req.params.id)});
+      const response = await Task.findOne({ task_Id: parseInt(req.params.id) });
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Task Not Found");
@@ -876,22 +878,34 @@ const ClientCtr = {
       if (user.System_Access === false) {
         return res
           .status(HttpStatusCodes.NOT_FOUND)
-          .json({redirect: "/login", success: false});
+          .json({ redirect: "/login", success: false });
       }
 
       const fetchproject = await RoleResource.find({
-        ProjectId: {$in: parseInt(req.params.id)},
+        ProjectId: { $in: parseInt(req.params.id) },
       });
 
       const rrids = await fetchproject.map((item) => item.RRId);
 
-      const response = await StaffMember.find({staff_Id: {$in: rrids}}).select(
-        "FirstName LastName Photos"
-      );
+      const response = await StaffMember.find({
+        staff_Id: { $in: rrids },
+      }).select("FirstName LastName Photos");
 
+      const responseData = await Promise.all(
+        response.map(async (staff) => {
+          const designation = await Designation.findOne({
+            Designation_Id: staff.DesignationId,
+          });
+
+          return {
+            ...staff.toObject(),
+            DesignationName: designation?.Designation_Name || null,
+          };
+        })
+      );
       return res
         .status(HttpStatusCodes.OK)
-        .json({result: response, success: true});
+        .json({ result: responseData, success: true });
     } catch (error) {
       throw new Error(error?.message);
     }
