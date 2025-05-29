@@ -5,7 +5,6 @@ const MilestoneSchema = new mongoose.Schema({
   Milestone_id: {
     type: Number,
     trim: true,
-    required: false,
     unique: true,
   },
   Compnay_Id: {
