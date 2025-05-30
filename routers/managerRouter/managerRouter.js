@@ -157,4 +157,17 @@ managerRouter.get(
   managerCtr.fetchmanagerteamprojecttimesheets
 );
 
+managerRouter.get(
+  "/fetch-manager-alloted-task/:id",
+  managerCtr.fetchManagerTaskAllotted
+);
+managerRouter.get(
+  "/fetch-manager-recent-activity/:id",
+  managerCtr.fetchManagerRecentActivities
+);
+managerRouter.get(
+  "/fetch-manager-milestones/:id",
+  managerCtr.fetchManagermilestoneprojects
+);
+
 module.exports = managerRouter;

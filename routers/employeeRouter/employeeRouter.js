@@ -130,4 +130,17 @@ employeeRouter.get(
   "/fetch-employee-single-project-info-chart/:id",
   EmployeeCtr.fetchemployeeprojectchartinfo
 );
+
+employeeRouter.get(
+  "/fetch-employee-alloted-task/:id",
+  EmployeeCtr.fetchEmpmloyeeTaskAllotted
+);
+employeeRouter.get(
+  "/fetch-employee-recent-activities/:id",
+  EmployeeCtr.fetchEmployeeRecentActivities
+);
+employeeRouter.get(
+  "/fetch-employee-milestone-project/:id",
+  EmployeeCtr.fetchEmployeemilestoneprojects
+);
 module.exports = employeeRouter;

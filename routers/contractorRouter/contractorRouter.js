@@ -159,4 +159,17 @@ contractorRouter.get(
   "/fetch-contractor-team/:id",
   ContractorCtr.fetchcontractorrecentstaff
 );
+
+contractorRouter.get(
+  "/fetch-contractor-alloted-task/:id",
+  ContractorCtr.fetchContractorTaskAllotted
+);
+contractorRouter.get(
+  "/fetch-contractor-Recent-activity/:id",
+  ContractorCtr.fetchContractorRecentActivities
+);
+contractorRouter.get(
+  "/fetch-conractor-milestones/:id",
+  ContractorCtr.fetchContractormilestoneprojects
+);
 module.exports = contractorRouter;

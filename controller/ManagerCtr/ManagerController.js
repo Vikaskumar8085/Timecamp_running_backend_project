@@ -1970,7 +1970,137 @@ const managerCtr = {
       throw new Error(error?.message);
     }
   }),
-  
+  fetchManagerTaskAllotted: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+
+      const fetchproject = await RoleResource.find({
+        ProjectId: {$in: parseInt(req.params.id)},
+      });
+
+      const rrids = await fetchproject.map((item) => item.RRId);
+
+      const response = await StaffMember.find({
+        staff_Id: {$in: rrids},
+      }).select("FirstName LastName Photos");
+
+      const responseData = await Promise.all(
+        response.map(async (staff) => {
+          const designation = await Designation.findOne({
+            Designation_Id: staff.DesignationId,
+          });
+
+          return {
+            ...staff.toObject(),
+            DesignationName: designation?.Designation_Name || null,
+          };
+        })
+      );
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: responseData, success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  fetchManagerRecentActivities: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const fetchtask = await Task.find({
+        ProjectId: parseInt(req.params.id),
+        Status: "COMPLETED",
+      });
+      if (!fetchtask) {
+        res.status(HttpStatusCodes.NOT_FOUND).json({error: "Task not found"});
+        return;
+      }
+
+      const response = await Promise.all(
+        fetchtask.map(async (item) => {
+          const fetchresource = await StaffMember.find({
+            staff_Id: item?.Resource_Id,
+          });
+
+          const names = fetchresource
+            .map((res) => `${res.FirstName} ${res.LastName}`)
+            .join(", ");
+
+          return {
+            ...item.toObject(), // convert Mongoose doc to plain object
+            Photos: fetchresource.map((res) => res.Photos?.[0]),
+            Message: `${names} has completed the task ${item?.Task_Name}`,
+          };
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  fetchManagermilestoneprojects: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      // check company
+
+      let queryObj = {
+        ProjectId: parseInt(req.params.id),
+      };
+
+      const response = await Milestone.find(queryObj);
+
+      if (response.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Milestone not found");
+      }
+
+      const resourceNamewithid = await Promise.all(
+        response.map(async (item) => {
+          const findprojectResources = await RoleResource.find({
+            ProjectId: item.ProjectId,
+          });
+
+          const findresourcesRRid = await findprojectResources.map(
+            (rrid) => rrid.RRId
+          );
+
+          const getresources = await StaffMember.find({
+            staff_Id: findresourcesRRid,
+          });
+
+          const responseResult = {
+            ...item.toObject(),
+            Resourcedata: getresources.map((resource) => ({
+              staff_id: resource.staff_Id, // Fetching staff_id
+              FirstName: resource.FirstName, // Fetching FirstName
+            })),
+          };
+
+          return responseResult;
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: resourceNamewithid});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = managerCtr;

@@ -108,5 +108,12 @@ clientRouter.get(
 );
 
 clientRouter.get("/allotted-task-memebers/:id", ClientCtr.fetchTaskAllotted);
-
+clientRouter.get(
+  "/fetch-recent-task-activity/:id",
+  ClientCtr.fetchRecentActivities
+);
+clientRouter.get(
+  "/fetch-task-milestones/:id",
+  ClientCtr.fetchmilestoneprojects
+);
 module.exports = clientRouter;

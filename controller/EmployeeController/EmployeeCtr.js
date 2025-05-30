@@ -11,7 +11,9 @@ const Client = require("../../models/AuthModels/Client/Client");
 const Notification = require("../../models/Othermodels/Notification/Notification");
 const moment = require("moment");
 const Milestone = require("../../models/Othermodels/Milestones/Milestones");
+const path = require("path");
 const Bucket = require("../../models/Othermodels/Bucket/Bucket");
+const Designation = require("../../models/MasterModels/Designation/Designation");
 const EmployeeCtr = {
   fetchemployeeprojects: asyncHandler(async (req, res) => {
     try {
@@ -27,22 +29,31 @@ const EmployeeCtr = {
       const search = req.query.search || "";
 
       const skip = (page - 1) * limit;
+      const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      const rrid = responseResult.map((item) => item.ProjectId);
 
       // Base query
       let queryObj = {
-        $or: [{Project_ManagersId: user.staff_Id}, {createdBy: user.staff_Id}],
+        $or: [{ProjectId: {$in: rrid}}, {createdBy: user.staff_Id}],
       };
+      console.log(rrid, "rrid");
 
-      // Add search to the query (example: search by project name or description)
+      // Add search filter if present
       if (search) {
-        queryObj.$and = [
-          {
-            $or: [{Project_Name: {$regex: search, $options: "i"}}],
-          },
-        ];
+        queryObj = {
+          $and: [
+            queryObj,
+            {
+              $or: [
+                {Project_Name: {$regex: search, $options: "i"}},
+                {description: {$regex: search, $options: "i"}}, // optional: add other searchable fields
+              ],
+            },
+          ],
+        };
       }
 
-      // Fetch directly managed projects
+      // Fetch projects
       const response = await Project.find(queryObj)
         .skip(skip)
         .limit(limit)
@@ -52,47 +63,55 @@ const EmployeeCtr = {
       const totalManaged = await Project.countDocuments(queryObj);
 
       // Fetch employee projects
-      const responseResult = await RoleResource.find({RRId: user.staff_Id});
-      const rrid = responseResult.map((item) => item.ProjectId);
+      // const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      // const rrid = responseResult.map((item) => item.ProjectId);
 
-      const employeeQuery = {
-        ProjectId: {$in: rrid},
-      };
+      // const employeeQuery = {
+      //   ProjectId: {$in: rrid},
+      // };
 
-      // Add search to employee projects too
-      if (search) {
-        employeeQuery.$and = [
-          {
-            $or: [
-              {name: {$regex: search, $options: "i"}},
-              {description: {$regex: search, $options: "i"}},
-            ],
-          },
-        ];
-      }
+      // // Add search to employee projects too
+      // if (search) {
+      //   employeeQuery.$and = [
+      //     {
+      //       $or: [
+      //         {name: {$regex: search, $options: "i"}},
+      //         {description: {$regex: search, $options: "i"}},
+      //       ],
+      //     },
+      //   ];
+      // }
 
-      const employeeProjects = await Project.find(employeeQuery)
-        .skip(skip)
-        .limit(limit)
-        .lean()
-        .exec();
+      // const employeeProjects = await Project.find(employeeQuery)
+      //   .skip(skip)
+      //   .limit(limit)
+      //   .lean()
+      //   .exec();
 
-      const totalEmployee = await Project.countDocuments(employeeQuery);
+      // const result = {...employeeProjects, ...response};
+      // const totalEmployee = await Project.countDocuments(employeeQuery);
 
-      const allProjects = {
-        managedProjects: response,
-        employeeProjects,
-        pagination: {
-          currentPage: page,
-          limit,
-          totalManaged,
-          totalEmployee,
-        },
-      };
+      // const allProjects = {
+      //   result: response,
 
-      return res
-        .status(HttpStatusCodes.OK)
-        .json({success: true, result: allProjects});
+      //   pagination: {
+      //     currentPage: page,
+      //     limit,
+      //     totalManaged,
+      //     totalEmployee,
+      //   },
+      // };
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: response,
+        // pagination: {
+        //   currentPage: page,
+        //   limit,
+        //   totalManaged,
+        //   totalEmployee,
+        // },
+      });
     } catch (error) {
       throw new Error(error?.message || "Something went wrong");
     }
@@ -113,61 +132,63 @@ const EmployeeCtr = {
       const limitNumber = parseInt(limit, 10);
       const skip = (pageNumber - 1) * limitNumber;
 
+      const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      const rrid = responseResult.map((item) => item.ProjectId);
+
       let queryObj = {
-        Project_ManagersId: user.staff_Id,
+        ProjectId: {$in: rrid},
         Project_Status: true,
-        createdBy: user?.staff_Id,
       };
 
+      // Add search condition if present
       if (search) {
         queryObj.Project_Name = {$regex: search, $options: "i"}; // Case-insensitive search
       }
 
-      const totalProjects = await Project.countDocuments(queryObj);
-      const response = await Project.find(queryObj)
+      // const totalProjects = await Project.countDocuments(queryObj);
+
+      const projects = await Project.find(queryObj)
         .skip(skip)
         .limit(limitNumber)
         .lean()
         .exec();
 
-      if (!response.length) {
-        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+      if (!projects.length) {
+        return res.status(HttpStatusCodes.NOT_FOUND).json({
           success: false,
-          message: "No Active Projects Found",
+          message: "No active projects found",
         });
       }
 
-      const responseResult = await RoleResource.find({RRId: user.staff_Id});
-      const rrid = responseResult.map((item) => item.ProjectId);
+      // const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      // const rrid = responseResult.map((item) => item.ProjectId);
 
-      let employeeactiveProjects = [];
-      if (rrid.length > 0) {
-        const employeeQuery = {
-          ProjectId: {$in: rrid},
-          Project_Status: true,
-        };
+      // let employeeactiveProjects = [];
+      // if (rrid.length > 0) {
+      //   const employeeQuery = {
+      //     ProjectId: {$in: rrid},
+      //     Project_Status: true,
+      //   };
 
-        if (search) {
-          employeeQuery.Project_Name = {$regex: search, $options: "i"};
-        }
+      //   if (search) {
+      //     employeeQuery.Project_Name = {$regex: search, $options: "i"};
+      //   }
 
-        employeeactiveProjects = await Project.find(employeeQuery)
-          .skip(skip)
-          .limit(limitNumber);
-      }
+      //   employeeactiveProjects = await Project.find(employeeQuery)
+      //     .skip(skip)
+      //     .limit(limitNumber);
+      // }
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,
-        result: {
-          response,
-          employeeactiveProjects,
-          pagination: {
-            totalProjects,
-            totalPages: Math.ceil(totalProjects / limitNumber),
-            currentPage: pageNumber,
-            limit: limitNumber,
-          },
-        },
+        result: projects,
+
+        // pagination: {
+        //   totalProjects,
+        //   totalPages: Math.ceil(totalProjects / limitNumber),
+        //   currentPage: pageNumber,
+        //   limit: limitNumber,
+        // },
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -185,11 +206,12 @@ const EmployeeCtr = {
       let {page = 1, limit = 10, search = ""} = req.query;
       page = parseInt(page);
       limit = parseInt(limit);
+      const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      const rrid = responseResult.map((item) => item.ProjectId);
 
       let queryObj = {
-        Project_ManagersId: user.staff_Id,
+        ProjectId: {$in: rrid},
         Project_Status: false,
-        Project_Name: {$regex: search, $options: "i"}, // Case-insensitive search
       };
 
       const totalProjects = await Project.countDocuments(queryObj);
@@ -204,28 +226,29 @@ const EmployeeCtr = {
         throw new Error("Bad Request");
       }
 
-      const responseResult = await RoleResource.find({RRId: user.staff_Id});
-      const rrid = responseResult.map((item) => item.ProjectId);
+      // const responseResult = await RoleResource.find({RRId: user.staff_Id});
+      // const rrid = responseResult.map((item) => item.ProjectId);
 
-      const employeeInactiveProjects = await Project.find({
-        ProjectId: {$in: rrid},
-        Project_Status: false,
-        Project_Name: {$regex: search, $options: "i"},
-      })
-        .skip((page - 1) * limit)
-        .limit(limit);
+      // const employeeInactiveProjects = await Project.find({
+      //   ProjectId: {$in: rrid},
+      //   Project_Status: false,
+      //   Project_Name: {$regex: search, $options: "i"},
+      // })
+      //   .skip((page - 1) * limit)
+      //   .limit(limit);
 
       return res.status(HttpStatusCodes.OK).json({
         success: true,
-        result: {
-          response,
-          employeeInactiveProjects,
-          pagination: {
-            totalProjects,
-            totalPages: Math.ceil(totalProjects / limit),
-            currentPage: page,
-          },
-        },
+        result: response,
+        // result: {
+        //   response,
+        //   employeeInactiveProjects,
+        //   pagination: {
+        //     totalProjects,
+        //     totalPages: Math.ceil(totalProjects / limit),
+        //     currentPage: page,
+        //   },
+        // },
       });
     } catch (error) {
       throw new Error(error?.message);
@@ -236,32 +259,49 @@ const EmployeeCtr = {
 
   FillEmployeeProjectTimesheet: asyncHandler(async (req, res) => {
     try {
-      const {newdata} = req.body;
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      let attachmentPath = req.file ? req.file.filename : Attachment;
+      if (req.file) {
+        let attachmentPath = req.file ? req.file.filename : null;
+        let uploadPath = "uploads/";
+
+        // Get file extension
+        const fileExt = path.extname(req.file.originalname).toLowerCase();
+        console.log(fileExt, "reqogsdfisdfl");
+
+        // Define subfolders based on file type
+        if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+          uploadPath += "documents/";
+        } else if (
+          [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+        ) {
+          uploadPath += "images/";
+        } else if (file.mimetype === "text/csv") {
+          uploadPath += "csv/";
+        } else {
+          uploadPath += "others/"; // Fallback folder
+        }
+
+        // console.log(uploadPath, "upload path");
+
+        var attachement = attachmentPath
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}/${attachmentPath}`
+          : null;
+      }
       const response = new TimeSheet({
-        attachement: attachmentPath,
+        // CompanyId: user?.CompanyId,
+        Staff_Id: user?.staff_Id,
+        attachement: attachement,
         ...req.body,
       });
+      console.log(req.body);
 
       await response.save();
-      // for (let item of newdata) {
-      //   const Timesheetdata = new Timesheet({
-      //     Staff_Id: user.staff_Id,
-      //     hours: item.hours,
-      //     project: item.Projectid,
-      //     day: item.day,
-      //     Description: item.Description,
-      //     task_description: item.task_description,
-      //     attachement: attachmentPath,
-      //   });
-      //   const saveTimesheetdata = await Timesheetdata.save();
-      //   inputdata.push(saveTimesheetdata);
-      // }
 
       return res.status(HttpStatusCodes.CREATED).json({
         message: "Timesheet Filled Successfully",
@@ -282,32 +322,32 @@ const EmployeeCtr = {
 
       let queryObj = {};
       queryObj = {
-        ProjectId: req.params.id,
+        project: parseInt(req.params.id),
       };
 
-      const response = await Project.find(queryObj);
+      const response = await TimeSheet.find(queryObj);
       if (!response && response.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("project Not Found");
       }
 
-      const projectDetails = await Promise.all(
-        response.map(async (item) => {
-          const findtimesheet = await TimeSheet.find({
-            project: item.ProjectId,
-          });
+      // const projectDetails = await Promise.all(
+      //   response.map(async (item) => {
+      //     const findtimesheet = await TimeSheet.find({
+      //       project: item.ProjectId,
+      //     });
 
-          const result = {
-            findtimesheet,
-          };
+      //     const result = {
+      //       findtimesheet,
+      //     };
 
-          return result;
-        })
-      );
+      //     return result;
+      //   })
+      // );
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: projectDetails});
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -322,7 +362,7 @@ const EmployeeCtr = {
 
       let queryObj = {};
       queryObj = {
-        ProjectId: req.params.id,
+        ProjectId: parseInt(req.params.id),
       };
 
       const response = await Project.find(queryObj);
@@ -428,11 +468,11 @@ const EmployeeCtr = {
         ];
       }
 
-      const totalRecords = await TimeSheet.countDocuments(query);
       const fetchTimesheet = await TimeSheet.find(query)
         .skip((page - 1) * limit)
         .limit(limit);
 
+      const totalRecords = await TimeSheet.countDocuments(query);
       return res.status(HttpStatusCodes.OK).json({
         result: fetchTimesheet,
         currentPage: page,
@@ -549,12 +589,21 @@ const EmployeeCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const response = await TimeSheet.findOne({Timesheet_Id: req.params.id});
+      const response = await TimeSheet.findOne({
+        Timesheet_Id: parseInt(req.params.id),
+      });
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("TimeSheet NOT FOUND");
       } else {
-        await response.deleteOne();
+        if (response?.approval_status === null) {
+          await response.deleteOne();
+        } else {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error(
+            "You can not delete this timesheet it's alerady send to team lead"
+          );
+        }
       }
       return res
         .status(HttpStatusCodes.OK)
@@ -867,7 +916,7 @@ const EmployeeCtr = {
 
       if (!fetchRoles) {
         res.status(HttpStatusCodes.NOT_FOUND);
-        throw new Error("Designation Not Found");
+        throw new Error("Role Not Found");
       }
       return res
         .status(HttpStatusCodes.OK)
@@ -1207,6 +1256,138 @@ const EmployeeCtr = {
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, result: result});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchEmpmloyeeTaskAllotted: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+
+      const fetchproject = await RoleResource.find({
+        ProjectId: {$in: parseInt(req.params.id)},
+      });
+
+      const rrids = await fetchproject.map((item) => item.RRId);
+
+      const response = await StaffMember.find({
+        staff_Id: {$in: rrids},
+      }).select("FirstName LastName Photos");
+
+      const responseData = await Promise.all(
+        response.map(async (staff) => {
+          const designation = await Designation.findOne({
+            Designation_Id: staff.DesignationId,
+          });
+
+          return {
+            ...staff.toObject(),
+            DesignationName: designation?.Designation_Name || null,
+          };
+        })
+      );
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({result: responseData, success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  fetchEmployeeRecentActivities: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const fetchtask = await Task.find({
+        ProjectId: parseInt(req.params.id),
+        Status: "COMPLETED",
+      });
+      if (!fetchtask) {
+        res.status(HttpStatusCodes.NOT_FOUND).json({error: "Task not found"});
+        return;
+      }
+
+      const response = await Promise.all(
+        fetchtask.map(async (item) => {
+          const fetchresource = await StaffMember.find({
+            staff_Id: item?.Resource_Id,
+          });
+
+          const names = fetchresource
+            .map((res) => `${res.FirstName} ${res.LastName}`)
+            .join(", ");
+
+          return {
+            ...item.toObject(), // convert Mongoose doc to plain object
+            Photos: fetchresource.map((res) => res.Photos?.[0]),
+            Message: `${names} has completed the task ${item?.Task_Name}`,
+          };
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  fetchEmployeemilestoneprojects: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      // check company
+
+      let queryObj = {
+        ProjectId: parseInt(req.params.id),
+      };
+
+      const response = await Milestone.find(queryObj);
+
+      if (response.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Milestone not found");
+      }
+
+      const resourceNamewithid = await Promise.all(
+        response.map(async (item) => {
+          const findprojectResources = await RoleResource.find({
+            ProjectId: item.ProjectId,
+          });
+
+          const findresourcesRRid = await findprojectResources.map(
+            (rrid) => rrid.RRId
+          );
+
+          const getresources = await StaffMember.find({
+            staff_Id: findresourcesRRid,
+          });
+
+          const responseResult = {
+            ...item.toObject(),
+            Resourcedata: getresources.map((resource) => ({
+              staff_id: resource.staff_Id, // Fetching staff_id
+              FirstName: resource.FirstName, // Fetching FirstName
+            })),
+          };
+
+          return responseResult;
+        })
+      );
+
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({success: true, result: resourceNamewithid});
     } catch (error) {
       throw new Error(error?.message);
     }

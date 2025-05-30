@@ -79,7 +79,7 @@ const TimesheetSchema = new Schema(
     approval_status: {
       type: String,
       enum: ["PENDING", "APPROVED", "DISAPPROVED", "REJECT"],
-      default: "PENDING",
+      default: null,
     },
     billing_status: {
       type: String,
