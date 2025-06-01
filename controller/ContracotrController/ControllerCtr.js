@@ -22,9 +22,12 @@ const ContractorCtr = {
         throw new Error("UnAuthorized User ! Please Signup");
       }
 
+      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
+      const rrid = responseResult.map((item) => item.ProjectId);
+
       let queryObj = {};
       queryObj = {
-        createdBy: user?.staff_Id,
+        $or: [{ ProjectId: { $in: rrid } }, { createdBy: user.staff_Id }],
       };
 
       const response = await Project.find(queryObj).lean().exec();
@@ -41,7 +44,7 @@ const ContractorCtr = {
       // const allProjects = {response, contractorProjects};
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -54,9 +57,12 @@ const ContractorCtr = {
         throw new error("UnAuthorized User Please Singup ");
       }
 
-      queryObj = {
+      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
+      const rrid = responseResult.map((item) => item.ProjectId);
+
+      let queryObj = {
+        ProjectId: { $in: rrid },
         Project_Status: true,
-        createdBy: user?.staff_Id,
       };
 
       const response = await Project.find(queryObj).lean().exec();
@@ -76,7 +82,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -88,9 +94,11 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
+      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
+      const rrid = responseResult.map((item) => item.ProjectId);
       queryObj = {
         Project_Status: false,
-        createdBy: user?.staff_Id,
+        ProjectId: { $in: rrid },
       };
 
       const response = await Project.find(queryObj).lean().exec();
@@ -110,7 +118,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -186,7 +194,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: projectDetails});
+        .json({ success: true, result: projectDetails });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -200,11 +208,11 @@ const ContractorCtr = {
         throw new Error("Unauthorized User. Please Sign Up.");
       }
 
-      let {page = 1, limit = 10, search = ""} = req.query;
+      let { page = 1, limit = 10, search = "" } = req.query;
       page = parseInt(page, 10);
       limit = parseInt(limit, 10);
 
-      let queryObj = {ProjectId: req.params.id};
+      let queryObj = { ProjectId: req.params.id };
       const projects = await Project.find(queryObj);
 
       if (!projects || projects.length === 0) {
@@ -214,11 +222,11 @@ const ContractorCtr = {
 
       const taskDetails = await Promise.all(
         projects.map(async (project) => {
-          let taskQuery = {ProjectId: project.ProjectId};
+          let taskQuery = { ProjectId: project.ProjectId };
 
           // Adding search filter if provided
           if (search) {
-            taskQuery["Task_Name"] = {$regex: search, $options: "i"}; // Case-insensitive search
+            taskQuery["Task_Name"] = { $regex: search, $options: "i" }; // Case-insensitive search
           }
 
           const totalTasks = await Task.countDocuments(taskQuery);
@@ -239,7 +247,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: taskDetails});
+        .json({ success: true, result: taskDetails });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -278,7 +286,7 @@ const ContractorCtr = {
 
           // Find all team members based on rrids
           const findTeamName = await StaffMember.find({
-            staff_Id: {$in: rrids},
+            staff_Id: { $in: rrids },
           });
 
           return {
@@ -308,16 +316,16 @@ const ContractorCtr = {
         throw new Error("UnAuthorized User, Please Signup");
       }
 
-      let {page = 1, limit = 10, search = ""} = req.query;
+      let { page = 1, limit = 10, search = "" } = req.query;
       page = parseInt(page);
       limit = parseInt(limit);
 
-      const query = {Staff_Id: user.staff_Id};
+      const query = { Staff_Id: user.staff_Id };
 
       if (search) {
         query.$or = [
-          {task_description: {$regex: search, $options: "i"}}, // Case-insensitive search in task description
-          {Description: {$regex: search, $options: "i"}}, // Case-insensitive search in description
+          { task_description: { $regex: search, $options: "i" } }, // Case-insensitive search in task description
+          { Description: { $regex: search, $options: "i" } }, // Case-insensitive search in description
         ];
       }
 
@@ -347,7 +355,7 @@ const ContractorCtr = {
       }
 
       // Get pagination and search parameters from the request query
-      const {page = 1, limit = 10, search = ""} = req.query;
+      const { page = 1, limit = 10, search = "" } = req.query;
       const skip = (page - 1) * limit;
 
       // Create search filter
@@ -357,7 +365,7 @@ const ContractorCtr = {
 
       // Apply search if the user provided a search term
       if (search) {
-        searchFilter.$or = [{Task_Name: {$regex: search, $options: "i"}}];
+        searchFilter.$or = [{ Task_Name: { $regex: search, $options: "i" } }];
       }
 
       // Fetch tasks from the database with pagination and search filter
@@ -380,17 +388,17 @@ const ContractorCtr = {
         gettaskresponse.map(async (item) => {
           // Fetch the milestone details for the current task
           const fetchmilestone = await Milestone.find({
-            Milestone_id: {$in: item.MilestoneId},
+            Milestone_id: { $in: item.MilestoneId },
           });
 
           // Fetch the resource (staff) details for the task
           const fetchresourcename = await StaffMember.find({
-            staff_Id: {$in: item.Resource_Id},
+            staff_Id: { $in: item.Resource_Id },
           });
 
           // Fetch the project name associated with the task
           const projectname = await Project.find({
-            ProjectId: {$in: item.ProjectId},
+            ProjectId: { $in: item.ProjectId },
           });
 
           // Map milestone names
@@ -444,14 +452,14 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
       }
 
       const fetchRoles = await Roles.find({
-        CompanyId: {$in: checkcompany?.Company_Id},
+        CompanyId: { $in: checkcompany?.Company_Id },
       });
 
       if (!fetchRoles) {
@@ -460,7 +468,7 @@ const ContractorCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: fetchRoles});
+        .json({ success: true, result: fetchRoles });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -473,7 +481,7 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -488,7 +496,7 @@ const ContractorCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -501,7 +509,7 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -515,7 +523,7 @@ const ContractorCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -547,7 +555,7 @@ const ContractorCtr = {
         throw new error("UnAuthorized User Please Singup ");
       }
 
-      const checkcompany = await Company({Company_Id: user?.CompanyId});
+      const checkcompany = await Company({ Company_Id: user?.CompanyId });
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -602,7 +610,7 @@ const ContractorCtr = {
         return; // Exit early if clientId is not available
       }
 
-      const client = await Client.findOne({Client_Id: responseClientId});
+      const client = await Client.findOne({ Client_Id: responseClientId });
       if (!client) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error(`Client with ID ${responseClientId} not found.`);
@@ -610,8 +618,8 @@ const ContractorCtr = {
 
       if (client.Client_Status !== "Active") {
         await Client.updateOne(
-          {Client_Id: responseClientId},
-          {$set: {Client_Status: "Active"}}
+          { Client_Id: responseClientId },
+          { $set: { Client_Status: "Active" } }
         );
       }
 
@@ -647,9 +655,9 @@ const ContractorCtr = {
 
       try {
         let updatestaffmember = await Promise.all(
-          (roleResources || []).map(async ({RRId, RId}) => {
+          (roleResources || []).map(async ({ RRId, RId }) => {
             if (!RRId) return; // Skip invalid entries
-            const staff = await StaffMember.findOne({staff_Id: RRId});
+            const staff = await StaffMember.findOne({ staff_Id: RRId });
 
             if (!staff) {
               res.status(HttpStatusCodes.NOT_FOUND);
@@ -658,8 +666,8 @@ const ContractorCtr = {
 
             if (staff.IsActive !== "Active") {
               await StaffMember.updateOne(
-                {staff_Id: RRId},
-                {$set: {IsActive: "Active"}}
+                { staff_Id: RRId },
+                { $set: { IsActive: "Active" } }
               );
             }
             // send notification as Employee Roles
@@ -703,10 +711,10 @@ const ContractorCtr = {
       }
       try {
         let updatestaffmember = await Promise.all(
-          (roleProjectMangare || []).map(async ({RRId, RId}) => {
+          (roleProjectMangare || []).map(async ({ RRId, RId }) => {
             if (!RRId) return;
 
-            const staff = await StaffMember.findOne({staff_Id: RRId});
+            const staff = await StaffMember.findOne({ staff_Id: RRId });
 
             if (!staff) {
               res.status(HttpStatusCodes.NOT_FOUND);
@@ -715,8 +723,8 @@ const ContractorCtr = {
 
             if (staff.IsActive !== "Active") {
               await StaffMember.updateOne(
-                {staff_Id: RRId},
-                {$set: {IsActive: "Active"}}
+                { staff_Id: RRId },
+                { $set: { IsActive: "Active" } }
               );
             }
 
@@ -743,7 +751,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.CREATED)
-        .json({success: true, message: "Project Created Successfully"});
+        .json({ success: true, message: "Project Created Successfully" });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -771,7 +779,7 @@ const ContractorCtr = {
         await Promise.all(
           approveIds.map(async (item) => {
             // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
+            const timesheet = await TimeSheet.findOne({ Timesheet_Id: item });
 
             // Check if the timesheet exists and if the status is "PENDING"
             if (!timesheet) {
@@ -781,13 +789,13 @@ const ContractorCtr = {
 
             // Proceed with the update if it's 'PENDING'
             const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              {Timesheet_Id: item},
+              { Timesheet_Id: item },
               {
                 $set: {
                   approval_status: "PENDING",
                 },
               },
-              {new: true, runValidators: true}
+              { new: true, runValidators: true }
             );
 
             if (!updatedTimesheet) {
@@ -818,7 +826,7 @@ const ContractorCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const response = await TimeSheet.findOne({Timesheet_Id: req.params.id});
+      const response = await TimeSheet.findOne({ Timesheet_Id: req.params.id });
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("TimeSheet NOT FOUND");
@@ -827,7 +835,7 @@ const ContractorCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, message: "Timesheet Remove Successfully"});
+        .json({ success: true, message: "Timesheet Remove Successfully" });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -843,7 +851,7 @@ const ContractorCtr = {
       const response = await Notification.find({
         ReciverId: user?.staff_Id,
         IsRead: false,
-      }).sort({createdAt: -1});
+      }).sort({ createdAt: -1 });
 
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -852,7 +860,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({result: response, success: true});
+        .json({ result: response, success: true });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -879,7 +887,7 @@ const ContractorCtr = {
       }
 
       // Get search, page, and limit from query parameters
-      let {search, page = 1, limit = 10} = req.query;
+      let { search, page = 1, limit = 10 } = req.query;
       page = parseInt(page);
       limit = parseInt(limit);
       const skip = (page - 1) * limit;
@@ -887,8 +895,8 @@ const ContractorCtr = {
       // Build the query object to fetch projects for the contractor
       const queryObj = {
         $or: [
-          {createdBy: contractordata?.staff_Id},
-          {Project_ManagersId: contractordata?.staff_Id},
+          { createdBy: contractordata?.staff_Id },
+          { Project_ManagersId: contractordata?.staff_Id },
           {
             ProjectId: {
               $in: await RoleResource.find({
@@ -901,7 +909,7 @@ const ContractorCtr = {
 
       // If a search term is provided, filter projects by Project_Name
       if (search) {
-        queryObj.Project_Name = {$regex: search, $options: "i"};
+        queryObj.Project_Name = { $regex: search, $options: "i" };
       }
 
       // Step 1: Get projects based on the query and pagination
@@ -918,16 +926,16 @@ const ContractorCtr = {
       const timesheetData = await TimeSheet.aggregate([
         {
           $match: {
-            project: {$in: projects.map((project) => project.ProjectId)},
+            project: { $in: projects.map((project) => project.ProjectId) },
           },
         },
         {
           $group: {
             _id: "$project",
-            totalHours: {$sum: {$toDouble: "$hours"}},
-            okHours: {$sum: {$toDouble: "$ok_hours"}},
-            billedHours: {$sum: {$toDouble: "$billed_hours"}},
-            totalEntries: {$sum: 1}, // Count total timesheet entries per project
+            totalHours: { $sum: { $toDouble: "$hours" } },
+            okHours: { $sum: { $toDouble: "$ok_hours" } },
+            billedHours: { $sum: { $toDouble: "$billed_hours" } },
+            totalEntries: { $sum: 1 }, // Count total timesheet entries per project
           },
         },
       ]);
@@ -1038,15 +1046,15 @@ const ContractorCtr = {
         });
       }
 
-      const {page = 1, limit = 10, search = ""} = req.query;
+      const { page = 1, limit = 10, search = "" } = req.query;
       const skip = (parseInt(page) - 1) * parseInt(limit);
 
-      const query = {project: parseInt(req.params.id)};
+      const query = { project: parseInt(req.params.id) };
 
       if (search) {
         query.$or = [
-          {task_description: {$regex: search, $options: "i"}}, // Case-insensitive search in task description
-          {Description: {$regex: search, $options: "i"}}, // Case-insensitive search in description
+          { task_description: { $regex: search, $options: "i" } }, // Case-insensitive search in task description
+          { Description: { $regex: search, $options: "i" } }, // Case-insensitive search in description
         ];
       }
 
@@ -1094,7 +1102,7 @@ const ContractorCtr = {
       }
       res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: fetchproject});
+        .json({ success: true, result: fetchproject });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1124,7 +1132,7 @@ const ContractorCtr = {
             day: moment().format("DD/MM/YYYY"),
           },
         }, // 🔹 Update document with new values
-        {new: true, upsert: true} // 🔹 Return updated doc, create if not found
+        { new: true, upsert: true } // 🔹 Return updated doc, create if not found
       );
 
       if (!response) {
@@ -1132,15 +1140,15 @@ const ContractorCtr = {
         throw new Error("Timesheet Not found");
       } else {
         await Task.findOneAndUpdate(
-          {task_Id: parseInt(req.params.id)},
-          {$set: {Status: "COMPLETED"}},
-          {new: true}
+          { task_Id: parseInt(req.params.id) },
+          { $set: { Status: "COMPLETED" } },
+          { new: true }
         );
       }
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, message: "Task Progress Updated"});
+        .json({ success: true, message: "Task Progress Updated" });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1156,10 +1164,10 @@ const ContractorCtr = {
         });
       }
 
-      const fetchtask = await Task.findOne({task_Id: req.params.id});
+      const fetchtask = await Task.findOne({ task_Id: req.params.id });
 
       if (!fetchtask) {
-        res.status(HttpStatusCodes.NOT_FOUND).json({error: "Task not found"});
+        res.status(HttpStatusCodes.NOT_FOUND).json({ error: "Task not found" });
         return;
       }
 
@@ -1177,7 +1185,7 @@ const ContractorCtr = {
       };
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: result});
+        .json({ success: true, result: result });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1194,7 +1202,7 @@ const ContractorCtr = {
       }
 
       const projectId = req.params.id;
-      const fetchproject = await Project.findOne({ProjectId: projectId});
+      const fetchproject = await Project.findOne({ ProjectId: projectId });
       if (!fetchproject) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Project Not Found");
@@ -1208,7 +1216,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: result});
+        .json({ success: true, result: result });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1251,7 +1259,7 @@ const ContractorCtr = {
       }
 
       const staffids = roleresourcedata.map((item) => item.RRId);
-      const staffteam = await StaffMember.find({staff_Id: {$in: staffids}});
+      const staffteam = await StaffMember.find({ staff_Id: { $in: staffids } });
 
       if (!staffteam || staffteam.length === 0) {
         return res.status(HttpStatusCodes.NOT_FOUND).json({
@@ -1288,13 +1296,13 @@ const ContractorCtr = {
       }
 
       const fetchproject = await RoleResource.find({
-        ProjectId: {$in: parseInt(req.params.id)},
+        ProjectId: { $in: parseInt(req.params.id) },
       });
 
       const rrids = await fetchproject.map((item) => item.RRId);
 
       const response = await StaffMember.find({
-        staff_Id: {$in: rrids},
+        staff_Id: { $in: rrids },
       }).select("FirstName LastName Photos");
 
       const responseData = await Promise.all(
@@ -1311,7 +1319,7 @@ const ContractorCtr = {
       );
       return res
         .status(HttpStatusCodes.OK)
-        .json({result: responseData, success: true});
+        .json({ result: responseData, success: true });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1328,7 +1336,7 @@ const ContractorCtr = {
         Status: "COMPLETED",
       });
       if (!fetchtask) {
-        res.status(HttpStatusCodes.NOT_FOUND).json({error: "Task not found"});
+        res.status(HttpStatusCodes.NOT_FOUND).json({ error: "Task not found" });
         return;
       }
 
@@ -1352,7 +1360,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: response});
+        .json({ success: true, result: response });
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1405,7 +1413,7 @@ const ContractorCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({success: true, result: resourceNamewithid});
+        .json({ success: true, result: resourceNamewithid });
     } catch (error) {
       throw new Error(error?.message);
     }
