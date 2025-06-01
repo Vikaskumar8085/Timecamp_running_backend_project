@@ -143,4 +143,8 @@ employeeRouter.get(
   "/fetch-employee-milestone-project/:id",
   EmployeeCtr.fetchEmployeemilestoneprojects
 );
+employeeRouter.get(
+  "/fetch-employee-single-project/:id",
+  EmployeeCtr.fetchemployeesingleprojects
+);
 module.exports = employeeRouter;
