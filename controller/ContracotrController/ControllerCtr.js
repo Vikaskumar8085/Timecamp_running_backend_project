@@ -13,6 +13,40 @@ const Milestone = require("../../models/Othermodels/Milestones/Milestones");
 const path = require("path");
 const moment = require("moment");
 const Bucket = require("../../models/Othermodels/Bucket/Bucket");
+
+const parseFormDataEntries = (body, files) => {
+  const entries = [];
+  const entryMap = {};
+
+  // Group fields by index
+  for (const key in body) {
+    const match = key.match(/entries\[(\d+)]\[(\w+)]/);
+    if (match) {
+      const [, index, field] = match;
+      if (!entryMap[index]) entryMap[index] = {};
+      entryMap[index][field] = body[key];
+    }
+  }
+
+  // Attach files
+  if (files && Array.isArray(files)) {
+    files.forEach((file) => {
+      const match = file.fieldname.match(/entries\[(\d+)]\[attachment]/);
+      if (match) {
+        const [_, index] = match;
+        if (!entryMap[index]) entryMap[index] = {};
+        entryMap[index]["attachment"] = file.filename; // or `file.path` if full path needed
+      }
+    });
+  }
+
+  for (const index in entryMap) {
+    entries.push(entryMap[index]);
+  }
+
+  return entries;
+};
+
 const ContractorCtr = {
   fetchcontractorprojects: asyncHandler(async (req, res) => {
     try {
@@ -981,7 +1015,7 @@ const ContractorCtr = {
   }),
   contractorfilltimehseet: asyncHandler(async (req, res) => {
     try {
-      const user = await StaffMember.findById(req.user);
+      const user = await StaffMember.findById(req.user._id);
       if (!user) {
         return res.status(HttpStatusCodes.UNAUTHORIZED).json({
           success: false,
@@ -989,8 +1023,9 @@ const ContractorCtr = {
         });
       }
 
+      // Optional: Handle single attachment outside FormData (if any)
       let attachmentPath = req.file ? req.file.filename : null;
-      let uploadPath = "uploads/";
+      let uploadPath = "uploads";
 
       if (req.file) {
         const fileExt = path.extname(req.file.originalname).toLowerCase();
@@ -1005,7 +1040,7 @@ const ContractorCtr = {
         } else if (mimeType === "text/csv") {
           uploadPath = path.join(uploadPath, "csv");
         } else {
-          uploadPath = path.join(uploadPath, "others"); // Fallback folder
+          uploadPath = path.join(uploadPath, "others");
         }
       }
 
@@ -1013,25 +1048,35 @@ const ContractorCtr = {
         ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
         : null;
 
-      const timesheetData = new TimeSheet({
-        Staff_Id: user.staff_Id,
-        hours: req.body.hours,
-        project: req.body.project,
-        day: moment(req.body.day, "YYYY-MM-DD").format("DD/MM/YYYY"),
-        Description: req.body.Description,
-        task_description: req.body.task_description,
-        attachement: contractorAttachment,
-      });
+      const parsedEntries = parseFormDataEntries(req.body, req.files);
+      const entriesToInsert = [];
 
-      await timesheetData.save();
+      for (const entry of parsedEntries) {
+        entriesToInsert.push({
+          project: entry.project,
+          user: user.staff_Id,
+          hours: Number(entry.hours),
+          day: new Date(entry.day),
+          Description: entry.Description,
+          task_description: entry.task_description,
+          attachment: entry.attachment || contractorAttachment, // Fallback if FormData didn't include one
+        });
+      }
+
+      const savedEntries = await TimeSheet.insertMany(entriesToInsert);
 
       return res.status(HttpStatusCodes.CREATED).json({
         message: "Timesheet Filled Successfully",
-        result: timesheetData,
+        result: savedEntries,
         success: true,
       });
     } catch (error) {
-      throw new Error(error?.message);
+      console.error("Error filling timesheet:", error);
+      return res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        message: "Server Error",
+        error: error.message,
+        success: false,
+      });
     }
   }),
 
