@@ -686,46 +686,7 @@ const clientCtr = {
       const skip = (page - 1) * limit;
 
       // Get paginated projects
-
-      const response = await Project.aggregate([
-        {$match: queryObj},
-        {
-          $lookup: {
-            from: "timesheets",
-            localField: "project", // Assuming 'project' field in Project collection matches 'ProjectId' in timesheets
-            foreignField: "ProjectId",
-            as: "defaultTimesheetsdata",
-          },
-        },
-        {
-          $unwind: {
-            path: "$defaultTimesheetsdata",
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-        {
-          $lookup: {
-            from: "staffmembers",
-            let: {staffId: "$defaultTimesheetsdata.staffIds"},
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $in: ["$staff_Id", "$$staffId"],
-                  },
-                },
-              },
-            ],
-            as: "defaultStaffmemebers",
-          },
-        },
-        {
-          $unwind: {
-            path: "$defaultStaffmemebers",
-            preserveNullAndEmptyArrays: true,
-          },
-        },
-      ]);
+      const response = await Project.find(queryObj);
 
       if (!response || response.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -758,7 +719,7 @@ const clientCtr = {
       const totalProjects = await Project.countDocuments(queryObj);
 
       return res.status(HttpStatusCodes.OK).json({
-        result: response,
+        result: timesheetresponse,
         success: true,
         message: "Timesheet client",
         pagination: {
