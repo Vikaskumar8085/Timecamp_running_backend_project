@@ -37,7 +37,10 @@ managerRouter.delete(
   "/remove-manager-timesheet/:id",
   managerCtr.RemovemanagerTimesheet
 );
-managerRouter.post("/send-for-approvel-manager-timesheet");
+managerRouter.put(
+  "/send-for-approvel-manager-timesheet/:id",
+  managerCtr.sendForapprovelManagerTimesheet
+);
 managerRouter.get(
   "/fetch-manager-notification",
   managerCtr.fetchManagerNotification
@@ -183,5 +186,24 @@ managerRouter.get(
 managerRouter.get(
   "/fetch-manager-recent-activity/:id",
   managerCtr.fetchManagerRecentActivities
+);
+managerRouter.post(
+  "/approve-timesheet-by-manager",
+  managerCtr.approveTimesheetbyManager
+);
+
+managerRouter.post(
+  "/disapprove-timesheet-by-manager",
+  managerCtr.disapproveTimesheetbyManager
+);
+
+managerRouter.post(
+  "/billed-timesheet-by-manager",
+  managerCtr.billedTimesheetbyManager
+);
+
+managerRouter.post(
+  "/send-for-approvel",
+  managerCtr.sendapproveltimesheetbymanager
 );
 module.exports = managerRouter;

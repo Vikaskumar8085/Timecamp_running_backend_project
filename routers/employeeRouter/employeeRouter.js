@@ -147,4 +147,20 @@ employeeRouter.get(
   "/fetch-employee-single-project/:id",
   EmployeeCtr.fetchemployeesingleprojects
 );
+
+// approve time sheet by employee
+employeeRouter.post(
+  "/approve-timesheet-by-employee",
+  EmployeeCtr.approveTimesheetbyEmployee
+);
+
+employeeRouter.post(
+  "/disapprove-timesheet-by-employee",
+  EmployeeCtr.disapproveTimesheetbyEmployee
+);
+
+employeeRouter.post(
+  "/billed-timesheet-by-employee",
+  EmployeeCtr.billedTimesheetbyEmployee
+);
 module.exports = employeeRouter;

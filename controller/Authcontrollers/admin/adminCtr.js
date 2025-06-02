@@ -18,7 +18,7 @@ const adminCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -70,8 +70,8 @@ const adminCtr = {
       } else {
         await createuser.save();
         await Company.updateOne(
-          { Company_Id: checkcompany?.Company_Id },
-          { $push: { UserId: createuser.user_id } }
+          {Company_Id: checkcompany?.Company_Id},
+          {$push: {UserId: createuser.user_id}}
         );
       }
 
@@ -167,7 +167,7 @@ const adminCtr = {
       }
       return res
         .status(HttpStatusCodes.CREATED)
-        .json({ success: true, message: "admin created successfully" });
+        .json({success: true, message: "admin created successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -183,7 +183,7 @@ const adminCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -219,22 +219,22 @@ const adminCtr = {
             )}/${uploadPath}/${attachmentPath}`
           : null;
       }
-      const response = await User.findOne({ user_id: parseInt(req.params.id) });
+      const response = await User.findOne({user_id: parseInt(req.params.id)});
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("User not found");
       } else {
-        const { Password, ...rest } = req.body;
+        const {Password, ...rest} = req.body;
 
         await User.updateOne(
-          { user_id: parseInt(req.params.id) },
+          {user_id: parseInt(req.params.id)},
           {
             $set: {
               Photo: adminphoto,
               ...rest, // Only include fields other than password
             },
           },
-          { new: true, runValidators: true }
+          {new: true, runValidators: true}
         );
         await Notification({
           SenderId: user?.user_id,
@@ -247,7 +247,7 @@ const adminCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ message: "admin updated successfully", success: true });
+        .json({message: "admin updated successfully", success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -260,7 +260,7 @@ const adminCtr = {
         res.status(StatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const getAdminuser = await Company.findOne({ UserId: user?.user_id });
+      const getAdminuser = await Company.findOne({UserId: user?.user_id});
       if (!getAdminuser && getAdminuser.length === 0) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("admin Not found");
@@ -295,7 +295,7 @@ const adminCtr = {
       // ]);
 
       let QueryObj = {};
-      QueryObj = { user_id: getAdminuser.UserId };
+      QueryObj = {user_id: getAdminuser.UserId};
       const result = await User.find(QueryObj).lean().exec();
 
       return res.status(200).json({
@@ -325,36 +325,28 @@ const adminCtr = {
         throw new Error("Company not found");
       }
 
-      const findTimesheet = await TimeSheet.findOne({ project: req.params.id });
-      if (!findTimesheet) {
-        res.status(HttpStatusCodes?.NOT_FOUND);
-        throw new Error("Timesheet not found");
-      }
+      for (let item of approveIds) {
+        const findTimesheet = await TimeSheet.findOne({
+          Timesheet_Id: item,
+        });
 
-      // if (findTimesheet?.approval_status === "APPROVED") {
-      //   res.status(HttpStatusCodes.FORBIDDEN);
-      //   throw new Error("Timesheet already Approved");
-      // }
-      // Update all timesheets in one query
-      const updatedTimesheets = await TimeSheet.updateMany(
-        { Timesheet_Id: { $in: approveIds }, approval_status: "PENDING" },
-        {
-          $set: {
-            approval_status: "APPROVED",
-            approved_by: user.user_id,
-            approved_date: moment().format("DD/MM/YYYY"),
-          },
+        if (findTimesheet.approval_status === "PENDING") {
+          await findTimesheet.updateOne({
+            $set: {
+              approval_status: "APPROVED",
+              approved_by: user.user_id,
+              approved_date: moment().format("DD/MM/YYYY"),
+            },
+          });
+        } else {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error("Timesheet alerady Approved");
         }
-      );
-
-      if (updatedTimesheets.modifiedCount === 0) {
-        res.status(HttpStatusCodes?.NOT_FOUND);
-        throw new Error("No timesheets were updated.");
       }
 
       res
         .status(200)
-        .json({ success: true, message: "Timesheets approved successfully." });
+        .json({success: true, message: "Timesheets approved successfully."});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -376,31 +368,29 @@ const adminCtr = {
         throw new Error("Company not found");
       }
 
-      const findTimesheet = await TimeSheet.findOne({ project: req.params.id });
-      if (!findTimesheet) {
-        res.status(HttpStatusCodes?.NOT_FOUND);
-        throw new Error("Timesheet not found");
-      }
+      for (let item of approveIds) {
+        const findTimesheet = await TimeSheet.findOne({
+          Timesheet_Id: item,
+        });
 
-      // if (findTimesheet?.approval_status === "DISAPPROVED") {
-      //   res.status(HttpStatusCodes.FORBIDDEN);
-      //   throw new Error("Timesheet already Approved");
-      // }
-      // Update all timesheets in one query
-      const updatedTimesheets = await TimeSheet.updateMany(
-        { Timesheet_Id: { $in: approveIds }, approval_status: "PENDING" },
-        {
-          $set: {
-            approval_status: "DISAPPROVED",
-            approved_by: user.user_id,
-            approved_date: moment().format("DD/MM/YYYY"),
-          },
+        if (findTimesheet.approval_status === "APPROVED") {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error(
+            "Timesheet aleady approved you can not disapproved timesheet"
+          );
         }
-      );
-
-      if (updatedTimesheets.modifiedCount === 0) {
-        res.status(HttpStatusCodes?.NOT_FOUND);
-        throw new Error("No timesheets were updated.");
+        if (findTimesheet.approval_status === "PENDING") {
+          await findTimesheet.updateOne({
+            $set: {
+              approval_status: "DISAPPROVED",
+              approved_by: user.user_id,
+              approved_date: moment().format("DD/MM/YYYY"),
+            },
+          });
+        } else {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error("Timesheet alerady Approved");
+        }
       }
 
       res.status(200).json({
@@ -429,30 +419,39 @@ const adminCtr = {
         throw new Error("Company not found");
       }
 
-      const findTimesheet = await TimeSheet.findOne({ project: req.params.id });
-      if (!findTimesheet) {
-        res.status(HttpStatusCodes?.NOT_FOUND);
-        throw new Error("Timesheet not found");
-      }
+      // BILLLED
 
-      if (findTimesheet.approval_status !== "APPROVED") {
-        res.status(HttpStatusCodes.BAD_REQUEST);
-        throw new Error("Timesheet is Not Approved");
+      for (let item of approveIds) {
+        const findTimesheet = await TimeSheet.findOne({
+          Timesheet_Id: item,
+        });
+        if (!findTimesheet) {
+          res.status(HttpStatusCodes?.NOT_FOUND);
+          throw new Error("Timesheet not found");
+        }
+        if (findTimesheet.approval_status === "APPROVED") {
+          if (findTimesheet.billing_status === "NOT_BILLED") {
+            await findTimesheet.updateOne({
+              $set: {billing_status: "BILLED"},
+            });
+          } else {
+            res.status(HttpStatusCodes.BAD_REQUEST);
+            throw new Error("it's aleardy billed");
+          }
+        }
+        if (findTimesheet.approval_status === "DISAPPROVED") {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error("Timesheet is not Approved ");
+        }
+        if (findTimesheet.approval_status === "PENDING") {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error("Timesheet is one pending mode.we can not billed it");
+        }
       }
-      // Update all timesheets in one query
-      const updatedTimesheets = await TimeSheet.updateMany(
-        { Timesheet_Id: { $in: approveIds }, billing_status: "NOT_BILLED" },
-        { $set: { billing_status: "BILLED" } }
-      );
-
-      if (updatedTimesheets.modifiedCount === 0) {
-        res.status(HttpStatusCodes?.NOT_FOUND);
-        throw new Error(" timesheets were not updated.");
-      }
-
+      // BILLED
       res
         .status(200)
-        .json({ success: true, message: "Timesheets Billed successfully." });
+        .json({success: true, message: "Timesheets Billed successfully."});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -465,7 +464,7 @@ const adminCtr = {
         throw new Error("Unautorized User Please Singup");
       }
 
-      const checkcompany = await Company.findOne({ UserId: user?.user_id });
+      const checkcompany = await Company.findOne({UserId: user?.user_id});
       if (!checkcompany) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -501,21 +500,21 @@ const adminCtr = {
           : null;
       }
 
-      const response = await User.findOne({ user_id: parseInt(req.params.id) });
+      const response = await User.findOne({user_id: parseInt(req.params.id)});
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("User not found");
       } else {
-        const { Password, ...rest } = req.body;
+        const {Password, ...rest} = req.body;
         await User.updateOne(
-          { user_id: parseInt(req.params.id) },
+          {user_id: parseInt(req.params.id)},
           {
             $set: {
               ...rest,
               Photo: photos,
             },
           },
-          { new: true, runValidators: true }
+          {new: true, runValidators: true}
         );
       }
       return res.status(HttpStatusCodes.OK).json({

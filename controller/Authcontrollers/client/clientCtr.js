@@ -17,7 +17,7 @@ async function generateUniqueClientName(baseName) {
   for (let attempt = 0; attempt < 10; attempt++) {
     const suffix = Math.floor(Math.random() * 10000);
     const uniqueUsername = `${username}_${suffix}`;
-    const exists = await Client.findOne({ Username: uniqueUsername });
+    const exists = await Client.findOne({Username: uniqueUsername});
 
     if (!exists) {
       return uniqueUsername;
@@ -40,7 +40,7 @@ const clientCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Unautorized User Please Singup");
       }
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -205,7 +205,7 @@ const clientCtr = {
         }
         return res
           .status(200)
-          .json({ success: true, message: "successfully client added" });
+          .json({success: true, message: "successfully client added"});
       }
     } catch (error) {
       throw new Error(error?.message);
@@ -215,7 +215,7 @@ const clientCtr = {
   edit_client: asyncHandler(async (req, res) => {
     try {
       // Find user
-      let updateData = { ...req.body };
+      let updateData = {...req.body};
 
       const user = await User.findById(req.user);
       if (!user) {
@@ -223,7 +223,7 @@ const clientCtr = {
         throw new Error("Unauthorized user. Please sign up.");
       }
       // Check if the company exists
-      const company = await Company.findOne({ UserId: user.user_id });
+      const company = await Company.findOne({UserId: user.user_id});
       if (!company) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Company not found. Please create a company first.");
@@ -291,8 +291,8 @@ const clientCtr = {
         }).save();
 
         await client.updateOne(
-          { $set: { ...updateData } },
-          { runValidators: true, new: true }
+          {$set: {...updateData}},
+          {runValidators: true, new: true}
         );
       }
 
@@ -316,13 +316,13 @@ const clientCtr = {
         throw new Error("Unauthorized user. Please sign up.");
       }
       // Check if the company exists
-      const company = await Company.findOne({ UserId: user.user_id });
+      const company = await Company.findOne({UserId: user.user_id});
       if (!company) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("Company not found. Please create a company first.");
       }
 
-      const response = await Client.findOne({ Client_Id: req.params.id });
+      const response = await Client.findOne({Client_Id: req.params.id});
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("client Not Found");
@@ -356,7 +356,7 @@ const clientCtr = {
       }
 
       // Check if company exists
-      const company = await Company.findOne({ UserId: user?.user_id });
+      const company = await Company.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error(
@@ -365,7 +365,7 @@ const clientCtr = {
       }
 
       // Extract and validate pagination & search parameters
-      let { search = "", page = 1, limit = 10 } = req.query;
+      let {search = "", page = 1, limit = 10} = req.query;
       page = Math.max(parseInt(page, 10) || 1, 1);
       limit = Math.max(parseInt(limit, 10) || 10, 1);
 
@@ -377,8 +377,8 @@ const clientCtr = {
       // Apply search filter
       if (search.trim()) {
         queryObj.$or = [
-          { Client_Name: { $regex: search, $options: "i" } },
-          { Client_Email: { $regex: search, $options: "i" } },
+          {Client_Name: {$regex: search, $options: "i"}},
+          {Client_Email: {$regex: search, $options: "i"}},
         ];
       }
 
@@ -417,14 +417,14 @@ const clientCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
       // Extract query parameters
-      let { search = "", page = 1, limit = 10 } = req.query;
+      let {search = "", page = 1, limit = 10} = req.query;
 
       page = Math.max(parseInt(page, 10), 1); // Ensure page is at least 1
       limit = Math.max(parseInt(limit, 10), 1); // Ensure limit is at least 1
@@ -438,8 +438,8 @@ const clientCtr = {
 
       if (search.trim()) {
         queryObj.$or = [
-          { Client_Name: { $regex: search, $options: "i" } },
-          { Client_Email: { $regex: search, $options: "i" } },
+          {Client_Name: {$regex: search, $options: "i"}},
+          {Client_Email: {$regex: search, $options: "i"}},
         ];
       }
 
@@ -477,13 +477,13 @@ const clientCtr = {
       }
 
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
-      let { page = 1, limit = 10, search = "" } = req.query;
+      let {page = 1, limit = 10, search = ""} = req.query;
       page = parseInt(page, 10) || 1;
       limit = parseInt(limit, 10) || 10;
 
@@ -497,8 +497,8 @@ const clientCtr = {
       // Apply search filter for both name and email
       if (search.trim()) {
         queryObj.$or = [
-          { Client_Name: { $regex: search, $options: "i" } },
-          { Client_Email: { $regex: search, $options: "i" } },
+          {Client_Name: {$regex: search, $options: "i"}},
+          {Client_Email: {$regex: search, $options: "i"}},
         ];
       }
 
@@ -535,7 +535,7 @@ const clientCtr = {
       }
 
       // Check company
-      const company = await Company.findOne({ UserId: user.user_id });
+      const company = await Company.findOne({UserId: user.user_id});
       if (!company) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error(
@@ -553,8 +553,8 @@ const clientCtr = {
       if (req.query.search) {
         searchQuery = {
           $or: [
-            { Client_Name: { $regex: req.query.search, $options: "i" } },
-            { Client_Email: { $regex: req.query.search, $options: "i" } },
+            {Client_Name: {$regex: req.query.search, $options: "i"}},
+            {Client_Email: {$regex: req.query.search, $options: "i"}},
           ],
         };
       }
@@ -599,13 +599,13 @@ const clientCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
       // response
-      const response = await Client.findOne({ Client_Id: req.params.id })
+      const response = await Client.findOne({Client_Id: req.params.id})
         .lean()
         .exec();
       if (!response) {
@@ -631,7 +631,7 @@ const clientCtr = {
         throw new Error("Unautorized User Please Singup");
       }
       // check company
-      const company = await Company?.findOne({ UserId: user?.user_id });
+      const company = await Company?.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
@@ -667,7 +667,7 @@ const clientCtr = {
       }
 
       // Check if the company exists
-      const company = await Company.findOne({ UserId: user?.user_id });
+      const company = await Company.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error(
@@ -686,8 +686,9 @@ const clientCtr = {
       const skip = (page - 1) * limit;
 
       // Get paginated projects
+
       const response = await Project.aggregate([
-        { $match: queryObj },
+        {$match: queryObj},
         {
           $lookup: {
             from: "timesheets",
@@ -705,7 +706,7 @@ const clientCtr = {
         {
           $lookup: {
             from: "staffmembers",
-            let: { staffId: "$defaultTimesheetsdata.staffIds" },
+            let: {staffId: "$defaultTimesheetsdata.staffIds"},
             pipeline: [
               {
                 $match: {
@@ -726,32 +727,32 @@ const clientCtr = {
         },
       ]);
 
-      // if (!response || response.length === 0) {
-      //   res.status(HttpStatusCodes.NOT_FOUND);
-      //   throw new Error("Projects Not Found");
-      // }
+      if (!response || response.length === 0) {
+        res.status(HttpStatusCodes.NOT_FOUND);
+        throw new Error("Projects Not Found");
+      }
 
       // Fetch timesheet data for the projects
-      // const timesheetresponse = await Promise.all(
-      //   response.map(async (item) => {
-      //     const timesheetdata = await TimeSheet.find({
-      //       project: item?.ProjectId,
-      //     })
-      //       .skip(skip)
-      //       .limit(limit); // Apply pagination to timesheet data
+      const timesheetresponse = await Promise.all(
+        response.map(async (item) => {
+          const timesheetdata = await TimeSheet.find({
+            project: item?.ProjectId,
+          })
+            .skip(skip)
+            .limit(limit); // Apply pagination to timesheet data
 
-      //     // Extract all staff IDs
-      //     const staffIds = await timesheetdata.map((ts) => ts.Staff_Id);
+          // Extract all staff IDs
+          const staffIds = await timesheetdata.map((ts) => ts.Staff_Id);
 
-      //     const members = await StaffMember.find({
-      //       staff_Id: {$in: staffIds},
-      //     });
+          const members = await StaffMember.find({
+            staff_Id: {$in: staffIds},
+          });
 
-      //     const MemberName = await members.map((member) => member.FirstName);
+          const MemberName = await members.map((member) => member.FirstName);
 
-      //     return {timesheetdata, MemberName};
-      //   })
-      // );
+          return {timesheetdata, MemberName};
+        })
+      );
 
       // Get total count of projects (for frontend pagination)
       const totalProjects = await Project.countDocuments(queryObj);

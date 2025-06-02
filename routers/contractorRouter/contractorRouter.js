@@ -172,4 +172,24 @@ contractorRouter.get(
   "/fetch-conractor-milestones/:id",
   ContractorCtr.fetchContractormilestoneprojects
 );
+
+contractorRouter.put("/send-for-approvel/:id", ContractorCtr.SendForApprovel);
+
+contractorRouter.post(
+  "/approve-timesheet-by-contractor",
+  ContractorCtr.approveTimesheetbyContractor
+);
+
+contractorRouter.post(
+  "/disapprove-timesheet-by-contractor",
+  ContractorCtr.disapproveTimesheetbyContractor
+);
+
+contractorRouter.post(
+  "/billed-timesheet-by-contractor",
+  ContractorCtr.billedTimesheetbyContractor
+);
+
+
+
 module.exports = contractorRouter;

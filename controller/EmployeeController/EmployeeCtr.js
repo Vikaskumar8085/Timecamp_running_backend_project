@@ -29,7 +29,7 @@ const EmployeeCtr = {
       const search = req.query.search || "";
 
       const skip = (page - 1) * limit;
-      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
+      const responseResult = await RoleResource.find({RRId: user.staff_Id});
       const rrid = responseResult.map((item) => item.ProjectId);
       console.log(rrid, "rrids");
 
@@ -37,10 +37,7 @@ const EmployeeCtr = {
       let queryObj = {};
 
       queryObj = {
-        $or: [
-          { ProjectId: { $in: rrid } },
-          { createdBy: { $in: user.staff_Id } },
-        ],
+        $or: [{ProjectId: {$in: rrid}}, {createdBy: {$in: user.staff_Id}}],
       };
 
       // Add search filter if present
@@ -132,22 +129,22 @@ const EmployeeCtr = {
         });
       }
 
-      const { page = 1, limit = 10, search = "" } = req.query;
+      const {page = 1, limit = 10, search = ""} = req.query;
       const pageNumber = parseInt(page, 10);
       const limitNumber = parseInt(limit, 10);
       const skip = (pageNumber - 1) * limitNumber;
 
-      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
+      const responseResult = await RoleResource.find({RRId: user.staff_Id});
       const rrid = responseResult.map((item) => item.ProjectId);
 
       let queryObj = {
-        ProjectId: { $in: rrid },
+        ProjectId: {$in: rrid},
         Project_Status: true,
       };
 
       // Add search condition if present
       if (search) {
-        queryObj.Project_Name = { $regex: search, $options: "i" }; // Case-insensitive search
+        queryObj.Project_Name = {$regex: search, $options: "i"}; // Case-insensitive search
       }
 
       // const totalProjects = await Project.countDocuments(queryObj);
@@ -208,14 +205,14 @@ const EmployeeCtr = {
         throw new Error("UnAuthorized User Please Sign Up");
       }
 
-      let { page = 1, limit = 10, search = "" } = req.query;
+      let {page = 1, limit = 10, search = ""} = req.query;
       page = parseInt(page);
       limit = parseInt(limit);
-      const responseResult = await RoleResource.find({ RRId: user.staff_Id });
+      const responseResult = await RoleResource.find({RRId: user.staff_Id});
       const rrid = responseResult.map((item) => item.ProjectId);
 
       let queryObj = {
-        ProjectId: { $in: rrid },
+        ProjectId: {$in: rrid},
         Project_Status: false,
       };
 
@@ -352,7 +349,7 @@ const EmployeeCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -390,7 +387,7 @@ const EmployeeCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: taskDetails });
+        .json({success: true, result: taskDetails});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -429,7 +426,7 @@ const EmployeeCtr = {
 
           // Find all team members based on rrids
           const findTeamName = await StaffMember.find({
-            staff_Id: { $in: rrids },
+            staff_Id: {$in: rrids},
           });
 
           return {
@@ -459,17 +456,18 @@ const EmployeeCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("UnAuthorized User, Please Signup");
       }
+      console.log(user, "user");
 
-      let { page = 1, limit = 10, search = "" } = req.query;
+      let {page = 1, limit = 10, search = ""} = req.query;
       page = parseInt(page);
       limit = parseInt(limit);
 
-      const query = { Staff_Id: user.staff_Id };
+      const query = {Staff_Id: user.staff_Id};
 
       if (search) {
         query.$or = [
-          { task_description: { $regex: search, $options: "i" } }, // Case-insensitive search in task description
-          { Description: { $regex: search, $options: "i" } }, // Case-insensitive search in description
+          {task_description: {$regex: search, $options: "i"}}, // Case-insensitive search in task description
+          {Description: {$regex: search, $options: "i"}}, // Case-insensitive search in description
         ];
       }
 
@@ -497,17 +495,17 @@ const EmployeeCtr = {
         throw new error("UnAuthorized User Please Singup ");
       }
       // Get pagination and search parameters from the request query
-      const { page = 1, limit = 10, search = "" } = req.query;
+      const {page = 1, limit = 10, search = ""} = req.query;
       const skip = (page - 1) * limit;
 
       // Create search filter
       const searchFilter = {
-        Resource_Id: { $in: user.staff_Id }, // Always filter by the current user's staffId
+        Resource_Id: {$in: user.staff_Id}, // Always filter by the current user's staffId
       };
 
       // Apply search if the user provided a search term
       if (search) {
-        searchFilter.$or = [{ Task_Name: { $regex: search, $options: "i" } }];
+        searchFilter.$or = [{Task_Name: {$regex: search, $options: "i"}}];
       }
 
       // Fetch tasks from the database with pagination and search filter
@@ -530,17 +528,17 @@ const EmployeeCtr = {
           // Fetch the milestone details for the current task
           console.log(item, "task info");
           const fetchmilestone = await Milestone.find({
-            Milestone_id: { $in: item.MilestoneId },
+            Milestone_id: {$in: item.MilestoneId},
           });
 
           // Fetch the resource (staff) details for the task
           const fetchresourcename = await StaffMember.find({
-            staff_Id: { $in: item.Resource_Id },
+            staff_Id: {$in: item.Resource_Id},
           });
 
           // Fetch the project name associated with the task
           const projectname = await Project.find({
-            ProjectId: { $in: item.ProjectId },
+            ProjectId: {$in: item.ProjectId},
           });
 
           // Map milestone names
@@ -612,7 +610,7 @@ const EmployeeCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, message: "Timesheet Remove Successfully" });
+        .json({success: true, message: "Timesheet Remove Successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -641,7 +639,7 @@ const EmployeeCtr = {
         await Promise.all(
           approveIds.map(async (item) => {
             // Find the specific Timesheet by Timesheet_Id
-            const timesheet = await TimeSheet.findOne({ Timesheet_Id: item });
+            const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
 
             // Check if the timesheet exists and if the status is "PENDING"
             if (!timesheet) {
@@ -651,13 +649,13 @@ const EmployeeCtr = {
 
             // Proceed with the update if it's 'PENDING'
             const updatedTimesheet = await TimeSheet.findOneAndUpdate(
-              { Timesheet_Id: item },
+              {Timesheet_Id: item},
               {
                 $set: {
                   approval_status: "PENDING",
                 },
               },
-              { new: true, runValidators: true }
+              {new: true, runValidators: true}
             );
 
             if (!updatedTimesheet) {
@@ -703,7 +701,7 @@ const EmployeeCtr = {
         throw new error("UnAuthorized User Please Singup ");
       }
 
-      const checkcompany = await Company({ Company_Id: user?.CompanyId });
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -757,7 +755,7 @@ const EmployeeCtr = {
         return; // Exit early if clientId is not available
       }
 
-      const client = await Client.findOne({ Client_Id: responseClientId });
+      const client = await Client.findOne({Client_Id: responseClientId});
       if (!client) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error(`Client with ID ${responseClientId} not found.`);
@@ -765,8 +763,8 @@ const EmployeeCtr = {
 
       if (client.Client_Status !== "Active") {
         await Client.updateOne(
-          { Client_Id: responseClientId },
-          { $set: { Client_Status: "Active" } }
+          {Client_Id: responseClientId},
+          {$set: {Client_Status: "Active"}}
         );
       }
 
@@ -801,9 +799,9 @@ const EmployeeCtr = {
 
       try {
         let updatestaffmember = await Promise.all(
-          (roleResources || []).map(async ({ RRId, RId }) => {
+          (roleResources || []).map(async ({RRId, RId}) => {
             if (!RRId) return; // Skip invalid entries
-            const staff = await StaffMember.findOne({ staff_Id: RRId });
+            const staff = await StaffMember.findOne({staff_Id: RRId});
 
             if (!staff) {
               res.status(HttpStatusCodes.NOT_FOUND);
@@ -812,8 +810,8 @@ const EmployeeCtr = {
 
             if (staff.IsActive !== "Active") {
               await StaffMember.updateOne(
-                { staff_Id: RRId },
-                { $set: { IsActive: "Active" } }
+                {staff_Id: RRId},
+                {$set: {IsActive: "Active"}}
               );
             }
             // send notification as Employee Roles
@@ -855,10 +853,10 @@ const EmployeeCtr = {
       }
       try {
         let updatestaffmember = await Promise.all(
-          (roleProjectMangare || []).map(async ({ RRId, RId }) => {
+          (roleProjectMangare || []).map(async ({RRId, RId}) => {
             if (!RRId) return;
 
-            const staff = await StaffMember.findOne({ staff_Id: RRId });
+            const staff = await StaffMember.findOne({staff_Id: RRId});
 
             if (!staff) {
               res.status(HttpStatusCodes.NOT_FOUND);
@@ -867,8 +865,8 @@ const EmployeeCtr = {
 
             if (staff.IsActive !== "Active") {
               await StaffMember.updateOne(
-                { staff_Id: RRId },
-                { $set: { IsActive: "Active" } }
+                {staff_Id: RRId},
+                {$set: {IsActive: "Active"}}
               );
             }
 
@@ -895,7 +893,7 @@ const EmployeeCtr = {
 
       return res
         .status(HttpStatusCodes.CREATED)
-        .json({ success: true, message: "Project Created Successfully" });
+        .json({success: true, message: "Project Created Successfully"});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -909,14 +907,14 @@ const EmployeeCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({ Company_Id: user?.CompanyId });
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
       }
 
       const fetchRoles = await Roles.find({
-        CompanyId: { $in: checkcompany?.Company_Id },
+        CompanyId: {$in: checkcompany?.Company_Id},
       });
 
       if (!fetchRoles) {
@@ -925,7 +923,7 @@ const EmployeeCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: fetchRoles });
+        .json({success: true, result: fetchRoles});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -939,7 +937,7 @@ const EmployeeCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({ Company_Id: user?.CompanyId });
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -954,7 +952,7 @@ const EmployeeCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -967,7 +965,7 @@ const EmployeeCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new error("UnAuthorized User Please Singup ");
       }
-      const checkcompany = await Company({ Company_Id: user?.CompanyId });
+      const checkcompany = await Company({Company_Id: user?.CompanyId});
       if (!checkcompany) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Company Not Found");
@@ -981,7 +979,7 @@ const EmployeeCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -998,7 +996,7 @@ const EmployeeCtr = {
       const response = await Notification.find({
         ReciverId: user?.staff_Id,
         IsRead: false,
-      }).sort({ createdAt: -1 });
+      }).sort({createdAt: -1});
 
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
@@ -1007,7 +1005,7 @@ const EmployeeCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ result: response, success: true });
+        .json({result: response, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1035,7 +1033,7 @@ const EmployeeCtr = {
       }
 
       // Get search, page, and limit from query parameters
-      let { search, page = 1, limit = 10 } = req.query;
+      let {search, page = 1, limit = 10} = req.query;
       page = parseInt(page);
       limit = parseInt(limit);
       const skip = (page - 1) * limit;
@@ -1043,8 +1041,8 @@ const EmployeeCtr = {
       // Build the query object to fetch projects for the Employee
       const queryObj = {
         $or: [
-          { createdBy: Employeedata?.staff_Id },
-          { Project_ManagersId: Employeedata?.staff_Id },
+          {createdBy: Employeedata?.staff_Id},
+          {Project_ManagersId: Employeedata?.staff_Id},
           {
             ProjectId: {
               $in: await RoleResource.find({
@@ -1057,7 +1055,7 @@ const EmployeeCtr = {
 
       // If a search term is provided, filter projects by Project_Name
       if (search) {
-        queryObj.Project_Name = { $regex: search, $options: "i" };
+        queryObj.Project_Name = {$regex: search, $options: "i"};
       }
 
       // Step 1: Get projects based on the query and pagination
@@ -1074,16 +1072,16 @@ const EmployeeCtr = {
       const timesheetData = await TimeSheet.aggregate([
         {
           $match: {
-            project: { $in: projects.map((project) => project.ProjectId) },
+            project: {$in: projects.map((project) => project.ProjectId)},
           },
         },
         {
           $group: {
             _id: "$project",
-            totalHours: { $sum: { $toDouble: "$hours" } },
-            okHours: { $sum: { $toDouble: "$ok_hours" } },
-            billedHours: { $sum: { $toDouble: "$billed_hours" } },
-            totalEntries: { $sum: 1 }, // Count total timesheet entries per project
+            totalHours: {$sum: {$toDouble: "$hours"}},
+            okHours: {$sum: {$toDouble: "$ok_hours"}},
+            billedHours: {$sum: {$toDouble: "$billed_hours"}},
+            totalEntries: {$sum: 1}, // Count total timesheet entries per project
           },
         },
       ]);
@@ -1148,7 +1146,7 @@ const EmployeeCtr = {
       }
       res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: fetchproject });
+        .json({success: true, result: fetchproject});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1177,7 +1175,7 @@ const EmployeeCtr = {
             day: moment().format("DD/MM/YYYY"),
           },
         }, // 🔹 Update document with new values
-        { new: true, upsert: true } // 🔹 Return updated doc, create if not found
+        {new: true, upsert: true} // 🔹 Return updated doc, create if not found
       );
 
       if (!response) {
@@ -1185,15 +1183,15 @@ const EmployeeCtr = {
         throw new Error("Timesheet Not found");
       } else {
         await Task.findOneAndUpdate(
-          { task_Id: parseInt(req.params.id) },
-          { $set: { Status: "COMPLETED" } },
-          { new: true }
+          {task_Id: parseInt(req.params.id)},
+          {$set: {Status: "COMPLETED"}},
+          {new: true}
         );
       }
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, message: "Task Progress Updated" });
+        .json({success: true, message: "Task Progress Updated"});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1209,10 +1207,10 @@ const EmployeeCtr = {
         });
       }
 
-      const fetchtask = await Task.findOne({ task_Id: req.params.id });
+      const fetchtask = await Task.findOne({task_Id: req.params.id});
 
       if (!fetchtask) {
-        res.status(HttpStatusCodes.NOT_FOUND).json({ error: "Task not found" });
+        res.status(HttpStatusCodes.NOT_FOUND).json({error: "Task not found"});
         return;
       }
 
@@ -1230,7 +1228,7 @@ const EmployeeCtr = {
       };
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: result });
+        .json({success: true, result: result});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1246,7 +1244,7 @@ const EmployeeCtr = {
       }
 
       const projectId = req.params.id;
-      const fetchproject = await Project.findOne({ ProjectId: projectId });
+      const fetchproject = await Project.findOne({ProjectId: projectId});
       if (!fetchproject) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("Project Not Found");
@@ -1260,7 +1258,7 @@ const EmployeeCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: result });
+        .json({success: true, result: result});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1275,13 +1273,13 @@ const EmployeeCtr = {
       }
 
       const fetchproject = await RoleResource.find({
-        ProjectId: { $in: parseInt(req.params.id) },
+        ProjectId: {$in: parseInt(req.params.id)},
       });
 
       const rrids = await fetchproject.map((item) => item.RRId);
 
       const response = await StaffMember.find({
-        staff_Id: { $in: rrids },
+        staff_Id: {$in: rrids},
       }).select("FirstName LastName Photos");
 
       const responseData = await Promise.all(
@@ -1298,7 +1296,7 @@ const EmployeeCtr = {
       );
       return res
         .status(HttpStatusCodes.OK)
-        .json({ result: responseData, success: true });
+        .json({result: responseData, success: true});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1315,7 +1313,7 @@ const EmployeeCtr = {
         Status: "COMPLETED",
       });
       if (!fetchtask) {
-        res.status(HttpStatusCodes.NOT_FOUND).json({ error: "Task not found" });
+        res.status(HttpStatusCodes.NOT_FOUND).json({error: "Task not found"});
         return;
       }
 
@@ -1339,7 +1337,7 @@ const EmployeeCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1392,7 +1390,7 @@ const EmployeeCtr = {
 
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: resourceNamewithid });
+        .json({success: true, result: resourceNamewithid});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -1417,7 +1415,115 @@ const EmployeeCtr = {
       }
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  approveTimesheetbyEmployee: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+
+      const {approvids} = req.body;
+
+      for (let item of approvids) {
+        const response = await TimeSheet.findOne({Timesheet_Id: {$in: item}});
+        if (!response) {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error("timesheet not found ");
+        } else {
+          if (response?.Staff_Id === user?.staff_Id) {
+            res.status(HttpStatusCodes.BAD_REQUEST);
+            throw new Error("you can not approved you timesheet by yourself");
+          }
+          await response.updateOne({
+            $set: {approval_status: "APPROVED", approved_by: user?.staff_Id},
+          });
+        }
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({message: "timesheet approved successfully ", success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  disapproveTimesheetbyEmployee: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+
+      const {approvids} = req.body;
+
+      for (let item of approvids) {
+        const response = await TimeSheet.findOne({Timesheet_Id: {$in: item}});
+        if (!response) {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error("timesheet not found ");
+        } else {
+          if (response?.Staff_Id === user?.staff_Id) {
+            res.status(HttpStatusCodes.BAD_REQUEST);
+            throw new Error(
+              "you can not disapproved you timesheet by yourself"
+            );
+          } else if (response?.approval_status === "APPROVED") {
+            res.status(HttpStatusCodes?.BAD_REQUEST);
+            throw new Error(
+              "You Can not Dis approve this timesheet because it's alerady approved"
+            );
+          }
+          await response.updateOne({
+            $set: {approval_status: "DISAPPROVED", approved_by: user?.staff_Id},
+          });
+        }
+      }
+      return res
+        .status(HttpStatusCodes.OK)
+        .json({message: "timesheet approved successfully ", success: true});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  billedTimesheetbyEmployee: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      const {approvids} = req.body;
+
+      for (let item of approvids) {
+        const response = await TimeSheet.findOne({Timesheet_Id: {$in: item}});
+        if (!response) {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error("timesheet not found ");
+        } else {
+          if (response?.Staff_Id === user?.staff_Id) {
+            res.status(HttpStatusCodes.BAD_REQUEST);
+            throw new Error("you can not billed your timesheet by yourself");
+          } else if (response?.approval_status === "DISAPPROVED") {
+            res.status(HttpStatusCodes?.BAD_REQUEST);
+            throw new Error(
+              "You Can not Dis approve this timesheet because it's alerady approved"
+            );
+          }
+          await response.updateOne(
+            {
+              $set: {billing_status: "BILLED"},
+            },
+            {new: true}
+          );
+        }
+      }
     } catch (error) {
       throw new Error(error?.message);
     }
