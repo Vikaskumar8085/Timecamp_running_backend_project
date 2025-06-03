@@ -190,6 +190,10 @@ contractorRouter.post(
   ContractorCtr.billedTimesheetbyContractor
 );
 
-
+contractorRouter.post(
+  "/fill-contractor-timesheet",
+  upload.any(),
+  ContractorCtr.FillContractormultiTimesheet
+);
 
 module.exports = contractorRouter;

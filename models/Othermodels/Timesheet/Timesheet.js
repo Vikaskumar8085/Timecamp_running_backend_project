@@ -38,7 +38,6 @@ const TimesheetSchema = new Schema(
     },
     project: {
       type: Number,
-      ref: "Project",
       required: true,
     },
     task_description: {

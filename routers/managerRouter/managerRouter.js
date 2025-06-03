@@ -206,4 +206,10 @@ managerRouter.post(
   "/send-for-approvel",
   managerCtr.sendapproveltimesheetbymanager
 );
+managerRouter.post(
+  "/fill-multi-timesheet-by-manager",
+  upload.any(),
+  managerCtr.FillManagermultiTimesheet
+);
+
 module.exports = managerRouter;

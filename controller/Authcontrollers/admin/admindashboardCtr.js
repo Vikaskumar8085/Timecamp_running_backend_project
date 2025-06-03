@@ -15,49 +15,121 @@ const admindashboardCtr = {
     try {
       const user = await User.findById(req.user);
       if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        return res
+          .status(HttpStatusCodes.UNAUTHORIZED)
+          .json({success: false, message: "Unauthorized user, please signup"});
       }
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
-      if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+      const company = await Company.findOne({UserId: user.user_id});
+      if (!company) {
+        return res.status(HttpStatusCodes.BAD_REQUEST).json({
+          success: false,
+          message: "Company not found, please create one first",
+        });
       }
-      // staff count
-      const staffcount = await StaffMember.find({
-        CompanyId: checkcompany.Company_Id,
-      });
 
-      //   client count
-      const clientcount = await Client.find({
-        Common_Id: checkcompany.Company_Id,
-      });
-      const projectcount = await Project.find({
-        CompanyId: checkcompany.Company_Id,
-      });
-      const approvedTimesheets = await TimeSheet.find({
-        CompanyId: checkcompany.Company_Id,
-        approval_status: "APPROVED",
-      });
+      const companyId = company.Company_Id;
 
-      const totalHours = approvedTimesheets.reduce(
-        (sum, entry) => sum + (parseInt(entry.hours) || 0),
+      const [staff, clients, projects, approvedTimesheets] = await Promise.all([
+        StaffMember.find({CompanyId: companyId}),
+        Client.find({Common_Id: companyId}),
+        Project.find({CompanyId: companyId}),
+        TimeSheet.find({CompanyId: companyId, approval_status: "APPROVED"}),
+      ]);
+
+      const totalApprovedHours = approvedTimesheets.reduce(
+        (sum, ts) => sum + (parseFloat(ts.hours) || 0),
         0
       );
 
-      console.log("Total Approved Work Hours:", totalHours);
+      // Utility: Get monthly count array for the last 5 months
+      const getMonthlyCounts = (docs, dateField = "createdAt", months = 5) => {
+        const monthCounts = Array(months).fill(0);
+        const now = moment();
 
-      const resp = {
-        projectNo: projectcount.length,
-        clientNo: clientcount.length,
-        staffNo: staffcount.length,
-        totalHours: totalHours,
+        docs.forEach((doc) => {
+          const createdAt = moment(doc[dateField]);
+          const diff = now.diff(createdAt, "months");
+          if (diff < months) {
+            monthCounts[months - diff - 1]++;
+          }
+        });
+
+        return monthCounts;
       };
 
-      return res.status(HttpStatusCodes.OK).json({success: true, result: resp});
+      // Special handling for timesheets - sum hours per month
+      const getMonthlyHours = (docs, dateField = "createdAt", months = 5) => {
+        const hoursByMonth = Array(months).fill(0);
+        const now = moment();
+
+        docs.forEach((doc) => {
+          const createdAt = moment(doc[dateField]);
+          const diff = now.diff(createdAt, "months");
+          if (diff < months) {
+            hoursByMonth[months - diff - 1] += parseFloat(doc.hours) || 0;
+          }
+        });
+
+        return hoursByMonth.map((h) => parseFloat(h.toFixed(2)));
+      };
+
+      // % change from previous month
+      const generateTrend = (data) => {
+        const last = data[data.length - 1];
+        const prev = data[data.length - 2] || 0;
+        const change = prev === 0 ? 100 : ((last - prev) / prev) * 100;
+        return {
+          percentage: Math.abs(change).toFixed(1),
+          trendDown: change < 0,
+        };
+      };
+
+      const projectChart = getMonthlyCounts(projects);
+      const clientChart = getMonthlyCounts(clients);
+      const staffChart = getMonthlyCounts(staff);
+      const approvedHoursChart = getMonthlyHours(approvedTimesheets);
+
+      const response = [
+        {
+          title: "Total Projects",
+          value: projects.length,
+          unit: "",
+          chartData: projectChart,
+          ...generateTrend(projectChart),
+        },
+        {
+          title: "Total Clients",
+          value: clients.length,
+          unit: "",
+          chartData: clientChart,
+          ...generateTrend(clientChart),
+        },
+        {
+          title: "Staff Members",
+          value: staff.length,
+          unit: "",
+          chartData: staffChart,
+          ...generateTrend(staffChart),
+        },
+        {
+          title: "Approved Hours",
+          value: totalApprovedHours,
+          unit: "hrs",
+          chartData: approvedHoursChart,
+          ...generateTrend(approvedHoursChart),
+        },
+      ];
+
+      return res.status(HttpStatusCodes.OK).json({
+        success: true,
+        result: response,
+      });
     } catch (error) {
-      throw new Error(error?.message);
+      res.status(HttpStatusCodes.INTERNAL_SERVER_ERROR).json({
+        success: false,
+        message: error.message || "Server error",
+      });
     }
   }),
   fetchrecentproject: asynchandler(async (req, res) => {

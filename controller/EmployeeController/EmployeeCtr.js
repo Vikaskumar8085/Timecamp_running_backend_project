@@ -14,6 +14,7 @@ const Milestone = require("../../models/Othermodels/Milestones/Milestones");
 const path = require("path");
 const Bucket = require("../../models/Othermodels/Bucket/Bucket");
 const Designation = require("../../models/MasterModels/Designation/Designation");
+
 const EmployeeCtr = {
   fetchemployeeprojects: asyncHandler(async (req, res) => {
     try {
@@ -256,9 +257,7 @@ const EmployeeCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fill timesheet by employee
-
   FillEmployeeProjectTimesheet: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -313,7 +312,6 @@ const EmployeeCtr = {
       throw new Error(error?.message);
     }
   }),
-
   getemployeesingleporjectTimesheet: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -448,7 +446,6 @@ const EmployeeCtr = {
       throw new Error(error?.message);
     }
   }),
-
   getEmployeeTimesheet: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -984,7 +981,6 @@ const EmployeeCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchEmployeeNotificationMessage: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -1010,7 +1006,6 @@ const EmployeeCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchemployeeproject_time: asyncHandler(async (req, res) => {
     try {
       // Fetch the currently authenticated user
@@ -1196,7 +1191,6 @@ const EmployeeCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchEmployeesingletask: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -1233,7 +1227,6 @@ const EmployeeCtr = {
       throw new Error(error?.message);
     }
   }),
-
   // fetch employee single project chart
   fetchemployeeprojectchartinfo: asyncHandler(async (req, res) => {
     try {
@@ -1263,7 +1256,6 @@ const EmployeeCtr = {
       throw new Error(error?.message);
     }
   }),
-
   fetchEmpmloyeeTaskAllotted: asyncHandler(async (req, res) => {
     try {
       const user = await StaffMember.findById(req.user);
@@ -1524,6 +1516,88 @@ const EmployeeCtr = {
           );
         }
       }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+  // timesheet update
+  fillmultiTimesheet: asyncHandler(async (req, res) => {
+    try {
+      const user = await StaffMember.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new error("UnAuthorized User Please Singup ");
+      }
+      console.log(req.body.entries, req.files, "data");
+
+      let parsedEntries;
+      if (typeof req.body.entries === "string") {
+        parsedEntries = JSON.parse(req.body.entries);
+      } else {
+        parsedEntries = req.body.entries;
+      }
+
+      const entries = [];
+
+      for (let i = 0; i < parsedEntries.length; i++) {
+        const item = parsedEntries[i];
+        console.log(item);
+
+        const file = req.files.find(
+          (f) => f.fieldname === `entries[${i}][attachement]`
+        );
+        let attachmentPath = file ? file.filename : null;
+        let uploadPath = "uploads/";
+
+        if (file) {
+          const fileExt = path.extname(file.originalname).toLowerCase();
+
+          if ([".pdf", ".doc", ".docx", ".txt"].includes(fileExt)) {
+            uploadPath += "documents/";
+          } else if (
+            [".jpg", ".jpeg", ".png", ".gif", ".bmp"].includes(fileExt)
+          ) {
+            uploadPath += "images/";
+          } else if (file.mimetype === "text/csv") {
+            uploadPath += "csv/";
+          } else {
+            uploadPath += "others/";
+          }
+        }
+
+        const attachementUrl = file
+          ? `${req.protocol}://${req.get(
+              "host"
+            )}/${uploadPath}${attachmentPath}`
+          : null;
+
+        entries.push({
+          project: item.project || "",
+          hours: item.hours || "",
+          day: item.day || "",
+          Description: item.Description || "",
+          task_description: item.task_description || "",
+          attachement: attachementUrl,
+        });
+      }
+
+      console.log(entries, "data");
+      for (let item of entries) {
+        await new TimeSheet({
+          CompanyId: user?.CompanyId,
+          Staff_Id: user?.staff_Id,
+          project: item.project,
+          hours: item.hours,
+          day: item.day,
+          Description: item.Description,
+          task_description: item.task_description,
+          attachement: item.attachment,
+        }).save();
+      }
+
+      res
+        .status(201)
+        .json({message: "Timesheet created successfully.", success: true});
     } catch (error) {
       throw new Error(error?.message);
     }

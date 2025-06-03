@@ -163,4 +163,6 @@ employeeRouter.post(
   "/billed-timesheet-by-employee",
   EmployeeCtr.billedTimesheetbyEmployee
 );
+
+employeeRouter.post("/fillTimesheet",upload.any(),EmployeeCtr.fillmultiTimesheet)
 module.exports = employeeRouter;
