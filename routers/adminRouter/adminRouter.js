@@ -10,6 +10,7 @@ const TaskCtr = require("../../controller/Task/TaskCtr");
 const TimesheetCtr = require("../../controller/TimesheetCtr/TimesheetCtr");
 const upload = require("../../utils/FileUpload/fileUpload");
 const InvoiceCtr = require("../../controller/Authcontrollers/Invoice/InvoiceCtr");
+const ContractorCtr = require("../../controller/ContracotrController/ControllerCtr");
 
 const adminRouter = express.Router();
 adminRouter.post(
@@ -290,6 +291,24 @@ adminRouter.get(
   "/client-stat-card/:id",
   verifyToken,
   clientCtr.fetch_client_timesheet_statcard
+);
+
+adminRouter.get(
+  "/contractor-stat-card/:id",
+  verifyToken,
+  contractorCtr.fetch_contractor_timesheet_statcard
+);
+
+adminRouter.get(
+  "/employee-stat-card/:id",
+  verifyToken,
+  employeeCtr.fetch_employee_timesheet_stafCard
+);
+
+adminRouter.get(
+  "/project-stat-card/:id",
+  verifyToken,
+  projectCtr.fetchprojectTimesheetstatCard
 );
 
 module.exports = adminRouter;

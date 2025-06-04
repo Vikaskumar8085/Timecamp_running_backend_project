@@ -829,23 +829,30 @@ const projectCtr = {
   }),
   fetchProjectTimesheet: asyncHandler(async (req, res) => {
     try {
-      const user = await User.findOne(req.user);
+      const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User");
       }
 
       // check company
-      const company = await Company?.findOne({UserId: user?.user_id});
+      const company = await Company.findOne({UserId: user?.user_id});
       if (!company) {
         res.status(HttpStatusCodes?.BAD_REQUEST);
         throw new Error("company not exists please create first company");
       }
 
-      let queryObj = {
-        CompanyId: company.Company_Id,
-        project: parseInt(req.params.id),
+      const projectId = parseInt(req.params.id);
+
+      if (isNaN(projectId)) {
+        return res.status(400).json({message: "Invalid project ID"});
+      }
+
+      const queryObj = {
+        CompanyId: company?.Company_Id,
+        project: projectId,
       };
+      console.log(queryObj);
 
       const response = await TimeSheet.find(queryObj);
 
@@ -989,6 +996,13 @@ const projectCtr = {
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, result: responseData});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
+
+  fetchprojectTimesheetstatCard: asyncHandler(async (req, res) => {
+    try {
     } catch (error) {
       throw new Error(error?.message);
     }
