@@ -769,6 +769,8 @@ const clientCtr = {
       console.log("Project IDs:", projectIds);
 
       const currentDate = new Date();
+
+      // 1. Define date ranges
       const sixMonthsAgo = new Date(
         currentDate.getFullYear(),
         currentDate.getMonth() - 6,
@@ -779,18 +781,31 @@ const clientCtr = {
         currentDate.getMonth(),
         0
       ); // end of previous month
+      const startOfCurrentMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        1
+      );
+      const endOfCurrentMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        0
+      ); // end of current month
 
+      // 2. Get projects based on client
+
+      // 3. Fetch timesheets for previous 6 full months
       const timesheets = await TimeSheet.find({
         project: {$in: projectIds},
         updatedAt: {$gte: sixMonthsAgo, $lte: endOfLastMonth},
       });
 
-      console.log("Timesheets count:", timesheets);
+      console.log("6-Month Timesheets:", timesheets.length);
 
+      // 4. Group by YYYY-MM
       const grouped = {};
       timesheets.forEach((ts) => {
         const month = new Date(ts.updatedAt).toISOString().slice(0, 7); // YYYY-MM
-        console.log("Grouping key generated:", month);
 
         if (!grouped[month]) {
           grouped[month] = {
@@ -807,6 +822,7 @@ const clientCtr = {
         grouped[month].hours += ts.hours || 0;
       });
 
+      // 5. Format 6-month data
       const months = [];
       for (let i = 6; i >= 1; i--) {
         const date = new Date(
@@ -815,7 +831,6 @@ const clientCtr = {
           1
         );
         const key = date.toISOString().slice(0, 7); // YYYY-MM
-        console.log("Month key for report:", key);
 
         months.push({
           month: key,
@@ -826,8 +841,33 @@ const clientCtr = {
         });
       }
 
-      console.log("Months array:", months);
+      // 6. Fetch current month data
+      const currentMonthTimesheets = await TimeSheet.find({
+        project: {$in: projectIds},
+        updatedAt: {$gte: startOfCurrentMonth, $lte: endOfCurrentMonth},
+      });
 
+      const currentMonthStats = {
+        ok_hours: 0,
+        blank_hours: 0,
+        billed_hours: 0,
+        hours: 0,
+      };
+
+      currentMonthTimesheets.forEach((ts) => {
+        currentMonthStats.ok_hours += ts.ok_hours || 0;
+        currentMonthStats.blank_hours += ts.blank_hours || 0;
+        currentMonthStats.billed_hours += ts.billed_hours || 0;
+        currentMonthStats.hours += ts.hours || 0;
+      });
+
+      // Add current month to months array
+      months.push({
+        month: startOfCurrentMonth.toISOString().slice(0, 7),
+        ...currentMonthStats,
+      });
+
+      // 7. Helper to generate card data
       const createCardData = (key, label) => {
         const values = months.map((m) => m[key]);
         const curr = values[values.length - 1];
@@ -848,10 +888,11 @@ const clientCtr = {
           unit: "hrs",
           percentage: Math.abs(percentage),
           trendDown,
-          chartData: values,
+          chartData: values, // last 7 months (6 past + current)
         };
       };
 
+      // 8. Final response for UI cards
       const responseData = [
         createCardData("ok_hours", "Ok Hours"),
         createCardData("blank_hours", "Blank Hours"),
@@ -859,8 +900,7 @@ const clientCtr = {
         createCardData("hours", "Hours"),
       ];
 
-      console.log("Response Data:", responseData);
-
+      // 9. Send response
       return res.status(200).json({data: responseData});
     } catch (error) {
       throw new Error(error?.message);

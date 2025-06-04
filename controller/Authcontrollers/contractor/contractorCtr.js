@@ -741,6 +741,26 @@ const contractorCtr = {
         .json({error: error?.message});
     }
   }),
+
+  fetch_contractor_timesheet_statcard: asynchandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized User. Please sign up.");
+      }
+
+      const checkCompany = await Company.findOne({UserId: user.user_id})
+        .lean()
+        .exec();
+      if (!checkCompany) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("Bad Request. Company not found.");
+      }
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 
 module.exports = contractorCtr;
