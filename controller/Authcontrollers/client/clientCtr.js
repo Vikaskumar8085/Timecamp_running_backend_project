@@ -732,5 +732,139 @@ const clientCtr = {
       throw new Error(error?.message);
     }
   }),
+
+  fetch_client_timesheet_statcard: asyncHandler(async (req, res) => {
+    try {
+      const user = await User.findById(req.user);
+      if (!user) {
+        res.status(HttpStatusCodes.UNAUTHORIZED);
+        throw new Error("Unauthorized User. Please Sign Up.");
+      }
+
+      // Check if the company exists
+      const company = await Company.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
+      }
+
+      const responseclient = await Client.findOne({
+        Client_Id: parseInt(req.params.id),
+      });
+      if (!responseclient) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error("client Not Found");
+      }
+
+      const findProjects = await Project.find({
+        clientId: {$in: responseclient?.Client_Id},
+      });
+      console.log("Found projects:", findProjects);
+
+      const projectIds = findProjects
+        .map((item) => item?.ProjectId)
+        .filter(Boolean);
+      console.log("Project IDs:", projectIds);
+
+      const currentDate = new Date();
+      const sixMonthsAgo = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - 6,
+        1
+      );
+      const endOfLastMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        0
+      ); // end of previous month
+
+      const timesheets = await TimeSheet.find({
+        project: {$in: projectIds},
+        updatedAt: {$gte: sixMonthsAgo, $lte: endOfLastMonth},
+      });
+
+      console.log("Timesheets count:", timesheets);
+
+      const grouped = {};
+      timesheets.forEach((ts) => {
+        const month = new Date(ts.updatedAt).toISOString().slice(0, 7); // YYYY-MM
+        console.log("Grouping key generated:", month);
+
+        if (!grouped[month]) {
+          grouped[month] = {
+            ok_hours: 0,
+            blank_hours: 0,
+            billed_hours: 0,
+            hours: 0,
+          };
+        }
+
+        grouped[month].ok_hours += ts.ok_hours || 0;
+        grouped[month].blank_hours += ts.blank_hours || 0;
+        grouped[month].billed_hours += ts.billed_hours || 0;
+        grouped[month].hours += ts.hours || 0;
+      });
+
+      const months = [];
+      for (let i = 6; i >= 1; i--) {
+        const date = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth() - i,
+          1
+        );
+        const key = date.toISOString().slice(0, 7); // YYYY-MM
+        console.log("Month key for report:", key);
+
+        months.push({
+          month: key,
+          ok_hours: grouped[key]?.ok_hours || 0,
+          blank_hours: grouped[key]?.blank_hours || 0,
+          billed_hours: grouped[key]?.billed_hours || 0,
+          hours: grouped[key]?.hours || 0,
+        });
+      }
+
+      console.log("Months array:", months);
+
+      const createCardData = (key, label) => {
+        const values = months.map((m) => m[key]);
+        const curr = values[values.length - 1];
+        const prev = values[values.length - 2] || 0;
+
+        const percentage =
+          prev === 0 && curr === 0
+            ? 0
+            : prev === 0
+            ? 100
+            : +(((curr - prev) / prev) * 100).toFixed(1);
+
+        const trendDown = curr < prev;
+
+        return {
+          title: label,
+          value: curr,
+          unit: "hrs",
+          percentage: Math.abs(percentage),
+          trendDown,
+          chartData: values,
+        };
+      };
+
+      const responseData = [
+        createCardData("ok_hours", "Ok Hours"),
+        createCardData("blank_hours", "Blank Hours"),
+        createCardData("billed_hours", "Billed Hours"),
+        createCardData("hours", "Hours"),
+      ];
+
+      console.log("Response Data:", responseData);
+
+      return res.status(200).json({data: responseData});
+    } catch (error) {
+      throw new Error(error?.message);
+    }
+  }),
 };
 module.exports = clientCtr;

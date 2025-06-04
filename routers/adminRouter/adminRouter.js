@@ -284,4 +284,12 @@ adminRouter.post("/create-invoice", verifyToken, InvoiceCtr.createInvoice);
 adminRouter.get("/fetch-invoice", verifyToken, InvoiceCtr.fetchInvoice);
 adminRouter.put("/update-invoice/:id", verifyToken, InvoiceCtr.InvoicePayment);
 
+// stat cards api
+
+adminRouter.get(
+  "/client-stat-card/:id",
+  verifyToken,
+  clientCtr.fetch_client_timesheet_statcard
+);
+
 module.exports = adminRouter;
