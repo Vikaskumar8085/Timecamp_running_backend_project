@@ -379,6 +379,13 @@ const adminCtr = {
             "Timesheet aleady approved you can not disapproved timesheet"
           );
         }
+
+        if (findTimesheet.approval_status === "DISAPPROVED") {
+          res.status(HttpStatusCodes.BAD_REQUEST);
+          throw new Error(
+            "Timesheet aleady disapproved you can not disapproved timesheet again"
+          );
+        }
         if (findTimesheet.approval_status === "PENDING") {
           await findTimesheet.updateOne({
             $set: {
@@ -441,7 +448,9 @@ const adminCtr = {
         }
         if (findTimesheet.approval_status === "DISAPPROVED") {
           res.status(HttpStatusCodes.BAD_REQUEST);
-          throw new Error("Timesheet is not Approved ");
+          throw new Error(
+            "The timesheet has not been approved; therefore, it cannot be billed at this time."
+          );
         }
         if (findTimesheet.approval_status === "PENDING") {
           res.status(HttpStatusCodes.BAD_REQUEST);

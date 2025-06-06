@@ -311,4 +311,15 @@ adminRouter.get(
   projectCtr.fetchprojectTimesheetstatCard
 );
 
+adminRouter.get(
+  "/timesheet-stat-card",
+  verifyToken,
+  TimesheetCtr.fetchTimesheetstatCard
+);
+adminRouter.get(
+  "/project-time-stat-card",
+  verifyToken,
+  TimesheetCtr.fetchprojectTimestatcard
+);
+
 module.exports = adminRouter;

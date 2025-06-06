@@ -174,7 +174,7 @@ const employeeCtr = {
               <div class="content">
                   <h1>Hello Dear Sir/Mam,</h1>
                   <p>Your Account has been created succsfully </p>
-                  <h1>Your user name is ${response?.Email} </h1>
+                  <h1>Your user name is ${response?.UserName} </h1>
                   <h1>Your Password is ${response?.Phone}  </h1>
 
                   <p>Thank you for your attention!</p>

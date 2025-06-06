@@ -784,9 +784,29 @@ const managerCtr = {
       if (!response) {
         res.status(HttpStatusCodes.NOT_FOUND);
         throw new Error("TimeSheet NOT FOUND");
-      } else {
-        await response.deleteOne();
       }
+      if (response.approval_status === "PENDING") {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "The timesheet cannot be deleted as it has already been submitted for approval"
+        );
+      }
+      if (response.approval_status === "APPROVED") {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "The timesheet cannot be deleted as it has already been approved"
+        );
+      }
+
+      if (response.approval_status === "DISAPPROVED") {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "This timesheet cannot be deleted because it has been disapproved"
+        );
+      }
+
+      await response.deleteOne();
+
       return res
         .status(HttpStatusCodes.OK)
         .json({success: true, message: "Timesheet Remove Successfully"});
@@ -813,19 +833,42 @@ const managerCtr = {
         });
         throw new Error("Timesheet Not Found");
       }
+
       try {
         await Promise.all(
           approveIds.map(async (item) => {
-            // Find the specific Timesheet by Timesheet_Id
+            // Find the specific timesheet by Timesheet_Id
             const timesheet = await TimeSheet.findOne({Timesheet_Id: item});
 
-            // Check if the timesheet exists and if the status is "PENDING"
+            // Check if the timesheet exists
             if (!timesheet) {
               res.status(HttpStatusCodes.NOT_FOUND);
-              throw new Error(`Timesheet with Timesheet_Id ${item} not found.`);
+              throw new Error(`Timesheet with ID ${item} not found.`);
             }
 
-            // Proceed with the update if it's 'PENDING'
+            // Check timesheet approval status
+            if (timesheet.approval_status === "PENDING") {
+              res.status(HttpStatusCodes.BAD_REQUEST);
+              throw new Error(
+                "This timesheet has already been submitted for approval."
+              );
+            }
+
+            if (timesheet.approval_status === "APPROVED") {
+              res.status(HttpStatusCodes.BAD_REQUEST);
+              throw new Error(
+                "This timesheet has already been approved and cannot be modified."
+              );
+            }
+
+            if (timesheet.approval_status === "DISAPPROVED") {
+              res.status(HttpStatusCodes.BAD_REQUEST);
+              throw new Error(
+                "This timesheet has been disapproved and cannot be resubmitted."
+              );
+            }
+
+            // Proceed with the update if valid
             const updatedTimesheet = await TimeSheet.findOneAndUpdate(
               {Timesheet_Id: item},
               {
@@ -839,7 +882,7 @@ const managerCtr = {
             if (!updatedTimesheet) {
               res.status(HttpStatusCodes.BAD_REQUEST);
               throw new Error(
-                `Timesheet with Timesheet_Id ${item} was not updated successfully.`
+                `Timesheet with ID ${item} could not be updated.`
               );
             }
           })
@@ -2319,7 +2362,7 @@ const managerCtr = {
   }),
   FillManagermultiTimesheet: asyncHandler(async (req, res) => {
     try {
-      console.log(req.body,"fasldfjsldfj")
+      console.log(req.body, "fasldfjsldfj");
       const user = await StaffMember.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);

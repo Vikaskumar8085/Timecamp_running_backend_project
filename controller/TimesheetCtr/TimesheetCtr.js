@@ -176,7 +176,7 @@ const TimesheetCtr = {
             totalHours: {$sum: {$toDouble: "$hours"}},
             okHours: {$sum: {$toDouble: "$ok_hours"}},
             billedHours: {$sum: {$toDouble: "$billed_hours"}},
-            totalEntries: {$sum: 1}, 
+            totalEntries: {$sum: 1},
           },
         },
       ]);
@@ -217,56 +217,335 @@ const TimesheetCtr = {
     }
   }),
 
-  approved_timesheet: asyncHandler(async (req, res) => {
+  fetchTimesheetstatCard: asyncHandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please Sign Up.");
       }
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
-      if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+      // Check if the company exists
+      const company = await Company.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
-      // approved timesheet
+
+      const findProjects = await Project.find({
+        CompanyId: {$in: parseInt(company.Company_Id)},
+      });
+      console.log("Found projects:", findProjects);
+
+      const projectIds = findProjects
+        .map((item) => item?.ProjectId)
+        .filter(Boolean);
+      console.log("Project IDs:", projectIds);
+
+      const currentDate = new Date();
+
+      // 1. Define date ranges
+      const sixMonthsAgo = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - 6,
+        1
+      );
+      const endOfLastMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        0
+      ); // end of previous month
+      const startOfCurrentMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        1
+      );
+      const endOfCurrentMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        0
+      ); // end of current month
+
+      // 2. Get projects based on client
+
+      // 3. Fetch timesheets for previous 6 full months
+      const timesheets = await TimeSheet.find({
+        project: {$in: projectIds},
+        updatedAt: {$gte: sixMonthsAgo, $lte: endOfLastMonth},
+      });
+
+      console.log("6-Month Timesheets:", timesheets.length);
+
+      // 4. Group by YYYY-MM
+      const grouped = {};
+      timesheets.forEach((ts) => {
+        const month = new Date(ts.updatedAt).toISOString().slice(0, 7); // YYYY-MM
+
+        if (!grouped[month]) {
+          grouped[month] = {
+            ok_hours: 0,
+            blank_hours: 0,
+            billed_hours: 0,
+            hours: 0,
+          };
+        }
+
+        grouped[month].ok_hours += ts.ok_hours || 0;
+        grouped[month].blank_hours += ts.blank_hours || 0;
+        grouped[month].billed_hours += ts.billed_hours || 0;
+        grouped[month].hours += ts.hours || 0;
+      });
+
+      // 5. Format 6-month data
+      const months = [];
+      for (let i = 6; i >= 1; i--) {
+        const date = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth() - i,
+          1
+        );
+        const key = date.toISOString().slice(0, 7); // YYYY-MM
+
+        months.push({
+          month: key,
+          ok_hours: grouped[key]?.ok_hours || 0,
+          blank_hours: grouped[key]?.blank_hours || 0,
+          billed_hours: grouped[key]?.billed_hours || 0,
+          hours: grouped[key]?.hours || 0,
+        });
+      }
+
+      // 6. Fetch current month data
+      const currentMonthTimesheets = await TimeSheet.find({
+        project: {$in: projectIds},
+        approval_status: "APPROVED",
+        updatedAt: {$gte: startOfCurrentMonth, $lte: endOfCurrentMonth},
+      });
+
+      const currentMonthStats = {
+        ok_hours: 0,
+        blank_hours: 0,
+        billed_hours: 0,
+        hours: 0,
+      };
+
+      currentMonthTimesheets.forEach((ts) => {
+        currentMonthStats.ok_hours += ts.ok_hours || 0;
+        currentMonthStats.blank_hours += ts.blank_hours || 0;
+        currentMonthStats.billed_hours += ts.billed_hours || 0;
+        currentMonthStats.hours += ts.hours || 0;
+      });
+
+      // Add current month to months array
+      months.push({
+        month: startOfCurrentMonth.toISOString().slice(0, 7),
+        ...currentMonthStats,
+      });
+
+      // 7. Helper to generate card data
+      const createCardData = (key, label) => {
+        const values = months.map((m) => m[key]);
+        const curr = values[values.length - 1];
+        const prev = values[values.length - 2] || 0;
+
+        const percentage =
+          prev === 0 && curr === 0
+            ? 0
+            : prev === 0
+            ? 100
+            : +(((curr - prev) / prev) * 100).toFixed(1);
+
+        const trendDown = curr < prev;
+
+        return {
+          title: label,
+          value: curr,
+          unit: "hrs",
+          percentage: Math.abs(percentage),
+          trendDown,
+          chartData: values, // last 7 months (6 past + current)
+        };
+      };
+
+      // 8. Final response for UI cards
+      const responseData = [
+        createCardData("ok_hours", "Ok Hours"),
+        createCardData("blank_hours", "Blank Hours"),
+        createCardData("billed_hours", "Billed Hours"),
+        createCardData("hours", "Hours"),
+      ];
+
+      // 9. Send response
+      return res.status(200).json({data: responseData});
     } catch (error) {
       throw new Error(error?.message);
     }
   }),
 
-  disapproved_timesheet: asyncHandler(async (req, res) => {
+  fetchprojectTimestatcard: asyncHandler(async (req, res) => {
     try {
       const user = await User.findById(req.user);
       if (!user) {
         res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+        throw new Error("Unauthorized User. Please Sign Up.");
       }
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
-      if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
-      }
-    } catch (error) {
-      throw new Error(error?.message);
-    }
-  }),
-
-  billed_timesheet: asyncHandler(async (req, res) => {
-    try {
-      const user = await User.findById(req.user);
-      if (!user) {
-        res.status(HttpStatusCodes.UNAUTHORIZED);
-        throw new Error("Unautorized User Please Singup");
+      // Check if the company exists
+      const company = await Company.findOne({UserId: user?.user_id});
+      if (!company) {
+        res.status(HttpStatusCodes.BAD_REQUEST);
+        throw new Error(
+          "Company does not exist. Please create a company first."
+        );
       }
 
-      const checkcompany = await Company.findOne({UserId: user?.user_id});
-      if (!checkcompany) {
-        res.status(HttpStatusCodes?.BAD_REQUEST);
-        throw new Error("company not exists please create first company");
+      const findProjects = await Project.find({
+        CompanyId: {$in: parseInt(company.Company_Id)},
+      });
+      console.log("Found projects:", findProjects);
+
+      const projectIds = findProjects
+        .map((item) => item?.ProjectId)
+        .filter(Boolean);
+      console.log("Project IDs:", projectIds);
+
+      const currentDate = new Date();
+
+      // 1. Define date ranges
+      const sixMonthsAgo = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() - 6,
+        1
+      );
+      const endOfLastMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        0
+      ); // end of previous month
+      const startOfCurrentMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth(),
+        1
+      );
+      const endOfCurrentMonth = new Date(
+        currentDate.getFullYear(),
+        currentDate.getMonth() + 1,
+        0
+      ); // end of current month
+
+      // 2. Get projects based on client
+
+      // 3. Fetch timesheets for previous 6 full months
+      const timesheets = await TimeSheet.find({
+        project: {$in: projectIds},
+        updatedAt: {$gte: sixMonthsAgo, $lte: endOfLastMonth},
+      });
+
+      console.log("6-Month Timesheets:", timesheets.length);
+
+      // 4. Group by YYYY-MM
+      const grouped = {};
+      timesheets.forEach((ts) => {
+        const month = new Date(ts.updatedAt).toISOString().slice(0, 7); // YYYY-MM
+
+        if (!grouped[month]) {
+          grouped[month] = {
+            ok_hours: 0,
+            blank_hours: 0,
+            billed_hours: 0,
+            hours: 0,
+          };
+        }
+
+        grouped[month].ok_hours += ts.ok_hours || 0;
+        grouped[month].blank_hours += ts.blank_hours || 0;
+        grouped[month].billed_hours += ts.billed_hours || 0;
+        grouped[month].hours += ts.hours || 0;
+      });
+
+      // 5. Format 6-month data
+      const months = [];
+      for (let i = 6; i >= 1; i--) {
+        const date = new Date(
+          currentDate.getFullYear(),
+          currentDate.getMonth() - i,
+          1
+        );
+        const key = date.toISOString().slice(0, 7); // YYYY-MM
+
+        months.push({
+          month: key,
+          ok_hours: grouped[key]?.ok_hours || 0,
+          blank_hours: grouped[key]?.blank_hours || 0,
+          billed_hours: grouped[key]?.billed_hours || 0,
+          hours: grouped[key]?.hours || 0,
+        });
       }
+
+      // 6. Fetch current month data
+      const currentMonthTimesheets = await TimeSheet.find({
+        project: {$in: projectIds},
+        approval_status: "APPROVED",
+        updatedAt: {$gte: startOfCurrentMonth, $lte: endOfCurrentMonth},
+      });
+
+      const currentMonthStats = {
+        ok_hours: 0,
+        blank_hours: 0,
+        billed_hours: 0,
+        hours: 0,
+      };
+
+      currentMonthTimesheets.forEach((ts) => {
+        currentMonthStats.ok_hours += ts.ok_hours || 0;
+        currentMonthStats.blank_hours += ts.blank_hours || 0;
+        currentMonthStats.billed_hours += ts.billed_hours || 0;
+        currentMonthStats.hours += ts.hours || 0;
+      });
+
+      // Add current month to months array
+      months.push({
+        month: startOfCurrentMonth.toISOString().slice(0, 7),
+        ...currentMonthStats,
+      });
+
+      // 7. Helper to generate card data
+      const createCardData = (key, label) => {
+        const values = months.map((m) => m[key]);
+        const curr = values[values.length - 1];
+        const prev = values[values.length - 2] || 0;
+
+        const percentage =
+          prev === 0 && curr === 0
+            ? 0
+            : prev === 0
+            ? 100
+            : +(((curr - prev) / prev) * 100).toFixed(1);
+
+        const trendDown = curr < prev;
+
+        return {
+          title: label,
+          value: curr,
+          unit: "hrs",
+          percentage: Math.abs(percentage),
+          trendDown,
+          chartData: values, // last 7 months (6 past + current)
+        };
+      };
+
+      // 8. Final response for UI cards
+      const responseData = [
+        createCardData("ok_hours", "Ok Hours"),
+        createCardData("blank_hours", "Blank Hours"),
+        createCardData("billed_hours", "Billed Hours"),
+        createCardData("hours", "Hours"),
+      ];
+
+      // 9. Send response
+      return res.status(200).json({data: responseData});
     } catch (error) {
       throw new Error(error?.message);
     }
