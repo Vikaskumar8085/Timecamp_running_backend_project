@@ -13,7 +13,12 @@ userRouter.post(
   companyCtr.create_company
 );
 userRouter.get("/fetch-company", verifyToken, companyCtr.fetch_company);
-userRouter.put("/update-company/:id", verifyToken, companyCtr.editcompany);
+userRouter.put(
+  "/update-company/:id",
+  upload.single("Company_Logo"),
+  verifyToken,
+  companyCtr.editcompany
+);
 
 // company creation
 

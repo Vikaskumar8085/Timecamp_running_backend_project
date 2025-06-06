@@ -87,7 +87,7 @@ const companyCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User please login first");
       }
-      const response = await Company.findOne({ UserId: user.user_id });
+      const response = await Company.findOne({UserId: user.user_id});
       if (!response) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("bad requests");
@@ -100,7 +100,7 @@ const companyCtr = {
       console.log(response._doc, "//////////////");
       return res
         .status(HttpStatusCodes.OK)
-        .json({ success: true, result: response });
+        .json({success: true, result: response});
     } catch (error) {
       throw new Error(error?.message);
     }
@@ -113,7 +113,7 @@ const companyCtr = {
         res.status(HttpStatusCodes.UNAUTHORIZED);
         throw new Error("Un Authorized User please login first");
       }
-      const ischecked = await Company.findOne({ UserId: user.user_id });
+      const ischecked = await Company.findOne({UserId: user.user_id});
       if (!ischecked) {
         res.status(HttpStatusCodes.BAD_REQUEST);
         throw new Error("bad requests");
@@ -144,10 +144,11 @@ const companyCtr = {
         ? `${req.protocol}://${req.get("host")}/${uploadPath}/${attachmentPath}`
         : null; // Keep existing if no new file
 
-      const { Person_Email, Person_Name, Person_Phones, ...rest } = req.body;
+      console.log(companyLogo, "companyLogo");
+      const {Person_Email, Person_Name, Person_Phones, ...rest} = req.body;
 
       const updatedCompany = await Company.findOneAndUpdate(
-        { Company_Id: parseInt(req.params.id) },
+        {Company_Id: parseInt(req.params.id)},
         {
           $set: {
             Company_Logo: companyLogo,
@@ -163,7 +164,7 @@ const companyCtr = {
       if (!updatedCompany) {
         return res
           .status(404)
-          .json({ success: false, message: "Company not found" });
+          .json({success: false, message: "Company not found"});
       }
 
       await Notification({
