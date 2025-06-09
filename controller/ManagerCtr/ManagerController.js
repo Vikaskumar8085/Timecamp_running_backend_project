@@ -136,27 +136,33 @@ const managerCtr = {
       const totalProjects = await Project.countDocuments(queryObj);
 
       // Fetch roles and staff details for each project
-      // const projectsWithDetails = await Promise.all(
-      //   projects.map(async (project) => {
-      //     const roleResources = await RoleResource.find({
-      //       ProjectId: {$in: project.ProjectId},
-      //       IsProjectManager: false,
-      //     });
+      const projectsWithDetails = await Promise.all(
+        projects.map(async (project) => {
+          const roleResources = await RoleResource.find({
+            ProjectId: {$in: project.ProjectId},
+            IsProjectManager: false,
+          });
 
-      //     const roleProjectMangare = await RoleResource.find({
-      //       ProjectId: project.ProjectId,
-      //       IsProjectManager: true,
-      //     });
-      //     return {
-      //       ...project,
-      //       roleProjectMangare: roleProjectMangare,
-      //       roleResources: roleResources,
-      //     };
-      //   })
-      // );
+          const roleProjectMangare = await RoleResource.find({
+            ProjectId: project.ProjectId,
+            IsProjectManager: true,
+          });
+
+          const bucket = await Bucket.find({
+            ProjectId: project.ProjectId,
+          });
+
+          return {
+            ...project,
+            bucket: bucket,
+            roleProjectMangare: roleProjectMangare,
+            roleResources: roleResources,
+          };
+        })
+      );
       return res.status(HttpStatusCodes.OK).json({
         message: "Projects fetched successfully",
-        result: projects,
+        result: projectsWithDetails,
         totalPages: Math.ceil(totalProjects / limit),
         currentPage: page,
         totalProjects,

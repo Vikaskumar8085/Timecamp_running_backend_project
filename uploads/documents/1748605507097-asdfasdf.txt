@@ -1,8 +1,0 @@
-R&D Monday and tuesday
-for whatsapp
-
-Friday Half day
-Make setup of project on monday frontend
-and Tuesday setup of Backend create api on wednesday
-solve issuse of code and avoid errors make project structured
-

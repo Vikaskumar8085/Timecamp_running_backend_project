@@ -508,10 +508,16 @@ const projectCtr = {
             ProjectId: project.ProjectId,
             IsProjectManager: true,
           });
+
+          const bucket = await Bucket.find({
+            ProjectId: project.ProjectId,
+          });
+
           return {
             ...project,
             roleProjectMangare: roleProjectMangare,
             roleResources: roleResources,
+            bucket: bucket,
           };
         })
       );
